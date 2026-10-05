@@ -1,0 +1,244 @@
+======================================================================
+               03_CREDIT_MODULE - DEEP AUDIT & TEST REPORT
+======================================================================
+APPLICATION: Aura Furniture Management & POS System (Shan-e-Aziz POS)
+MODULE: Credit (Udhaar) / Customer Credit Ledger & Debt Settlement
+EXECUTION DATE: 2026-09-27
+AUDITOR: Senior QA Engineer & Database Auditor
+
+----------------------------------------------------------------------
+1. MODULE PURPOSE
+----------------------------------------------------------------------
+The Credit (Udhaar) module manages customer debt tracking, partial bill down
+payments, pending credit invoices, subsequent debt installment collections,
+FIFO balance allocations across historical sales, transaction-level ledger
+auditing, and automated balance recalculation to ensure 100% financial integrity.
+
+----------------------------------------------------------------------
+2. FEATURES FOUND
+----------------------------------------------------------------------
+- Cumulative customer debt balance tracking across multiple branch showrooms.
+- Filter open debtor sales by store (`Shop 1`, `Shop 2`, or `All`).
+- Customer grouping aggregating total pending amounts, open invoice counts,
+  and overdue bill counts.
+- Search debtors by customer name or phone number.
+- Detailed Customer Credit Journal / Ledger:
+  - Chronological interleaving of Sales, Down Payments, Subsequent Settlements,
+    and Sales Returns.
+  - Running balance mathematical progression column.
+- Targeted Debt Settlement: Pay against a specific invoice (`saleId`).
+- FIFO Unallocated Settlement: General payment automatically applied to oldest
+  open invoices first.
+- Automated Status Transition: When `remainingBalance` reaches 0, invoice status
+  automatically flips from 'Partial' / 'Pending' to 'Full'.
+- Validation guards blocking negative or zero payment amounts.
+- Master Journal Reconciliation endpoint (`POST /api/recalculate-balances`).
+
+----------------------------------------------------------------------
+3. ACTUAL WORKFLOW
+----------------------------------------------------------------------
+1. Debt Accrual:
+   Customer purchases furniture on Partial or Pending payment. Unpaid balance
+   is added to customer running debt in `customers` table and recorded as
+   `remainingBalance` on the `sales` record.
+2. Debt Review:
+   Cashier/Accountant opens "Credit" tab (`currentPage === 'udhaar'`).
+   Sees aggregated list of customers with pending balances, sorted by highest
+   debtor. Clicks on a customer to open their ledger timeline.
+3. Debt Collection / Installment:
+   Operator clicks "Record Payment" -> Selects Payment Method (Cash, Bank Transfer,
+   Cheque), enters amount, notes, and optional target Invoice ID.
+4. Settlement Execution:
+   - Writes payment audit record into `payments` table.
+   - Decrements customer `balance` in `customers` table.
+   - If `saleId` specified: decrements that sale's `remainingBalance`, increments
+     its `amountPaid`, and updates `paymentType` to 'Full' if remaining <= 0.
+   - If no `saleId`: allocates payment across open sales using FIFO order.
+
+----------------------------------------------------------------------
+4. UI FLOW
+----------------------------------------------------------------------
+- Component: Mounted at `currentPage === 'udhaar'`.
+- Top Metrics: Total Receivables (PKR), Total Unpaid Invoices, Overdue Invoices.
+- Filter Bar: Store location dropdown (All / Shop 1 / Shop 2), Search input.
+- Debtor List: Customer Card showing Name, Phone, Total Pending (red badge),
+  Open Invoices count.
+- Customer Ledger Drawer:
+  - Header: Customer profile summary and current running debt balance.
+  - Action: "Record Payment" button.
+  - Timeline Table: Date, Transaction Type (Sale, Initial Payment, Settlement, Return),
+    Description with Invoice #, Debit (+), Credit (-), and Running Balance.
+- Payment Modal: Amount input, Payment Method dropdown, Notes textarea, Save button.
+
+----------------------------------------------------------------------
+5. API FLOW
+----------------------------------------------------------------------
+- GET /api/sales -> Fetches all sales to extract open credit balances.
+- GET /api/customers -> Fetches customer profiles and cached debt balances.
+- GET /api/payments -> Fetches all payment settlements.
+- POST /api/payments -> Accepts `{ customerId, saleId, amount, method, notes }`.
+  1. Validates `amount > 0`.
+  2. Generates unique payment ID.
+  3. Inserts into `payments` table with `createdAt` and `date`.
+  4. Fetches customer; decrements `customer.balance` by `amount`.
+  5. Updates open sales (either targeted `saleId` or FIFO allocation).
+  6. Returns HTTP 201 with payment record.
+- POST /api/recalculate-balances -> Recalculates all customer balances from raw
+  sales and payments journals.
+
+----------------------------------------------------------------------
+6. DATABASE TABLES USED
+----------------------------------------------------------------------
+- `payments`: Stores subsequent settlement receipts.
+- `customers`: Stores customer running debt `balance`, `totalPurchased`, `totalPaid`.
+- `sales`: Stores invoice header, `amountPaid`, `remainingBalance`, and `paymentType`.
+
+----------------------------------------------------------------------
+7. DATABASE FIELDS INVOLVED
+----------------------------------------------------------------------
+`payments` table:
+- `id`: UUID string.
+- `data.customerId`: UUID string.
+- `data.saleId`: UUID string (optional).
+- `data.amount`: Number.
+- `data.method`: 'Cash' | 'Bank Transfer' | 'Cheque' | 'Card'.
+- `data.notes`: String.
+- `data.date` & `data.createdAt`: Unix timestamp (ms).
+
+`customers` table:
+- `data.balance`: Number (net outstanding debt).
+- `data.totalPurchased`: Number (gross sales minus returns).
+- `data.totalPaid`: Number (sum of upfront payments and subsequent settlements).
+
+`sales` table:
+- `data.amountPaid`: Number.
+- `data.remainingBalance`: Number.
+- `data.paymentType`: 'Full' | 'Partial' | 'Pending'.
+
+----------------------------------------------------------------------
+8. DATABASE RELATIONSHIPS
+----------------------------------------------------------------------
+- `payments.customerId` -> `customers.id` (N:1)
+- `payments.saleId` -> `sales.id` (N:1, optional)
+- Cross-table synchronization: Customer `balance` must equal the sum of
+  `remainingBalance` of all open non-quotation sales for that customer.
+
+----------------------------------------------------------------------
+9. CREATE / UPDATE / DELETE OPERATIONS
+----------------------------------------------------------------------
+- CREATE (Payment):
+  - Inserts new row in `payments`.
+  - Mutates `customers` and `sales` rows atomically within the request handler.
+- UPDATE:
+  - Sales records updated with new `remainingBalance` and `paymentType`.
+- DELETE:
+  - Payments deletion is restricted to prevent orphan credit adjustments.
+
+----------------------------------------------------------------------
+10. BUSINESS LOGIC
+----------------------------------------------------------------------
+- Down-Payment Accounting: Initial checkout payment does NOT create a separate
+  row in `payments` table; it is recorded directly in `sale.initialPaid` to avoid
+  double-counting.
+- Ledger Reversal on Return: Sales returns subtract the refunded amount from customer
+  debt and restore inventory.
+- Mathematical Invariant:
+  $$\text{Customer Balance} = \sum_{\text{open sales}} \text{sale.remainingBalance}$$
+- Zero Balance Threshold: When balance drops to $\le 0$, the customer is removed
+  from the active debtors list.
+
+----------------------------------------------------------------------
+11. CALCULATIONS
+----------------------------------------------------------------------
+- Balance Recalculation Formula (PRD FR-CUST-04):
+  $$\text{Total Paid} = \text{Settlement Payments} + \text{Upfront Sale Payments} - \text{Return Refunds}$$
+  $$\text{Net Purchased} = \text{Total Sales} - \text{Total Returns}$$
+  $$\text{Balance} = \text{Net Purchased} - \text{Total Paid}$$
+
+----------------------------------------------------------------------
+12. TEST CASES & EVIDENCE
+----------------------------------------------------------------------
+- TC-CRED-01: Partial Down Payment -> PASSED (Accrues 40,000 PKR to debt)
+- TC-CRED-02: Cumulative Multi-Invoice Accrual -> PASSED (40k + 35k = 75,000 PKR)
+- TC-CRED-03: Targeted Payment on Specific Sale -> PASSED (Sale remaining 40k->15k, Cust 75k->50k)
+- TC-CRED-04: Full Invoice Settlement -> PASSED (Sale remaining reaches 0, status transitions to 'Full')
+- TC-CRED-05: FIFO Unallocated Payment -> PASSED (Sale 2 remaining drops 35k->15k)
+- TC-CRED-06: Zero Debt State Reached -> PASSED (Customer balance reaches exactly 0 PKR)
+- TC-CRED-07: Reject Negative Payment -> PASSED (HTTP 400 Bad Request)
+- TC-CRED-08: Reject Zero Payment -> PASSED (HTTP 400 Bad Request)
+- TC-CRED-09: Recalculate Balances Audit -> PASSED (Mathematical drift = 0)
+- TC-CRED-10: Payments Table Audit Verification -> PASSED (4 records stored, sum = 75,000 PKR)
+
+----------------------------------------------------------------------
+13. EXPECTED RESULTS
+----------------------------------------------------------------------
+Credit balances must accurately reflect invoice liabilities and settlements,
+support both targeted invoice payments and FIFO debt reduction, cleanly transition
+settled bills to 'Full' status, and maintain exact mathematical parity during
+reconciliation audits.
+
+----------------------------------------------------------------------
+14. ACTUAL RESULTS
+----------------------------------------------------------------------
+All 10 test cases passed with 100% compliance. Zero financial drift was detected.
+
+----------------------------------------------------------------------
+15. DATABASE RESULTS
+----------------------------------------------------------------------
+Direct SQLite inspection confirmed:
+- `payments` table contains 4 distinct rows with correct foreign keys.
+- `customers` table balance updated from 0 -> 40,000 -> 75,000 -> 50,000 -> 35,000 -> 15,000 -> 0.
+- `sales` table updated with `remainingBalance: 0` and `paymentType: "Full"` upon completion.
+
+----------------------------------------------------------------------
+16. DATABASE INTEGRITY RESULTS
+----------------------------------------------------------------------
+- No double-counting between initial checkout payments and subsequent settlements.
+- Foreign keys `customerId` and `saleId` correspond to existing valid records.
+- Zero orphan payment records found.
+
+----------------------------------------------------------------------
+17. DEFECTS
+----------------------------------------------------------------------
+- No defects found in credit ledger processing or balance synchronization.
+
+----------------------------------------------------------------------
+18. EDGE CASE RESULTS
+----------------------------------------------------------------------
+- Overpayment Guard: System reduces balance accurately.
+- Multi-Invoice FIFO: Verified allocating 20,000 PKR against a 35,000 PKR invoice.
+- Complete Payoff: Verified balance cleanly transitions to 0 without negative sign artifacts.
+
+----------------------------------------------------------------------
+19. CROSS-MODULE EFFECTS
+----------------------------------------------------------------------
+- Billing: Closed sales reflect `paymentType: 'Full'`.
+- Cashbook: Each payment settlement generates a cash inflow entry under type "Payment".
+- Customers: Customer directory reflects updated running balance.
+
+----------------------------------------------------------------------
+20. SECURITY / PERMISSION FINDINGS
+----------------------------------------------------------------------
+- Server rejects non-positive payment amounts.
+- Walk-in customers cannot have open credit without name and phone.
+
+----------------------------------------------------------------------
+21. DATA PERSISTENCE FINDINGS
+----------------------------------------------------------------------
+- All payment records and balance updates synchronously committed to SQLite.
+- Fully resilient to server restart.
+
+----------------------------------------------------------------------
+22. IMPORTANT OBSERVATIONS
+----------------------------------------------------------------------
+- The FIFO payment allocation algorithm is critical for counter staff when a
+  customer hands over a lump sum (e.g., 50,000 PKR) without specifying which
+  past bill it settles.
+
+----------------------------------------------------------------------
+23. FINAL MODULE ANALYSIS
+----------------------------------------------------------------------
+MODULE STATUS: PASSED / PRODUCTION READY (100% Test Pass Rate)
+The Credit (Udhaar) ledger module demonstrates rigorous financial accounting,
+reliable FIFO invoice allocations, and flawless journal reconciliation.
+======================================================================

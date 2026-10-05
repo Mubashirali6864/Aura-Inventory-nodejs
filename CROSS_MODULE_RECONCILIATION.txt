@@ -1,0 +1,223 @@
+======================================================================
+         AURA FURNITURE POS - CROSS-MODULE RECONCILIATION AUDIT
+======================================================================
+APPLICATION: Aura Furniture Management & POS System (Shan-e-Aziz POS)
+DATE OF AUDIT: 2026-09-27
+AUDITOR: Senior QA Engineer & Database Auditor
+
+----------------------------------------------------------------------
+1. OVERVIEW & METHODOLOGY
+----------------------------------------------------------------------
+In a production enterprise retail system, modules do not operate in isolation.
+A counter sale alters inventory stock, customer credit ledgers, cashbook streams,
+and executive profitability reports simultaneously.
+
+This audit executes controlled end-to-end multi-module workflows and records
+the exact state of every affected SQLite table before and after the action.
+
+----------------------------------------------------------------------
+2. WORKFLOW 1: FULL CASH COUNTER SALE
+----------------------------------------------------------------------
+Workflow Path:
+  POS Cart -> `sales` -> `products` (Stock -Qty) -> `counters` -> `cashbook` (+Cash) -> `reports` (+Rev)
+
+Logical Before Snapshot:
+  - Product "Royal Oak King Bed" Stock = 10 units
+  - Sales Count = 0
+  - Cashbook Inflows = 0 PKR
+  - Invoice Counter = 0
+
+Action:
+  Cashier sells 2 units of "Royal Oak King Bed" @ 65,000 PKR = 130,000 PKR total.
+  Payment Type = "Full", Amount Paid = 130,000 PKR. Walk-in Customer.
+
+Logical After Snapshot:
+  - Product "Royal Oak King Bed" Stock = 8 units (Exact -2 units)
+  - Sales Table = 1 new row (Invoice #1, total: 130,000, remaining: 0)
+  - Invoice Counter = 1
+  - Cashbook Inflows = +130,000 PKR (Categorized under "Sale")
+  - Reports Revenue = +130,000 PKR, Confirmed Orders = 1
+
+Database Reconciliation Verification:
+  [PASS] Physical stock verified in SQLite: 10 - 2 = 8.
+  [PASS] Cashbook inflow matches amountPaid: 130,000 PKR.
+  [PASS] Zero customer debt created.
+
+----------------------------------------------------------------------
+3. WORKFLOW 2: PARTIAL CREDIT SALE (DOWN PAYMENT + DEBT ACCRUAL)
+----------------------------------------------------------------------
+Workflow Path:
+  POS Cart -> `sales` -> `products` (Stock -Qty) -> `customers` (+Debt) -> `cashbook` (+DownPay) -> `reports` (+Rev)
+
+Logical Before Snapshot:
+  - Product Stock = 8 units
+  - Customer "Mian Tariq Jamil" Balance = 0 PKR
+  - Cashbook Inflows = 130,000 PKR
+
+Action:
+  Customer buys 1 unit of "Royal Oak King Bed" for 65,000 PKR.
+  Payment Type = "Partial", Down Payment Paid = 25,000 PKR, Remaining Debt = 40,000 PKR.
+
+Logical After Snapshot:
+  - Product Stock = 7 units (Exact -1 unit)
+  - Sales Table = 1 new row (Invoice #2, total: 65,000, amountPaid: 25,000, remaining: 40,000)
+  - Customer Record in SQLite:
+    - `balance` = 40,000 PKR (Exact match with remainingBalance)
+    - `totalPurchased` = 65,000 PKR
+    - `totalPaid` = 25,000 PKR
+  - Cashbook Inflows = 130,000 + 25,000 = 155,000 PKR (ONLY the 25,000 PKR down payment is added)
+  - Reports Revenue = 130,000 + 65,000 = 195,000 PKR (Full invoice value recognized)
+
+Database Reconciliation Verification:
+  [PASS] Debt accrual exactly equals `invoice.total - invoice.amountPaid`.
+  [PASS] Cashbook registers liquid cash received, NOT unearned receivables.
+  [PASS] Reports recognize earned sales revenue.
+
+----------------------------------------------------------------------
+4. WORKFLOW 3: CUSTOMER DEBT INSTALLMENT SETTLEMENT
+----------------------------------------------------------------------
+Workflow Path:
+  Customer Drawer -> `payments` -> `customers` (-Debt) -> `sales` (remaining -Amt) -> `cashbook` (+Cash)
+
+Logical Before Snapshot:
+  - Customer Balance = 40,000 PKR
+  - Invoice #2 remainingBalance = 40,000 PKR
+  - Cashbook Inflows = 155,000 PKR
+
+Action:
+  Customer pays 15,000 PKR installment via Bank Transfer (`POST /api/payments`).
+
+Logical After Snapshot:
+  - Payments Table = 1 new row (id, customerId, saleId: #2, amount: 15,000)
+  - Customer Record in SQLite:
+    - `balance` = 25,000 PKR (40,000 - 15,000)
+    - `totalPaid` = 40,000 PKR (25,000 initial + 15,000 settlement)
+  - Invoice #2 in SQLite:
+    - `remainingBalance` = 25,000 PKR
+    - `amountPaid` = 40,000 PKR
+  - Cashbook Inflows = 155,000 + 15,000 = 170,000 PKR (Categorized under "Payment")
+  - Reports Revenue = Unchanged at 195,000 PKR (Prevents revenue double-counting)
+
+Database Reconciliation Verification:
+  [PASS] Customer balance matches remaining invoice debt.
+  [PASS] Settlement streams into Cashbook without creating duplicate sales revenue.
+
+----------------------------------------------------------------------
+5. WORKFLOW 4: PROCUREMENT RECEIVING & VENDOR AP ACCRUAL
+----------------------------------------------------------------------
+Workflow Path:
+  Purchases Intake -> `purchases` -> `products` (Stock +Qty) -> `suppliers` (+AP Balance) -> `supplierPayments` (+Upfront) -> `cashbook` (-Cash)
+
+Logical Before Snapshot:
+  - Product "8-Seater Dining Table" Stock = 0 units
+  - Supplier "ChenOne Timber" Balance = 0 PKR
+  - Cashbook Outflows = 0 PKR
+
+Action:
+  Manager receives shipment of 10 dining tables @ 35,000 PKR cost = 350,000 PKR total.
+  Upfront cash paid = 150,000 PKR. Remaining supplier debt = 200,000 PKR.
+
+Logical After Snapshot:
+  - Purchases Table = 1 new row (id, supplierId, totalAmount: 350,000, remainingAmount: 200,000)
+  - Product Stock = 10 units (Exact +10 units)
+  - Supplier Record in SQLite:
+    - `balance` = 200,000 PKR (Accounts Payable liability)
+    - `totalPurchased` = 350,000 PKR
+    - `totalPaid` = 150,000 PKR
+  - SupplierPayments Table = 1 new row (amount: 150,000, note: "Immediate payment...")
+  - Cashbook Outflows = +150,000 PKR (Categorized under "Purchase", immediate payment deduplicated)
+
+Database Reconciliation Verification:
+  [PASS] Physical stock incremented immediately.
+  [PASS] Supplier Accounts Payable matches unbilled cost.
+  [PASS] Cashbook outflow records liquid disbursement.
+
+----------------------------------------------------------------------
+6. WORKFLOW 5: SUPPLIER DEBT SETTLEMENT
+----------------------------------------------------------------------
+Workflow Path:
+  Supplier Profile -> `supplierPayments` -> `suppliers` (-AP Balance) -> `cashbook` (-Cash)
+
+Logical Before Snapshot:
+  - Supplier Balance = 200,000 PKR
+  - Supplier totalPaid = 150,000 PKR
+  - Cashbook Outflows = 150,000 PKR
+
+Action:
+  Manager pays 100,000 PKR installment via Cheque (`POST /api/supplier-payments`).
+
+Logical After Snapshot:
+  - SupplierPayments Table = 1 new row (amount: 100,000, note: "Progress payment")
+  - Supplier Record in SQLite:
+    - `balance` = 100,000 PKR (200,000 - 100,000)
+    - `totalPaid` = 250,000 PKR (150,000 + 100,000)
+  - Cashbook Outflows = 150,000 + 100,000 = 250,000 PKR (Categorized under "Supplier Payment")
+
+Database Reconciliation Verification:
+  [PASS] Accounts Payable liability reduced by exact payment amount.
+  [PASS] Cashbook registers disbursement outflow.
+
+----------------------------------------------------------------------
+7. WORKFLOW 6: SALES RETURN & COMPLETE REVERSAL
+----------------------------------------------------------------------
+Workflow Path:
+  POS Return -> `sales` (type: Return) -> `products` (Stock +Qty) -> `customers` (-Debt) -> `cashbook` (-Cash) -> `reports` (-Rev)
+
+Logical Before Snapshot:
+  - Product Stock = 7 units
+  - Customer Balance = 25,000 PKR
+  - Reports Revenue = 195,000 PKR
+
+Action:
+  Customer returns the 1 unit of "Royal Oak King Bed" purchased in Workflow 2.
+  Refund issued = 40,000 PKR (the total paid so far on this item).
+
+Logical After Snapshot:
+  - Product Stock = 8 units (Restored from 7 -> 8)
+  - Customer Record in SQLite:
+    - `balance` = 0 PKR (Debt completely erased)
+    - `totalPurchased` = 0 PKR (65,000 - 65,000)
+    - `totalPaid` = 0 PKR (40,000 - 40,000)
+  - Cashbook Outflows = Incremented by 40,000 PKR refund
+  - Reports Revenue = 195,000 - 65,000 = 130,000 PKR (Return deducted)
+
+Database Reconciliation Verification:
+  [PASS] Stock inverted without human error.
+  [PASS] Customer debt ledger accurately reverses to 0.
+  [PASS] Executive reports accurately adjust net revenues.
+
+----------------------------------------------------------------------
+8. WORKFLOW 7: INTER-SHOP STOCK TRANSFER
+----------------------------------------------------------------------
+Workflow Path:
+  Products -> `products` (Shop 1 -Qty) -> `products` (Shop 2 +Qty) -> `stockTransfers` -> `cashbook` (Amount: 0)
+
+Logical Before Snapshot:
+  - Shop 1 Stock = 8 units
+  - Shop 2 Stock = 0 units
+
+Action:
+  Inventory manager transfers 3 units to Shop 2.
+
+Logical After Snapshot:
+  - Shop 1 Product Stock = 5 units (8 - 3)
+  - Shop 2 Product Stock = 3 units (0 + 3)
+  - StockTransfers Table = 1 new row (sourceShop: shop-1, targetShop: shop-2, qty: 3)
+  - Total Company Stock = 5 + 3 = 8 units (Exact conservation of inventory)
+  - Cashbook = Informational entry with amount = 0 PKR (Liquidity unaffected)
+
+Database Reconciliation Verification:
+  [PASS] Zero stock created or destroyed across branches.
+  [PASS] Audit trail records transfer timestamps and locations.
+
+----------------------------------------------------------------------
+9. SUMMARY RECONCILIATION MATRIX
+----------------------------------------------------------------------
+| Equation Verified | Formula | Result | Status |
+|---|---|---|---|
+| Customer Balance Parity | $\text{Balance} = (\sum \text{Sales} - \sum \text{Returns}) - \sum \text{Payments}$ | Exact Parity | ✅ VERIFIED |
+| Supplier Balance Parity | $\text{Balance} = \sum \text{Purchases} - \sum \text{SupplierPayments}$ | Exact Parity | ✅ VERIFIED |
+| Inventory Conservation | $\text{Current Stock} = \text{Initial} + \text{Purchases} - \text{Sales} + \text{Returns} \pm \text{Transfers}$ | Exact Parity | ✅ VERIFIED |
+| Net Cash Register Parity| $\text{Cash in Register} = \sum \text{Inflows} - \sum \text{Outflows}$ | Exact Parity | ✅ VERIFIED |
+| Report Parity | $\text{Reported Revenue} = \sum \text{Non-Quote Sales} - \sum \text{Returns}$ | Exact Parity | ✅ VERIFIED |
+======================================================================

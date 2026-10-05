@@ -1,0 +1,93 @@
+======================================================================
+               AURA FURNITURE POS - SECURITY ARCHITECTURE AUDIT
+======================================================================
+APPLICATION: Aura Furniture Management & POS System (Shan-e-Aziz POS)
+DATE: 2026-09-27
+AUDITOR: Senior Application Security Engineer & DevSecOps Reviewer
+TARGET ENVIRONMENT: Node.js 20+ / Express 4.18.2 / SQLite3 / Single-Page Application (React)
+
+----------------------------------------------------------------------
+1. SYSTEM OVERVIEW & ARCHITECTURAL TOPOLOGY
+----------------------------------------------------------------------
+Aura Furniture Management System is an on-premises enterprise Point of Sale
+(POS), multi-showroom inventory tracking, customer debt ledger, and cash-flow
+auditing platform designed for local furniture retail operations.
+
+The runtime architecture consists of:
+1. Client Layer:
+   - Single-Page Web Application compiled into static assets (`dist/`).
+   - Built with React, Vite, Tailwind CSS, Lucide icons, and Recharts.
+   - Operates in browser context across desktop POS terminals, tablets, and manager laptops.
+2. Server Layer:
+   - Node.js Express application (`backend/index.js`).
+   - Listens on `PORT=7860` (defaulting to `0.0.0.0`, all network interfaces).
+   - Exposes 19 REST API endpoints providing CRUD services and financial calculations.
+3. Persistence Layer:
+   - Local SQLite database file (`backend/database.sqlite`).
+   - Utilizes a document-oriented Key-Value storage paradigm (`id TEXT PRIMARY KEY, data TEXT`).
+   - JSON payloads are serialized and deserialized in Node.js process memory.
+   - Automated file-based backup engine storing point-in-time snapshots in `backend/backups/`.
+
+----------------------------------------------------------------------
+2. NETWORK TOPOLOGY & INTERFACE EXPOSURE
+----------------------------------------------------------------------
+- Host Binding:
+  The Express server initiates via `app.listen(PORT, ...)`. In Node.js, omitting
+  the host parameter causes Express to bind to `INADDR_ANY` (`0.0.0.0`).
+- Implication:
+  The API and static web application are simultaneously accessible to:
+  * Local machine (`http://localhost:7860`)
+  * Local Area Network (`http://192.168.x.x:7860`)
+  * Any bridge/VPN interfaces configured on the host machine.
+- Transport Layer Security (TLS/HTTPS):
+  * Node.js server currently runs plaintext HTTP without TLS termination.
+  * Internal LAN traffic (passwords, customer PII, financial totals, SQLite binary downloads)
+    transits unencrypted and is susceptible to LAN packet sniffing / ARP spoofing.
+
+----------------------------------------------------------------------
+3. DATA STORAGE & SCHEMA ARCHITECTURE
+----------------------------------------------------------------------
+The database utilizes a hybrid relational-document pattern:
+- Dedicated physical tables:
+  * `products` (id TEXT, data TEXT)
+  * `customers` (id TEXT, data TEXT)
+  * `payments` (id TEXT, data TEXT)
+  * `sales` (id TEXT, data TEXT)
+  * `suppliers` (id TEXT, data TEXT)
+  * `purchases` (id TEXT, data TEXT)
+  * `supplierPayments` (id TEXT, data TEXT)
+  * `expenses` (id TEXT, data TEXT)
+  * `stockTransfers` (id TEXT, data TEXT)
+  * `counters` (id TEXT PRIMARY KEY, value INTEGER)
+- Characteristics:
+  * Queries utilize parameterized statements (`db.get(..., [id])`, `db.run(..., [id, json])`).
+  * No relational foreign keys (`REFERENCES`) are enforced by SQLite engine.
+  * Integrity, constraints, and business rules are enforced strictly in Express application memory.
+
+----------------------------------------------------------------------
+4. STRIDE THREAT MODELING ANALYSIS
+----------------------------------------------------------------------
+| Threat Category | Present Exposure / Risk | Severity |
+|---|---|---|
+| Spoofing | Complete absence of user identity/login system. Any client on LAN can execute transactions as any cashier. | HIGH |
+| Tampering | Lack of server-side recalculation on sales total and open `PUT /api/products/:id` allowing negative stock. | HIGH |
+| Repudiation | No user audit logging; all transactions lack `createdByUserId` or authenticated signatures. | HIGH |
+| Information Disclosure | `GET /api/backups/download/:filename` enables full unauthenticated SQLite exfiltration. | HIGH |
+| Denial of Service | Absence of rate limiting; massive 10MB JSON body limit; unindexed table scans on large datasets. | MEDIUM |
+| Elevation of Privilege | Administrative actions (`POST /api/reset`, `POST /api/backups/restore`) lack RBAC gating. | HIGH |
+
+----------------------------------------------------------------------
+5. TRUST BOUNDARIES & ATTACK VECTORS
+----------------------------------------------------------------------
+Boundary 1: Local Network to Server API
+- Status: OPEN (Untrusted).
+- Risk: Any rogue device connected to showroom Wi-Fi or Ethernet can invoke REST APIs directly.
+
+Boundary 2: Browser Client to REST Controller
+- Status: OPEN (No Session / Token).
+- Risk: Zero authentication headers required. Client-side UI disables buttons, but server accepts raw HTTP requests.
+
+Boundary 3: Express Process to SQLite File System
+- Status: INTERNAL.
+- Risk: SQLite database file is stored unencrypted on disk (`database.sqlite`). Host compromise grants immediate raw SQL access.
+======================================================================

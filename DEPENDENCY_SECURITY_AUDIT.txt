@@ -1,0 +1,74 @@
+======================================================================
+               AURA FURNITURE POS - DEPENDENCY SECURITY AUDIT
+======================================================================
+APPLICATION: Aura Furniture Management & POS System (Shan-e-Aziz POS)
+DATE: 2026-09-27
+AUDITOR: Senior DevSecOps Auditor & Software Composition Analyst
+
+----------------------------------------------------------------------
+1. DIRECT DEPENDENCIES INVENTORY & RUNTIME ANALYSIS
+----------------------------------------------------------------------
+Inspected `package.json` direct dependencies:
+
+| Package | Declared Version | Installed Version | Runtime Role | Assessment |
+|---|---|---|---|---|
+| `body-parser` | `^1.20.2` | `1.20.5` | JSON & URL-encoded request body parsing | Affected by transitive `qs` vulnerability |
+| `cors` | `^2.8.5` | `2.8.5` | Cross-Origin Resource Sharing middleware | Healthy; no known CVEs |
+| `dotenv` | `^16.3.1` | `16.6.1` | Environment variable loader | Healthy; no known CVEs |
+| `express` | `^4.18.2` | `4.22.2` | Web server & REST API framework | Affected by transitive `qs` vulnerability |
+| `sqlite` | `^5.1.1` | `5.1.1` | Promise-based SQLite client wrapper | Healthy; no known CVEs |
+| `sqlite3` | `^5.1.7` | `5.1.7` | Native SQLite3 database driver | Healthy; no known CVEs |
+
+Total direct production dependencies: 6
+Total transitive dependencies in lockfile: 127
+
+----------------------------------------------------------------------
+2. EMPIRICAL VULNERABILITY AUDIT FINDINGS (npm audit)
+----------------------------------------------------------------------
+Ran automated vulnerability scan via `npm.cmd audit --json`:
+Total Vulnerabilities Detected: 3 (3 Moderate, 0 High, 0 Critical)
+
+Detailed Vulnerability Breakdowns:
+
+1. Package: `qs` (Transitive via `body-parser` and `express`)
+   - Installed Version: `6.14.2`
+   - Vulnerability 1 (GHSA-x5fp-wj9c-mxmx / CVE-2024-45296):
+     * Title: qs array-limit bypass via bracket-key comma parsing
+     * Severity: Moderate (CVSS 3.7)
+     * CWE: CWE-770 (Allocation of Resources Without Limits or Throttling)
+     * Description: Specially crafted query strings can bypass default array parsing
+       limits, allowing attackers to allocate large memory structures.
+   - Vulnerability 2 (GHSA-4mjr-xmp4-gh2g):
+     * Title: qs Denial of Service via Attacker-Controlled isBuffer
+     * Severity: Moderate (CVSS 5.3)
+     * CWE: CWE-248 (Uncaught Exception) / CWE-703 (Improper Check for Unusual or Exceptional Conditions)
+     * Description: Malicious input can trigger an unhandled runtime exception in `isBuffer`
+       evaluation, crashing or degrading the Express process.
+   - Affected Nodes:
+     * `node_modules/qs`
+     * `node_modules/body-parser`
+     * `node_modules/express`
+
+----------------------------------------------------------------------
+3. EXPLOITABILITY IN AURA POS CONTEXT
+----------------------------------------------------------------------
+- The application primarily consumes JSON payloads via `bodyParser.json({ limit: '10mb' })`.
+- URL-encoded form parsing (`bodyParser.urlencoded({ extended: true })`) is NOT mounted
+  directly in `backend/index.js`.
+- Exploitability Rating: LOW. While the vulnerable code is present in `node_modules`,
+  the primary API attack paths use `application/json`, which bypasses the vulnerable
+  bracket-comma parsing in `qs`.
+- Nonetheless, standard hygiene requires patching the dependency tree.
+
+----------------------------------------------------------------------
+4. REMEDIATION & UPGRADE SPECIFICATION
+----------------------------------------------------------------------
+To resolve all 3 moderate vulnerabilities:
+
+1. Recommended Fix Command:
+   `npm update qs` or `npm audit fix`
+2. Safe Version Target:
+   Upgrade `qs` to `>=6.16.0`.
+3. Verification:
+   Re-run `npm.cmd audit --json` and confirm `total: 0` vulnerabilities.
+======================================================================

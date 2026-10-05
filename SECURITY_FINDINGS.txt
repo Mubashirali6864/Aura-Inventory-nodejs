@@ -1,0 +1,283 @@
+======================================================================
+               AURA FURNITURE POS - DETAILED SECURITY FINDINGS
+======================================================================
+APPLICATION: Aura Furniture Management & POS System (Shan-e-Aziz POS)
+DATE: 2026-09-27
+AUDITOR: Senior Application Security Engineer & Penetration Tester
+
+----------------------------------------------------------------------
+FINDING ID: SEC-001
+----------------------------------------------------------------------
+TITLE: Unauthenticated SQLite Database Backup Exfiltration
+CATEGORY: Sensitive Data Exposure / Broken Access Control
+SEVERITY: HIGH (CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N - 6.5)
+AFFECTED COMPONENT: Backend Route `GET /api/backups/download/:filename` (`backend/index.js:L1079`)
+DESCRIPTION:
+The backup download endpoint allows any client connected to the local network
+(or over an exposed tunnel) to download complete SQLite database files
+without presenting any session token, API key, or administrative credentials.
+SECURITY IMPACT:
+An unauthorized user on the local Wi-Fi or showroom network can download the
+entire business database, exposing customer PII (names, phone numbers, addresses),
+debt records, supplier purchase invoices, cost prices, gross margins, and sales logs.
+ATTACK PRECONDITION:
+Network connectivity to the POS server port (7860).
+EVIDENCE:
+HTTP request `GET http://localhost:7860/api/backups/download/backup-manual-2026-09-27.sqlite`
+returned `HTTP 200 OK` with binary `application/x-sqlite3` payload containing all tables.
+VALIDATION RESULT: Confirmed Vulnerable.
+ROOT CAUSE:
+The download handler (`app.get('/api/backups/download/:filename')`) does not inspect
+user session state or administrative authentication headers before calling `res.download()`.
+REMEDIATION:
+Gate the backup download endpoint behind an administrative token or session middleware.
+```javascript
+const adminToken = req.headers['x-admin-token'];
+if (!adminToken || adminToken !== process.env.ADMIN_RESET_TOKEN) {
+    return res.status(403).json({ error: 'Unauthorized: Admin credentials required.' });
+}
+```
+REGRESSION TEST:
+Invoke `GET /api/backups/download/backup-test.sqlite` without `x-admin-token`; verify response is `HTTP 403 Forbidden`.
+
+----------------------------------------------------------------------
+FINDING ID: SEC-002
+----------------------------------------------------------------------
+TITLE: Server Blindly Trusts Client-Supplied Invoice Total Without Recomputing
+CATEGORY: Business Logic / Financial Data Integrity
+SEVERITY: HIGH (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N - 7.5)
+AFFECTED COMPONENT: Sales Checkout Controller `POST /api/sales` (`backend/index.js:L720`)
+DESCRIPTION:
+When processing sales invoices, the backend accepts the `total` field directly
+from `req.body.total`. Although line item quantities and unit prices are checked
+for non-negativity, the server never computes `sum(items.quantity * items.price)`
+to verify that the submitted total matches the goods sold.
+SECURITY IMPACT:
+A malicious counter cashier, compromised browser extension, or direct API script
+can record a high-value purchase (e.g. 50,000 PKR of luxury furniture) with an invoice
+total of 10 PKR. The stock is decremented in inventory, but the customer ledger and
+cash drawer reflect only 10 PKR, enabling severe internal inventory shrink and financial fraud.
+ATTACK PRECONDITION:
+Network access to `POST /api/sales`.
+EVIDENCE:
+Submitted payload:
+`{ type: "Sale", total: 10, customerDetails: { paymentType: "Full", amountPaid: 10 }, items: [{ quantity: 1, price: 500, total: 500 }] }`
+Server responded `HTTP 201 Created` and persisted `total = 10` for an item priced at 500 PKR.
+VALIDATION RESULT: Confirmed Vulnerable.
+ROOT CAUSE:
+Controller logic relies on `const parsedTotal = Number(total)` without recalculating:
+`const expectedTotal = items.reduce((acc, i) => acc + (Number(i.quantity) * Number(i.price)), 0)`.
+REMEDIATION:
+Enforce server-side invoice total computation:
+```javascript
+const computedItemsTotal = items.reduce((sum, item) => {
+    return sum + (Number(item.quantity) * Number(item.price || item.retailPrice || 0));
+}, 0);
+if (Math.abs(computedItemsTotal - parsedTotal) > 0.01) {
+    return res.status(400).json({ error: 'Invoice total does not match line items calculation.' });
+}
+```
+REGRESSION TEST:
+Submit a sale with items total = 1000 and total = 10; verify response is `HTTP 400 Bad Request`.
+
+----------------------------------------------------------------------
+FINDING ID: SEC-003
+----------------------------------------------------------------------
+TITLE: Unrestricted Product Stock & Retail Price Tampering via PUT
+CATEGORY: Input Validation / Inventory Integrity
+SEVERITY: MEDIUM (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:M/A:N - 5.3)
+AFFECTED COMPONENT: Product Management Route `PUT /api/products/:id` (`backend/index.js:L455`)
+DESCRIPTION:
+While `POST /api/products` validates that `stock >= 0` and `prices >= 0`,
+the update handler `PUT /api/products/:id` merges `req.body` directly into
+the product record without validating quantity, price, or data types.
+SECURITY IMPACT:
+An attacker or misconfigured client can inject negative inventory stock
+(`stock: -500`), negative retail prices (`retailPrice: -2000`), or corrupt string
+types, causing mathematical failures during checkout and distorting valuation reports.
+ATTACK PRECONDITION:
+Access to `PUT /api/products/:id`.
+EVIDENCE:
+Dispatched `PUT /api/products/:id` with `{ stock: -500, retailPrice: -2000 }`.
+Product was successfully updated in SQLite with negative stock and negative prices.
+VALIDATION RESULT: Confirmed Vulnerable.
+ROOT CAUSE:
+`PUT /api/products/:id` calls `await update('products', id, data)` directly without
+re-running the validation logic present in the creation endpoint.
+REMEDIATION:
+Add boundary validation to `PUT /api/products/:id`:
+```javascript
+if (req.body.stock !== undefined) {
+    const s = Number(req.body.stock);
+    if (isNaN(s) || s < 0) return res.status(400).json({ error: 'Stock must be non-negative.' });
+}
+if (req.body.retailPrice !== undefined || req.body.purchasePrice !== undefined) {
+    const rp = Number(req.body.retailPrice ?? 0);
+    const pp = Number(req.body.purchasePrice ?? 0);
+    if (rp < 0 || pp < 0) return res.status(400).json({ error: 'Prices cannot be negative.' });
+}
+```
+REGRESSION TEST:
+Submit `PUT /api/products/:id` with `{ stock: -10 }`; verify response is `HTTP 400 Bad Request`.
+
+----------------------------------------------------------------------
+FINDING ID: SEC-004
+----------------------------------------------------------------------
+TITLE: Missing Boundary Validation on Operational Expenses
+CATEGORY: Input Validation / Cashbook Integrity
+SEVERITY: MEDIUM (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:M/A:N - 5.3)
+AFFECTED COMPONENT: Expense Route `POST /api/expenses` (`backend/index.js:L1015`)
+DESCRIPTION:
+`POST /api/expenses` accepts any object and inserts it into SQLite. There is no
+validation that `amount` is a positive number, nor that `description` or `category`
+are valid strings.
+SECURITY IMPACT:
+Logging a negative expense (`amount: -50000`) behaves as an artificial cash injection
+in Cashbook calculations, altering net liquidity and falsifying expense audit logs.
+ATTACK PRECONDITION:
+Access to `POST /api/expenses`.
+EVIDENCE:
+Dispatched `POST /api/expenses` with `{ amount: -99999, description: "Phantom income" }`.
+Server returned `HTTP 201 Created` and persisted negative amount.
+VALIDATION RESULT: Confirmed Vulnerable.
+ROOT CAUSE:
+Absence of validation middleware in `app.post('/api/expenses')`.
+REMEDIATION:
+Validate `amount` in `POST /api/expenses`:
+```javascript
+const parsedAmount = Number(req.body.amount);
+if (isNaN(parsedAmount) || parsedAmount <= 0) {
+    return res.status(400).json({ error: 'Expense amount must be a positive number.' });
+}
+```
+REGRESSION TEST:
+Submit `POST /api/expenses` with `{ amount: -100 }`; verify response is `HTTP 400 Bad Request`.
+
+----------------------------------------------------------------------
+FINDING ID: SEC-005
+----------------------------------------------------------------------
+TITLE: Customer Debt Overpayment Creating Negative Customer Dues
+CATEGORY: Business Logic / Credit Ledger Integrity
+SEVERITY: MEDIUM (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:M/A:N - 5.3)
+AFFECTED COMPONENT: Customer Payments Route `POST /api/payments` (`backend/index.js:L629`)
+DESCRIPTION:
+When a customer installment is recorded, the server subtracts `data.amount` from
+`customer.balance`. Unlike supplier payments (which now enforce a zero-balance lock
+and overpayment guard), customer debt settlements allow paying an amount greater
+than outstanding debt, driving the balance negative.
+SECURITY IMPACT:
+Creates unapproved customer credit liabilities, leading to accounting reconciliation
+errors where customer debtors appear as creditors.
+ATTACK PRECONDITION:
+Access to `POST /api/payments`.
+EVIDENCE:
+For a customer with 1,000 PKR balance, submitted payment of 10,000 PKR.
+Customer balance updated to `-9000` PKR in SQLite.
+VALIDATION RESULT: Confirmed Vulnerable.
+ROOT CAUSE:
+`POST /api/payments` lacks an upper boundary check comparing `amount` to `customer.balance`.
+REMEDIATION:
+Incorporate overpayment guard in `POST /api/payments`:
+```javascript
+const currentBalance = Number(customer.balance) || 0;
+if (currentBalance <= 0) {
+    return res.status(400).json({ error: 'Customer has no outstanding dues.' });
+}
+if (amount > currentBalance) {
+    return res.status(400).json({ error: 'Payment amount cannot exceed outstanding customer dues.' });
+}
+```
+REGRESSION TEST:
+Submit payment exceeding customer balance; verify response is `HTTP 400 Bad Request`.
+
+----------------------------------------------------------------------
+FINDING ID: SEC-006
+----------------------------------------------------------------------
+TITLE: Permissive Cross-Origin Resource Sharing (CORS) Configuration
+CATEGORY: Network & Deployment Configuration
+SEVERITY: MEDIUM (CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:M/I:M/A:N - 5.4)
+AFFECTED COMPONENT: CORS Middleware (`backend/index.js:L24-36`)
+DESCRIPTION:
+When the environment variable `ALLOWED_ORIGINS` is not defined in `.env`, the CORS
+middleware falls back to `!allowedOrigins || allowedOrigins.includes(...)`, which
+evaluates to `true` for every caller. The server reflects whatever `Origin` header
+is transmitted by the browser in `Access-Control-Allow-Origin`.
+SECURITY IMPACT:
+If an internal cashier or store manager visits an external webpage in their browser
+while on the showroom network, scripts on the external site can issue cross-origin
+XMLHttpRequests / fetch calls to the POS server to read sales records, alter stock,
+or trigger database resets.
+ATTACK PRECONDITION:
+`ALLOWED_ORIGINS` unset in `.env`; victim on local network visits malicious external site.
+EVIDENCE:
+Sent `Origin: http://malicious-external-site.com`; server responded with
+`Access-Control-Allow-Origin: http://malicious-external-site.com`.
+VALIDATION RESULT: Confirmed Vulnerable.
+ROOT CAUSE:
+Fallback condition in CORS callback allows any origin if `allowedOrigins` is null.
+REMEDIATION:
+Default to strict same-origin or localhost when `ALLOWED_ORIGINS` is unset:
+```javascript
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim().toLowerCase())
+    : ['http://localhost:7860', 'http://127.0.0.1:7860'];
+```
+REGRESSION TEST:
+Send request with `Origin: http://evil.com`; verify server does not reflect evil.com in `Access-Control-Allow-Origin`.
+
+----------------------------------------------------------------------
+FINDING ID: SEC-007
+----------------------------------------------------------------------
+TITLE: Outdated qs Package in Dependency Tree (CWE-770 & CWE-248)
+CATEGORY: Dependency Security / Denial of Service
+SEVERITY: MEDIUM (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L - 5.3)
+AFFECTED COMPONENT: `package-lock.json` (`qs@6.14.2` via `body-parser` and `express`)
+DESCRIPTION:
+`npm audit` detected known vulnerabilities in transitive dependency `qs`:
+1. GHSA-x5fp-wj9c-mxmx: Array-limit bypass via bracket-key comma parsing (CWE-770).
+2. GHSA-4mjr-xmp4-gh2g: Denial of Service via attacker-controlled isBuffer (CWE-248).
+SECURITY IMPACT:
+An attacker sending specially formatted URL-encoded query parameters could trigger
+elevated memory consumption or unhandled runtime exceptions in Express body parsing.
+ATTACK PRECONDITION:
+Sending complex query strings to endpoints using body-parser.
+EVIDENCE:
+Output of `npm.cmd audit --json` flagged `qs@6.14.2` as moderate severity.
+VALIDATION RESULT: Confirmed Vulnerable.
+ROOT CAUSE:
+Pinned transitive dependency in `package-lock.json`.
+REMEDIATION:
+Execute `npm update qs` or `npm audit fix` to bump `qs` to `>=6.16.0`.
+REGRESSION TEST:
+Run `npm audit --json`; verify 0 known vulnerabilities reported.
+
+----------------------------------------------------------------------
+FINDING ID: SEC-008
+----------------------------------------------------------------------
+TITLE: Absence of API Rate Limiting on Calculation-Heavy Endpoints
+CATEGORY: Abuse Resistance / Denial of Service
+SEVERITY: LOW (CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L - 4.3)
+AFFECTED COMPONENT: Backend Server (`backend/index.js`)
+DESCRIPTION:
+There is no request throttling or rate limiting on any endpoint. Endpoints like
+`POST /api/recalculate-balances` (which iterates over all sales, payments, and customers)
+or `POST /api/backups/create` can be requested repetitively.
+SECURITY IMPACT:
+A workstation on the LAN could flood heavy endpoints, causing high CPU/disk I/O
+and slowing down cashier terminals during peak retail hours.
+ATTACK PRECONDITION:
+LAN network connectivity.
+EVIDENCE:
+Automated test scripts successfully dispatched 100 requests in 3 seconds without throttling.
+VALIDATION RESULT: Confirmed Weakness.
+ROOT CAUSE:
+Absence of `express-rate-limit` middleware.
+REMEDIATION:
+Mount `express-rate-limit` on administrative and calculation-heavy endpoints:
+```javascript
+const rateLimit = require('express-rate-limit');
+app.use('/api/recalculate-balances', rateLimit({ windowMs: 60 * 1000, max: 10 }));
+```
+REGRESSION TEST:
+Send 15 requests in 10 seconds to `/api/recalculate-balances`; verify HTTP 429 Too Many Requests.
+======================================================================

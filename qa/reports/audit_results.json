@@ -1,0 +1,148 @@
+{
+  "total": 14,
+  "passed": 11,
+  "failed": 3,
+  "skipped": 0,
+  "tests": [
+    {
+      "id": "AUTH-01",
+      "title": "Unauthenticated access to customer data is blocked",
+      "category": "AUTH",
+      "severity": "P0",
+      "result": "FAIL",
+      "expected": "401/403 Unauthorized",
+      "actual": "200 OK - Leaked 3 customer records without auth",
+      "details": ""
+    },
+    {
+      "id": "AUTH-02",
+      "title": "Unauthenticated access to sales ledger is blocked",
+      "category": "AUTH",
+      "severity": "P0",
+      "result": "FAIL",
+      "expected": "401/403 Unauthorized",
+      "actual": "200 OK - Leaked sales financial records without auth",
+      "details": ""
+    },
+    {
+      "id": "AUTH-03",
+      "title": "Database wipe endpoint /api/reset requires authentication",
+      "category": "AUTH",
+      "severity": "P0",
+      "result": "PASS",
+      "expected": "401/403 Unauthorized",
+      "actual": "403",
+      "details": ""
+    },
+    {
+      "id": "SEC-CORS-01",
+      "title": "CORS origin is restricted to authorized domains",
+      "category": "SECURITY",
+      "severity": "P2",
+      "result": "FAIL",
+      "expected": "Specific origin or absent",
+      "actual": "Wildcard CORS: undefined",
+      "details": ""
+    },
+    {
+      "id": "SEC-HDR-01",
+      "title": "Content-Security-Policy header is present",
+      "category": "SECURITY",
+      "severity": "P2",
+      "result": "PASS",
+      "expected": "CSP header present",
+      "actual": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; img-src 'self' data: blob:; connect-src 'self' ws: wss: http: https:;",
+      "details": ""
+    },
+    {
+      "id": "SEC-HDR-02",
+      "title": "X-Content-Type-Options: nosniff is set",
+      "category": "SECURITY",
+      "severity": "P2",
+      "result": "PASS",
+      "expected": "nosniff",
+      "actual": "nosniff",
+      "details": ""
+    },
+    {
+      "id": "SEC-HDR-03",
+      "title": "X-Frame-Options (Clickjacking protection) is set",
+      "category": "SECURITY",
+      "severity": "P2",
+      "result": "PASS",
+      "expected": "DENY/SAMEORIGIN",
+      "actual": "SAMEORIGIN",
+      "details": ""
+    },
+    {
+      "id": "VAL-PROD-01",
+      "title": "Reject product with missing name and negative prices/stock",
+      "category": "VALIDATION",
+      "severity": "P1",
+      "result": "PASS",
+      "expected": "HTTP 400 Bad Request",
+      "actual": "HTTP 400",
+      "details": ""
+    },
+    {
+      "id": "VAL-SALE-01",
+      "title": "Reject sale with negative line-item quantity",
+      "category": "VALIDATION",
+      "severity": "P0",
+      "result": "PASS",
+      "expected": "HTTP 400 Bad Request",
+      "actual": "HTTP 400",
+      "details": ""
+    },
+    {
+      "id": "VAL-SALE-02",
+      "title": "Reject sale with empty items array",
+      "category": "VALIDATION",
+      "severity": "P2",
+      "result": "PASS",
+      "expected": "HTTP 400 Bad Request",
+      "actual": "HTTP 400",
+      "details": ""
+    },
+    {
+      "id": "BIZ-PROD-01",
+      "title": "Auto-create purchase record on initial stocked product",
+      "category": "BUSINESS",
+      "severity": "P2",
+      "result": "PASS",
+      "expected": "Purchase created",
+      "actual": "Purchase #6e943388-5236-4e85-8575-baa369612242 total=15000",
+      "details": ""
+    },
+    {
+      "id": "BIZ-SALE-01",
+      "title": "Prevent overselling when requested quantity exceeds stock",
+      "category": "BUSINESS",
+      "severity": "P1",
+      "result": "PASS",
+      "expected": "HTTP 400 Insufficient Stock",
+      "actual": "Rejected with 400: Insufficient stock for product: QA Audit Test Oak Table. Available: 10, Requested: 999999",
+      "details": ""
+    },
+    {
+      "id": "CONC-INV-01",
+      "title": "Concurrent sales generate unique sequential invoice numbers",
+      "category": "CONCURRENCY",
+      "severity": "P0",
+      "result": "PASS",
+      "expected": "0 unique numbers",
+      "actual": "0 unique numbers",
+      "details": ""
+    },
+    {
+      "id": "ERR-404-01",
+      "title": "Invalid endpoint returns 404 or safe response without stack trace",
+      "category": "ERROR_HANDLING",
+      "severity": "P3",
+      "result": "PASS",
+      "expected": "Safe status",
+      "actual": "HTTP 200",
+      "details": ""
+    }
+  ]
+}

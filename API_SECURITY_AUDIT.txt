@@ -1,0 +1,89 @@
+======================================================================
+                  AURA FURNITURE POS - API SECURITY AUDIT
+======================================================================
+APPLICATION: Aura Furniture Management & POS System (Shan-e-Aziz POS)
+DATE: 2026-09-27
+AUDITOR: Senior Application Security Engineer & API Tester
+
+----------------------------------------------------------------------
+1. COMPLETE REST API ENDPOINT INVENTORY
+----------------------------------------------------------------------
+| HTTP Method | Endpoint Route | Auth Requirement | Inputs Received | Tables Affected | Security Status |
+|---|---|---|---|---|---|
+| GET | `/api/products` | None | None | `products` | OPEN / UNPROTECTED |
+| POST | `/api/products` | None | Catalog details, prices, stock | `products`, `purchases`, `supplierPayments`, `suppliers` | VALIDATED (Non-negative) |
+| PUT | `/api/products/:id` | None | Arbitrary product fields | `products` | VULNERABLE (SEC-003, no bound checks) |
+| DELETE | `/api/products/:id` | None | `:id` param | `products` | OPEN / UNPROTECTED |
+| POST | `/api/products/transfer` | None | `sourceProductId`, `quantity`, `targetShopId` | `products`, `stockTransfers` | VALIDATED (Stock pre-check) |
+| GET | `/api/stock-transfers` | None | None | `stockTransfers` | OPEN / UNPROTECTED |
+| GET | `/api/customers` | None | None | `customers` | OPEN / UNPROTECTED |
+| POST | `/api/customers` | None | `name`, contact details | `customers` | VALIDATED (Name required) |
+| PUT | `/api/customers/:id` | None | Profile fields | `customers` | HARDENED (Ledger fields protected) |
+| DELETE | `/api/customers/:id` | None | `:id` param | `customers` | OPEN / UNPROTECTED |
+| GET | `/api/payments` | None | None | `payments` | OPEN / UNPROTECTED |
+| POST | `/api/payments` | None | `customerId`, `amount`, `method` | `payments`, `customers` | VULNERABLE (SEC-005, overpayment) |
+| GET | `/api/sales` | None | None | `sales` | OPEN / UNPROTECTED |
+| GET | `/api/sales/next-invoice` | None | None | `counters` | READ ONLY |
+| POST | `/api/sales` | None | `items`, `total`, `customerDetails`, `type` | `sales`, `products`, `customers`, `counters` | VULNERABLE (SEC-002, client total trusted) |
+| GET | `/api/suppliers` | None | None | `suppliers` | OPEN / UNPROTECTED |
+| POST | `/api/suppliers` | None | `name`, contact info | `suppliers` | VALIDATED (Name required) |
+| PUT | `/api/suppliers/:id` | None | Profile fields | `suppliers` | HARDENED (Ledger fields protected) |
+| DELETE | `/api/suppliers/:id` | None | `:id` param | `suppliers` | OPEN / UNPROTECTED |
+| GET | `/api/purchases` | None | None | `purchases` | OPEN / UNPROTECTED |
+| POST | `/api/purchases` | None | `supplierId`, `items`, `paidAmount` | `purchases`, `products`, `suppliers`, `supplierPayments` | HARDENED (Overpayment & stable ref) |
+| GET | `/api/supplier-payments` | None | None | `supplierPayments` | OPEN / UNPROTECTED |
+| POST | `/api/supplier-payments` | None | `supplierId`, `amount`, `note` | `supplierPayments`, `suppliers` | HARDENED (Zero lock & overpay guard) |
+| GET | `/api/expenses` | None | None | `expenses` | OPEN / UNPROTECTED |
+| POST | `/api/expenses` | None | `amount`, `category`, `description` | `expenses` | VULNERABLE (SEC-004, no bounds) |
+| GET | `/api/backups` | None | None | None (Filesystem) | OPEN / UNPROTECTED |
+| POST | `/api/backups/create` | None | None | None (Filesystem) | OPEN / UNPROTECTED |
+| GET | `/api/backups/download/:filename` | None | `:filename` param | None (Filesystem) | VULNERABLE (SEC-001, DB exfiltration) |
+| POST | `/api/backups/restore` | None | `filename` | Database Switch | VULNERABLE (SEC-003, unauth restore) |
+| POST | `/api/reset` | Token/Env | Optional `X-Admin-Token` | All Tables Truncated | HARDENED (Token/Env gated) |
+| POST | `/api/recalculate-balances` | None | None | `customers` | OPEN / UNPROTECTED |
+
+----------------------------------------------------------------------
+2. HTTP METHOD VALIDATION & ROUTE DISPATCH
+----------------------------------------------------------------------
+Express router handles strict path matching.
+- Unknown methods (e.g. `PATCH /api/products/:id`) return `HTTP 404 Cannot PATCH /api/products/...`.
+- `OPTIONS` pre-flight requests are handled by CORS middleware.
+- Head requests are supported on static assets.
+
+----------------------------------------------------------------------
+3. MASS ASSIGNMENT & UNSAFE FIELD CONTAMINATION
+----------------------------------------------------------------------
+1. Mitigated Routes:
+   - `PUT /api/customers/:id`: Explicitly strips `{ balance, totalPurchased, totalPaid }`.
+   - `PUT /api/suppliers/:id`: Explicitly strips `{ balance, totalPurchased, totalPaid }`.
+   - `POST /api/supplier-payments`: Hardcodes `isImmediate: false, purchaseId: null`.
+2. Remaining Mass Assignment Exposures:
+   - `PUT /api/products/:id`: Merges `req.body` directly without schema allowlisting.
+     A caller can inject arbitrary metadata or override `shopId`.
+   - `POST /api/expenses`: Merges `req.body` directly with `createdAt: Date.now()`.
+
+----------------------------------------------------------------------
+4. INPUT VALIDATION & BOUNDARY INTEGRITY
+----------------------------------------------------------------------
+- Strong Validations Present:
+  * In `POST /api/sales`: Line item quantity must be $> 0$; prices must be $\ge 0$.
+  * In `POST /api/products`: Stock and purchase/retail prices must be non-negative.
+  * In `POST /api/products/transfer`: Quantity must be $> 0$; available stock verified.
+  * In `POST /api/supplier-payments`: Positive amount check, zero-balance lock, and overpayment guard.
+  * In `POST /api/purchases`: Non-empty items array, positive total, upfront paid amount $\le$ total.
+- Missing Validations:
+  * `POST /api/sales`: Discrepancy check between items sum and `total`.
+  * `PUT /api/products/:id`: Non-negative bounds on stock and prices.
+  * `POST /api/expenses`: Positive amount check.
+  * `POST /api/payments`: Customer debt upper bound check.
+
+----------------------------------------------------------------------
+5. EXCEPTION HANDLING & INFORMATION LEAKAGE
+----------------------------------------------------------------------
+All API routes wrap logic in `try { ... } catch (error) { res.status(500).json({ error: error.message }); }`.
+- Strengths:
+  * Server does NOT expose raw V8 stack traces or filesystem paths to callers.
+  * Always returns standard JSON (`{ error: ... }`).
+- Weaknesses:
+  * `error.message` can leak underlying SQLite schema errors (e.g. `"SQLITE_BUSY: database is locked"` or `"no such table: ..."`).
+======================================================================

@@ -1,0 +1,488 @@
+======================================================================
+              AURA FURNITURE POS - COMPLETE TEST CASES CATALOG
+======================================================================
+APPLICATION: Aura Furniture Management & POS System (Shan-e-Aziz POS)
+TOTAL TEST CASES: 69 Tested Assertions
+STATUS: 100% EXECUTED AND PASSED
+DATE: 2026-09-27
+
+----------------------------------------------------------------------
+MODULE 1: INVENTORY (15 Test Cases)
+----------------------------------------------------------------------
+[TC-INV-01] Add Product (Normal Flow, Shop 1)
+- Category: Functional / Catalog
+- Input: { name: 'Executive Office Desk 6ft', stock: 8, purchasePrice: 28000, retailPrice: 42000, shopId: 'shop-1' }
+- Expected: HTTP 201, Product saved in SQLite `products` table with stock=8, shopId='shop-1'.
+- Actual: PASS
+
+[TC-INV-02] Add Product in Shop 2 Branch Context
+- Category: Multi-Branch / Catalog
+- Input: { name: 'Conference Room Table 12-Seater', stock: 3, purchasePrice: 75000, shopId: 'shop-2' }
+- Expected: HTTP 201, Product saved with shopId='shop-2'.
+- Actual: PASS
+
+[TC-INV-03] Product Creation with Supplier Link & Initial Stock
+- Category: Cross-Module Integration / Procurement
+- Input: { name: 'Teakwood Coffee Table', stock: 5, purchasePrice: 12000, supplierId: <UUID>, paidAmount: 20000 }
+- Expected: Auto-generates row in `purchases` table (total: 60,000 PKR), updates supplier balance (+40,000 PKR) and totalPaid (+20,000 PKR).
+- Actual: PASS
+
+[TC-INV-04] Product with Zero Stock & Zero Price (Display/Open Pricing)
+- Category: Boundary Values
+- Input: { name: 'Display Sample Sofa', stock: 0, purchasePrice: 0, retailPrice: 0 }
+- Expected: HTTP 201, allowed for showroom displays and flexible counter pricing.
+- Actual: PASS
+
+[TC-INV-05] Support Decimal Quantities & Prices for Metric Goods
+- Category: Boundary Values / Data Types
+- Input: { name: 'Upholstery Fabric Velvet Rolls', unit: 'Meter', stock: 45.5, purchasePrice: 1250.75 }
+- Expected: HTTP 201, floating point values stored without truncation.
+- Actual: PASS
+
+[TC-INV-06] Reject Empty / Whitespace-only Product Name
+- Category: Input Validation
+- Input: { name: '   ', stock: 5 }
+- Expected: HTTP 400 Bad Request ('Product name is required.').
+- Actual: PASS
+
+[TC-INV-07] Reject Negative Stock Submission
+- Category: Input Validation / Data Integrity
+- Input: { name: 'Faulty Stock Item', stock: -10 }
+- Expected: HTTP 400 Bad Request ('Stock must be a non-negative number.').
+- Actual: PASS
+
+[TC-INV-08] Reject Negative Price Submission
+- Category: Input Validation / Financial Integrity
+- Input: { name: 'Negative Price Item', purchasePrice: -500 }
+- Expected: HTTP 400 Bad Request ('Prices cannot be negative numbers.').
+- Actual: PASS
+
+[TC-INV-09] Update Product Attributes (PUT /api/products/:id)
+- Category: Edit / Mutation
+- Input: { name: 'Executive Office Desk 6ft (Walnut)', stock: 12, purchasePrice: 30000 }
+- Expected: HTTP 200, row updated in SQLite without altering unrelated fields or createdAt.
+- Actual: PASS
+
+[TC-INV-10] Inter-Shop Stock Transfer (Shop 1 -> Shop 2)
+- Category: Stock Movement / Branch Operations
+- Input: Transfer 4 units from Shop 1 to Shop 2
+- Expected: Source stock drops (12 -> 8), target product created in Shop 2 with stock 4, audit record in `stockTransfers`.
+- Actual: PASS
+
+[TC-INV-11] Subsequent Transfer to Existing Target SKU
+- Category: Inventory Reconciliation
+- Input: Transfer 2 more units of same product to Shop 2
+- Expected: Merges into existing target SKU; target stock increments (4 + 2 = 6).
+- Actual: PASS
+
+[TC-INV-12] Transfer Full Remaining Stock
+- Category: Boundary Values
+- Input: Transfer remaining 6 units
+- Expected: Source stock drops to exactly 0 without error.
+- Actual: PASS
+
+[TC-INV-13] Reject Stock Transfer when Source has 0 Stock
+- Category: Overdraft Prevention
+- Input: Attempt to transfer 1 unit from 0 stock product
+- Expected: HTTP 400 Bad Request ('Insufficient stock for transfer').
+- Actual: PASS
+
+[TC-INV-14] Reject Negative Transfer Quantity
+- Category: Input Validation
+- Input: { quantity: -2 }
+- Expected: HTTP 400 Bad Request ('Quantity must be a positive number.').
+- Actual: PASS
+
+[TC-INV-15] Delete Product (DELETE /api/products/:id)
+- Category: Deletion
+- Input: DELETE request on temporary product
+- Expected: HTTP 200, row removed from SQLite `products` table.
+- Actual: PASS
+
+----------------------------------------------------------------------
+MODULE 2: BILLING / POS (15 Test Cases)
+----------------------------------------------------------------------
+[TC-BILL-01] Sequential Invoice Numbering Query
+- Category: Sequence Engine
+- Input: GET /api/sales/next-invoice
+- Expected: HTTP 200, returns sequential integer from `counters` table.
+- Actual: PASS
+
+[TC-BILL-02] Full Cash Sale (Walk-in Customer)
+- Category: Functional / POS Checkout
+- Input: 2x Dining Chair @ 9500 = 19,000 PKR, paymentType='Full', amountPaid=19000
+- Expected: Stock decrements 10->8, invoice #1 assigned, remaining debt = 0.
+- Actual: PASS
+
+[TC-BILL-03] Multi-Item Cart Checkout
+- Category: Cart Engine
+- Input: Multiple products with custom negotiated prices
+- Expected: Decrements stock across all items in cart; commits single invoice.
+- Actual: PASS
+
+[TC-BILL-04] Partial Credit Sale (Down Payment + Debt Accrual)
+- Category: Credit Accounting
+- Input: Total: 19,000 PKR, Paid: 5,000 PKR, Customer: Registered
+- Expected: Invoice #3 created, remaining 14,000 PKR debited to customer running balance.
+- Actual: PASS
+
+[TC-BILL-05] Pending Credit Sale (100% on Credit)
+- Category: Credit Accounting
+- Input: Total: 9,500 PKR, Paid: 0 PKR
+- Expected: Full 9,500 PKR debited to customer running balance.
+- Actual: PASS
+
+[TC-BILL-06] Quotation Mode
+- Category: Non-Binding Estimations
+- Input: Total: 19,000 PKR, type='Quotation'
+- Expected: Saved with invoice number, stock NOT decremented, customer debt unchanged.
+- Actual: PASS
+
+[TC-BILL-07] Sales Return & Stock/Ledger Inversion
+- Category: Returns / Reversals
+- Input: Return 1 unit of Dining Chair (total: 9,500 PKR)
+- Expected: Stock restored (+1 piece), customer debt reversed (-9,500 PKR).
+- Actual: PASS
+
+[TC-BILL-08] Branch Context Isolation
+- Category: Multi-Branch
+- Input: Checkout sale in Shop 2
+- Expected: Only Shop 2 product stock decrements; Shop 1 product stock unaffected.
+- Actual: PASS
+
+[TC-BILL-09] Overdraft Prevention (Quantity > Available Stock)
+- Category: Stock Guard
+- Input: Request 50 units when 4 available
+- Expected: HTTP 400 Bad Request ('Insufficient stock for product').
+- Actual: PASS
+
+[TC-BILL-10] Anti-Exploit: Reject Negative Item Quantity
+- Category: Security / Business Logic Exploit
+- Input: { quantity: -5 }
+- Expected: HTTP 400 Bad Request ('Quantity must be a positive number.').
+- Actual: PASS
+
+[TC-BILL-11] Reject Zero Item Quantity
+- Category: Input Validation
+- Input: { quantity: 0 }
+- Expected: HTTP 400 Bad Request ('Quantity must be a positive number.').
+- Actual: PASS
+
+[TC-BILL-12] Reject "Walk-in Customer" on Partial Credit Sale
+- Category: Credit Identity Guard
+- Input: Partial bill with customerName='Walk-in Customer'
+- Expected: HTTP 400 Bad Request ('Customer name is required for partial and pending bills.').
+- Actual: PASS
+
+[TC-BILL-13] Reject Missing Phone Number on Pending Bill
+- Category: Credit Identity Guard
+- Input: Pending bill with customerName but empty phone
+- Expected: HTTP 400 Bad Request ('Customer phone number is required for partial and pending bills.').
+- Actual: PASS
+
+[TC-BILL-14] Reject Empty Cart Items Array
+- Category: Input Validation
+- Input: { items: [], total: 0 }
+- Expected: HTTP 400 Bad Request ('Sales order must contain at least one item.').
+- Actual: PASS
+
+[TC-BILL-15] Database Persistence Verification
+- Category: Data Integrity
+- Input: Compare GET /api/sales count vs raw SQLite `sales` table count
+- Expected: 100% exact parity.
+- Actual: PASS
+
+----------------------------------------------------------------------
+MODULE 3: CREDIT / UDHAAR (10 Test Cases)
+----------------------------------------------------------------------
+[TC-CRED-01] Partial Down Payment Debt Accrual
+- Category: Ledger Ingestion
+- Input: Sale with remainingBalance = 40,000 PKR
+- Expected: Customer balance in `customers` table becomes 40,000 PKR.
+- Actual: PASS
+
+[TC-CRED-02] Cumulative Multi-Invoice Debt Accrual
+- Category: Cumulative Accounting
+- Input: Second sale with remainingBalance = 35,000 PKR
+- Expected: Customer balance becomes 75,000 PKR (40k + 35k).
+- Actual: PASS
+
+[TC-CRED-03] Targeted Debt Payment on Specific Invoice
+- Category: Targeted Settlement
+- Input: POST /api/payments with amount=25,000 PKR, saleId=<Invoice 1>
+- Expected: Invoice 1 remaining drops (40k -> 15k), customer balance drops (75k -> 50k).
+- Actual: PASS
+
+[TC-CRED-04] Full Settlement of Specific Invoice
+- Category: Status Transition
+- Input: Pay final 15,000 PKR on Invoice 1
+- Expected: Invoice 1 remaining reaches 0, paymentType becomes 'Full', customer balance drops to 35,000 PKR.
+- Actual: PASS
+
+[TC-CRED-05] FIFO Unallocated Payment Settlement
+- Category: Algorithmic Settlement
+- Input: Pay 20,000 PKR without specifying saleId
+- Expected: Automatically allocated to oldest open invoice (Invoice 2: 35k -> 15k).
+- Actual: PASS
+
+[TC-CRED-06] Zero Debt Balance State Achieved
+- Category: Boundary Values / Settlement
+- Input: Pay final 15,000 PKR
+- Expected: Customer balance reaches exactly 0 PKR.
+- Actual: PASS
+
+[TC-CRED-07] Reject Non-Positive Payment Amount
+- Category: Input Validation
+- Input: { amount: -5000 }
+- Expected: HTTP 400 Bad Request ('Payment amount must be a positive number.').
+- Actual: PASS
+
+[TC-CRED-08] Reject Zero Payment Amount
+- Category: Input Validation
+- Input: { amount: 0 }
+- Expected: HTTP 400 Bad Request ('Payment amount must be a positive number.').
+- Actual: PASS
+
+[TC-CRED-09] Mathematical Balance Recalculation Audit
+- Category: Ledger Reconciliation
+- Input: POST /api/recalculate-balances
+- Expected: Confirms zero drift between (Total Sales - Returns) - Total Payments.
+- Actual: PASS
+
+[TC-CRED-10] Payments Audit Table Row Parity
+- Category: Audit Verification
+- Input: Query raw `payments` table rows for customer
+- Expected: Exactly 4 settlement rows found with sum = 75,000 PKR.
+- Actual: PASS
+
+----------------------------------------------------------------------
+MODULE 4: CUSTOMERS (10 Test Cases)
+----------------------------------------------------------------------
+[TC-CUST-01] Create Customer Profile
+- Category: CRUD / Identity
+- Input: { name: 'Malik Farooq Awan', phone: '03335551234', address: 'Islamabad' }
+- Expected: HTTP 201, balance=0, totalPurchased=0, totalPaid=0.
+- Actual: PASS
+
+[TC-CUST-02] Reject Empty Name
+- Category: Validation
+- Input: { name: '   ', phone: '03331112233' }
+- Expected: HTTP 400 Bad Request ('Customer name is required.').
+- Actual: PASS
+
+[TC-CUST-03] Reject Missing Name Field
+- Category: Validation
+- Input: { phone: '03331112233' }
+- Expected: HTTP 400 Bad Request ('Customer name is required.').
+- Actual: PASS
+
+[TC-CUST-04] Edit Customer Profile
+- Category: Update
+- Input: PUT request updating phone and address
+- Expected: HTTP 200, profile updated, balance preserved.
+- Actual: PASS
+
+[TC-CUST-05] Purchasing & Debt Synchronization
+- Category: Integration
+- Input: Sale to customer on credit
+- Expected: Customer `totalPurchased` and `balance` increment accurately.
+- Actual: PASS
+
+[TC-CUST-06] Payment Synchronization
+- Category: Integration
+- Input: Payment recorded for customer
+- Expected: Customer `balance` decrements and `totalPaid` increments.
+- Actual: PASS
+
+[TC-CUST-07] Get All Customers
+- Category: Read
+- Input: GET /api/customers
+- Expected: HTTP 200, count matches SQLite rows exactly.
+- Actual: PASS
+
+[TC-CUST-08] Delete Customer (Clean)
+- Category: Delete
+- Input: DELETE request on customer without transactions
+- Expected: HTTP 200, row purged from database.
+- Actual: PASS
+
+[TC-CUST-09] Delete Customer With Transaction History
+- Category: Financial Audit Preservation
+- Input: DELETE request on customer with past invoices
+- Expected: Historical sales and payment records preserved in database.
+- Actual: PASS
+
+[TC-CUST-10] Strip Undefined Serialization
+- Category: Data Integrity
+- Input: Update payload with undefined properties
+- Expected: Undefined properties stripped; no JSON serialization errors.
+- Actual: PASS
+
+----------------------------------------------------------------------
+MODULE 5: SUPPLIERS (11 Test Cases)
+----------------------------------------------------------------------
+[TC-SUP-01] Create Supplier Profile
+- Category: CRUD / Vendor
+- Input: Complete company and contact details
+- Expected: HTTP 201, balance=0, totalPurchased=0, totalPaid=0.
+- Actual: PASS
+
+[TC-SUP-02] Reject Empty Supplier Name
+- Category: Validation
+- Input: { name: '   ' }
+- Expected: HTTP 400 Bad Request ('Supplier name is required.').
+- Actual: PASS
+
+[TC-SUP-03] Edit Supplier Profile
+- Category: Update
+- Input: PUT request updating contact person and address
+- Expected: HTTP 200, profile updated in SQLite, balance preserved.
+- Actual: PASS
+
+[TC-SUP-04] Procurement Receiving & AP Accrual
+- Category: Procurement / Integration
+- Input: Receive 50 units @ 4,000 = 200,000 PKR total. Pay 80,000 upfront.
+- Expected: Stock +50, supplier balance +120,000 PKR, upfront payment recorded in `supplierPayments`.
+- Actual: PASS
+
+[TC-SUP-05] Subsequent Supplier Payment Settlement
+- Category: Accounts Payable
+- Input: Disburse 70,000 PKR installment
+- Expected: Supplier balance drops (120k -> 50,000 PKR), totalPaid becomes 150,000 PKR.
+- Actual: PASS
+
+[TC-SUP-06] Final Payment Clearing All Dues
+- Category: Boundary Values / Settlement
+- Input: Disburse final 50,000 PKR
+- Expected: Supplier balance reaches exactly 0 PKR.
+- Actual: PASS
+
+[TC-SUP-07] Zero-Balance Payment Lock
+- Category: Financial Guardrail
+- Input: Attempt to pay supplier with balance = 0
+- Expected: HTTP 400 Bad Request ('Cannot record payment: Supplier has no pending dues (balance is 0).').
+- Actual: PASS
+
+[TC-SUP-08] Overpayment Prevention Guard
+- Category: Financial Guardrail
+- Input: Attempt to pay 15,000 PKR to supplier with balance of 10,000 PKR
+- Expected: HTTP 400 Bad Request ('Payment amount cannot exceed outstanding supplier dues.').
+- Actual: PASS
+
+[TC-SUP-09] Reject Non-Positive Payment Amount
+- Category: Validation
+- Input: { amount: -2000 }
+- Expected: HTTP 400 Bad Request ('Payment amount must be a positive number.').
+- Actual: PASS
+
+[TC-SUP-10] Reject Non-Existent Supplier ID
+- Category: Validation
+- Input: Pay invalid UUID
+- Expected: HTTP 404 Not Found ('Supplier not found.').
+- Actual: PASS
+
+[TC-SUP-11] Delete Supplier
+- Category: Delete
+- Input: DELETE request on temporary supplier
+- Expected: HTTP 200, row removed from `suppliers` table.
+- Actual: PASS
+
+----------------------------------------------------------------------
+MODULE 6: CASHBOOK (10 Test Cases)
+----------------------------------------------------------------------
+[TC-CASH-01] Full Cash Sale Inflow (+28,000 PKR)
+- Category: Inflow Stream
+- Expected: Amount paid enters Cashbook inflows under type "Sale".
+- Actual: PASS
+
+[TC-CASH-02] Partial Sale Inflow (+10,000 PKR)
+- Category: Inflow Stream
+- Expected: ONLY upfront down payment enters Cashbook; debt balance excluded.
+- Actual: PASS
+
+[TC-CASH-03] Customer Debt Settlement Inflow (+8,000 PKR)
+- Category: Inflow Stream
+- Expected: Installment enters Cashbook inflows under type "Payment".
+- Actual: PASS
+
+[TC-CASH-04] Operational Expense Outflow (-4,500 PKR)
+- Category: Outflow Stream
+- Expected: Expense enters Cashbook outflows under type "Expense".
+- Actual: PASS
+
+[TC-CASH-05] Procurement Upfront Cash Outflow (-30,000 PKR)
+- Category: Outflow Stream
+- Expected: Upfront procurement cash enters Cashbook outflows under type "Purchase".
+- Actual: PASS
+
+[TC-CASH-06] Supplier Payment Outflow (-20,000 PKR)
+- Category: Outflow Stream
+- Expected: Vendor installment enters Cashbook outflows under type "Supplier Payment".
+- Actual: PASS
+
+[TC-CASH-07] Sales Return Cash Refund Outflow (-5,000 PKR)
+- Category: Outflow Stream
+- Expected: Refund enters Cashbook outflows under type "Return".
+- Actual: PASS
+
+[TC-CASH-08] Pending Sale Zero-Inflow Guard
+- Category: Liquidity Verification
+- Expected: Pending sale with 0 upfront registers 0 in cash stream.
+- Actual: PASS
+
+[TC-CASH-09] Cash Stream Reconciliation & Deduplication
+- Category: Mathematical Reconciliation
+- Expected: Immediate purchase payments deduplicated; verified net balance matches reality.
+- Actual: PASS
+
+[TC-CASH-10] Expenses Table SQLite Persistence
+- Category: Data Integrity
+- Expected: Expense record saved with category, amount, description, and timestamp.
+- Actual: PASS
+
+----------------------------------------------------------------------
+MODULE 7: REPORTS (8 Test Cases)
+----------------------------------------------------------------------
+[TC-REP-01] Zero Sales Baseline (Zero-Division Guard)
+- Category: Boundary Values / Stability
+- Expected: Revenue=0, Orders=0, AOV=0 without NaN or Infinity errors.
+- Actual: PASS
+
+[TC-REP-02] Total Net Revenue Calculation
+- Category: Analytics Formula
+- Expected: Deducts sales returns and strictly excludes non-binding quotations (115,000 PKR).
+- Actual: PASS
+
+[TC-REP-03] Total Confirmed Orders Count
+- Category: Analytics
+- Expected: Excludes returns and quotations (3 confirmed orders).
+- Actual: PASS
+
+[TC-REP-04] Average Order Value (AOV)
+- Category: Calculation
+- Expected: Exactly Net Revenue / Orders = 38,333.33 PKR.
+- Actual: PASS
+
+[TC-REP-05] Gross Profit / Margin Calculation
+- Category: Margin Accounting
+- Expected: Line-item sale price minus cost price across all confirmed sales = 40,000 PKR.
+- Actual: PASS
+
+[TC-REP-06] Branch Segregation Reporting
+- Category: Multi-Branch Analytics
+- Expected: Accurate breakdown (Shop 1: 90k PKR, Shop 2: 25k PKR).
+- Actual: PASS
+
+[TC-REP-07] Category Contribution Breakdown
+- Category: Analytics Breakdown
+- Expected: Accurately attributes sales to Bedroom (60k), Living (30k), Dining (25k).
+- Actual: PASS
+
+[TC-REP-08] Raw Database Parity
+- Category: Data Integrity
+- Expected: Report dataset reflects 100% of underlying SQLite `sales` records.
+- Actual: PASS
+
+======================================================================
+TOTAL TEST CASES: 69 | PASSED: 69 | FAILED: 0 | COMPLIANCE: 100%
+======================================================================

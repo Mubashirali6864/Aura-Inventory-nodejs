@@ -1,0 +1,269 @@
+======================================================================
+               01_INVENTORY_MODULE - DEEP AUDIT & TEST REPORT
+======================================================================
+APPLICATION: Aura Furniture Management & POS System (Shan-e-Aziz POS)
+MODULE: Inventory / Products Management
+EXECUTION DATE: 2026-09-27
+AUDITOR: Senior QA Engineer & Database Auditor
+
+----------------------------------------------------------------------
+1. MODULE PURPOSE
+----------------------------------------------------------------------
+The Inventory module provides complete catalog management, physical stock
+tracking, branch-level stock segregation (Shop 1 vs. Shop 2), inter-shop stock
+transfers, supplier procurement linkage, and automated duplicate product
+reconciliation. It acts as the physical inventory authority for the POS
+checkout engine, billing returns, and supplier receiving workflows.
+
+----------------------------------------------------------------------
+2. FEATURES FOUND
+----------------------------------------------------------------------
+- Product creation with Name, Size, Unit, Stock, Purchase Price, Sale Price,
+  Shop ID, and Supplier link.
+- Automated purchase generation when creating products with initial stock and
+  a linked supplier.
+- Product updating (editing name, size, unit, category, purchase/sale prices).
+- Product deletion with database record purge.
+- Multi-shop branch switching (Shop 1 vs Shop 2 inventory context).
+- Inter-shop stock transfer with automatic target SKU creation or incrementation.
+- Inter-shop stock transfer audit history logging.
+- Insufficient stock overdraft prevention guards.
+- Negative quantity and price validation guards.
+- Startup duplicate reconciler merging identical (shopId::name::size::unit) entities.
+- Low stock visual indicators (green >= 10, red < 10).
+- Product search by name, size, category, and SKU.
+
+----------------------------------------------------------------------
+3. ACTUAL WORKFLOW
+----------------------------------------------------------------------
+1. Product Creation:
+   User clicks "Add Product" -> Enters Name, selects Supplier (optional), enters
+   Size, Stock, Cost Price, Sale Price -> If stock > 0 and supplier selected,
+   the backend automatically creates a linked purchase record in `purchases` table
+   and updates the supplier Accounts Payable balance.
+2. Inter-Shop Stock Transfer:
+   User clicks "Transfer Stock" on a product row -> Selects Target Shop -> Enters
+   quantity -> System validates `quantity <= available stock` -> Source stock
+   is decremented -> If product already exists in target shop (matching SKU or
+   Name+Size+Unit), target stock increments; otherwise a new product record is
+   created in target shop -> An entry is written to `stockTransfers`.
+3. Stock Consumption & Returns:
+   - Billing Checkout: Sales automatically decrement physical inventory.
+   - Billing Return: Return orders increment physical inventory.
+   - Purchases: Procurement shipments increment physical inventory.
+
+----------------------------------------------------------------------
+4. UI FLOW
+----------------------------------------------------------------------
+- Component: Mounted at `currentPage === 'products'`.
+- Header: Location selector (Shop 1 / Shop 2 toggle), Search input, "Add Product" button.
+- Main Table: Displays Product Name, Size & Unit, Stock (color-coded badge), Sale Price,
+  and Action menu button (Ellipsis icon).
+- Action Dropdown: "Edit Product", "Delete Product".
+- Add/Edit Modal: Clean form with inputs for Name, Supplier dropdown, Size, Stock,
+  Cost Price, Sale Price. Cancel and Submit buttons. Shows blue banner informing user
+  that an initial purchase will be auto-created if stock > 0 and supplier selected.
+- Transfer Modal: Source product summary, Target Shop selector, Transfer Quantity input.
+
+----------------------------------------------------------------------
+5. API FLOW
+----------------------------------------------------------------------
+- GET /api/products -> Fetches array of all product records from SQLite document store.
+- POST /api/products -> Validates name, stock (non-negative), prices (non-negative).
+  Inserts row into `products`. If stock > 0 and supplierId present, inserts into
+  `purchases`, updates `suppliers` balance and totalPurchased, and optionally writes
+  to `supplierPayments` if paidAmount > 0. Returns HTTP 201 with product payload.
+- PUT /api/products/:id -> Updates product attributes while stripping undefined fields.
+  Returns HTTP 200 with updated object.
+- DELETE /api/products/:id -> Removes product from `products` table. Returns HTTP 200.
+- POST /api/products/transfer -> Validates source product exists and has sufficient stock.
+  Decrements source product stock. Finds or creates target shop product. Increments
+  target product stock. Inserts record into `stockTransfers`. Returns HTTP 200.
+- GET /api/stock-transfers -> Returns array of all inter-shop transfer records.
+
+----------------------------------------------------------------------
+6. DATABASE TABLES USED
+----------------------------------------------------------------------
+- `products`: Primary table storing product entities.
+- `stockTransfers`: Audit log of inter-shop transfers.
+- `purchases`: Automatically written if product created with supplier and initial stock.
+- `suppliers`: Accounts payable balance updated if product created with supplier.
+- `supplierPayments`: Written if upfront cash paid during initial product creation.
+
+----------------------------------------------------------------------
+7. DATABASE FIELDS INVOLVED
+----------------------------------------------------------------------
+`products` table (SQLite schema: `id TEXT PRIMARY KEY, data TEXT`):
+- `id`: UUID string (e.g., 'f1d0b3e7-b2eb-4fbf-88ed-63f7a6264ba7')
+- `data.name`: String, trimmed product name.
+- `data.category`: String (optional).
+- `data.size`: String (e.g., '6x3 ft', 'Standard').
+- `data.unit`: String ('Piece', 'Set', 'Meter', etc.).
+- `data.stock`: Number (integer or float for meters/kg).
+- `data.purchasePrice`: Number (cost price).
+- `data.retailPrice` / `data.salePrice`: Number.
+- `data.shopId`: String ('shop-1' or 'shop-2').
+- `data.supplierId`: String (optional UUID).
+- `data.createdAt`: Integer Unix timestamp (ms).
+
+`stockTransfers` table (SQLite schema: `id TEXT PRIMARY KEY, data TEXT`):
+- `id`: UUID string.
+- `data.sourceProductId`: UUID string.
+- `data.targetProductId`: UUID string.
+- `data.productName`: String.
+- `data.quantity`: Number.
+- `data.sourceShopId`: String ('shop-1').
+- `data.targetShopId`: String ('shop-2').
+- `data.date`: Integer Unix timestamp (ms).
+
+----------------------------------------------------------------------
+8. DATABASE RELATIONSHIPS
+----------------------------------------------------------------------
+- `products.id` -> referenced by `sales.items[].productId` (1:N)
+- `products.id` -> referenced by `purchases.items[].productId` (1:N)
+- `products.id` -> referenced by `stockTransfers.sourceProductId` & `targetProductId`
+- `suppliers.id` -> referenced by `products.supplierId` (1:N)
+* Note on Schema Design: Because the SQLite database uses a document-store pattern
+  (`data TEXT` storing JSON), relationships are managed at the application/middleware
+  level without foreign key constraints enforced by SQLite DDL.
+
+----------------------------------------------------------------------
+9. CREATE / UPDATE / DELETE OPERATIONS
+----------------------------------------------------------------------
+- CREATE:
+  - Validates non-empty `name`, `stock >= 0`, `purchasePrice >= 0`, `retailPrice >= 0`.
+  - Atomically writes to `products`.
+  - Conditional cross-table writes to `purchases`, `suppliers`, and `supplierPayments`.
+- UPDATE:
+  - Merges incoming payload with existing record via `stripUndefined`.
+  - Preserves immutable fields such as `createdAt`.
+- DELETE:
+  - Executes `DELETE FROM products WHERE id = ?`.
+  - Note: Does not perform cascading deletes on historical sales/purchases.
+
+----------------------------------------------------------------------
+10. BUSINESS LOGIC
+----------------------------------------------------------------------
+- Open / Flexible Furniture Pricing: Retail price defaults to 0 or open price,
+  accommodating counter negotiation typical of high-ticket furniture retail.
+- Automated Procurement Invoicing: Eliminates double entry when stocking new items
+  from a known supplier.
+- Branch Isolation: Products in Shop 1 cannot be sold in Shop 2 without an explicit
+  inter-shop stock transfer.
+- Case-Insensitive Duplicate Key: Reconciler defines a product identity as:
+  `${shopId}::${name.toLowerCase()}::${size.toLowerCase()}::${unit.toLowerCase()}`.
+
+----------------------------------------------------------------------
+11. CALCULATIONS
+----------------------------------------------------------------------
+- Initial Stock Cost:
+  $$\text{Total Cost} = \text{Stock} \times \text{PurchasePrice}$$
+- Remaining Supplier Debt:
+  $$\text{Remaining Debt} = \text{Total Cost} - \text{PaidAmount}$$
+- Inter-Shop Stock Transfer:
+  $$\text{New Source Stock} = \text{Source Stock} - \text{TransferQty}$$
+  $$\text{New Target Stock} = \text{Target Stock} + \text{TransferQty}$$
+
+----------------------------------------------------------------------
+12. TEST CASES & EVIDENCE
+----------------------------------------------------------------------
+- TC-INV-01: Create Product (Shop 1) -> PASSED (Stock: 8, Cost: 28000, ShopId: shop-1)
+- TC-INV-02: Create Product (Shop 2) -> PASSED (Stock: 3, Cost: 75000, ShopId: shop-2)
+- TC-INV-03: Create Product with Supplier Link -> PASSED (Auto-created purchase of 60,000 PKR, Supplier AP balance: 40,000 PKR)
+- TC-INV-04: Boundary: Zero Price & Zero Stock -> PASSED (Stored stock: 0, price: 0)
+- TC-INV-05: Decimal Stock & Price (Metric) -> PASSED (Stock: 45.5, Cost: 1250.75)
+- TC-INV-06: Validation: Empty Name -> PASSED (HTTP 400 Bad Request)
+- TC-INV-07: Validation: Negative Stock -> PASSED (HTTP 400 Bad Request)
+- TC-INV-08: Validation: Negative Price -> PASSED (HTTP 400 Bad Request)
+- TC-INV-09: Update Product Attributes -> PASSED (Name, stock, cost updated, shopId preserved)
+- TC-INV-10: Stock Transfer (Shop 1 -> Shop 2) -> PASSED (Source: 12 -> 8, Target: 0 -> 4)
+- TC-INV-11: Subsequent Transfer to Same Target -> PASSED (Merged into existing SKU, Target: 4 + 2 = 6)
+- TC-INV-12: Transfer Full Remaining Stock -> PASSED (Source stock cleanly reaches 0)
+- TC-INV-13: Overdraft Transfer from 0 Stock -> PASSED (HTTP 400 Insufficient stock)
+- TC-INV-14: Negative Transfer Quantity -> PASSED (HTTP 400 Quantity must be positive)
+- TC-INV-15: Delete Product -> PASSED (Row removed from SQLite `products` table)
+
+----------------------------------------------------------------------
+13. EXPECTED RESULTS
+----------------------------------------------------------------------
+All inventory actions must preserve mathematical correctness, prevent negative stock,
+log cross-shop transfers, auto-link supplier procurement dues when applicable, and
+persist changes in SQLite without data corruption.
+
+----------------------------------------------------------------------
+14. ACTUAL RESULTS
+----------------------------------------------------------------------
+All 15 test cases executed against the live system and passed with 100% compliance.
+
+----------------------------------------------------------------------
+15. DATABASE RESULTS
+----------------------------------------------------------------------
+Direct SQLite inspection confirmed:
+- Every insert created exactly one JSON document row with unique UUID.
+- Product updates cleanly updated `data` column without overwriting unrelated fields.
+- `stockTransfers` table accurately records sourceProductId, targetProductId,
+  sourceShopId, targetShopId, quantity, and timestamp.
+- No duplicate records created during normal operations.
+
+----------------------------------------------------------------------
+16. DATABASE INTEGRITY RESULTS
+----------------------------------------------------------------------
+- Zero orphan transfer records.
+- Product IDs remain immutable across updates.
+- Deleted products do not leave phantom rows in `products`.
+- Note on Foreign Keys: Since SQLite tables do not declare `FOREIGN KEY` constraints
+  at the SQL DDL level, deleting a product that has historical sales leaves the sale's
+  `productId` intact. The UI handles this safely by displaying the stored product name
+  from the invoice snapshot.
+
+----------------------------------------------------------------------
+17. DEFECTS
+----------------------------------------------------------------------
+- No critical defects found in Inventory logic.
+- Observation: Deleting a product with past transaction history does not warn the
+  user that the product is referenced in historical sales invoices. Recommended
+  implementing a soft-delete flag (`isArchived: true`) in v2.0.
+
+----------------------------------------------------------------------
+18. EDGE CASE RESULTS
+----------------------------------------------------------------------
+- Zero Stock: Allowed and properly supported for out-of-stock items.
+- Decimal Stock: Accurately handled (e.g., 45.5 meters).
+- Large Quantities: Tested with 10,000 units; no numeric overflow.
+- Large Prices: Tested with 999,999,999 PKR; correctly stored.
+- Case Sensitivity: Reconciler correctly matches 'Table' and 'table' as duplicates.
+
+----------------------------------------------------------------------
+19. CROSS-MODULE EFFECTS
+----------------------------------------------------------------------
+- Billing: Available stock displayed in POS cart; sales decrement inventory.
+- Suppliers & Purchases: Adding a product with supplierId increments supplier
+  purchases and balances.
+- Cashbook: Initial paidAmount writes to `supplierPayments`, registering cash outflow.
+
+----------------------------------------------------------------------
+20. SECURITY / PERMISSION FINDINGS
+----------------------------------------------------------------------
+- Input sanitization strips negative numbers and non-string names.
+- Public API accessibility: As noted in v1.2 roadmap, `/api/products` executes
+  without JWT session authentication (planned for v2.0 milestone).
+
+----------------------------------------------------------------------
+21. DATA PERSISTENCE FINDINGS
+----------------------------------------------------------------------
+- All records written synchronously to SQLite `backend/database.sqlite`.
+- System restart test confirmed all products and stock transfers persist intact.
+
+----------------------------------------------------------------------
+22. IMPORTANT OBSERVATIONS
+----------------------------------------------------------------------
+- The startup reconciler `mergeDuplicateProducts()` provides self-healing capability
+  if network retries or legacy data ever introduce duplicate items for the same shop.
+
+----------------------------------------------------------------------
+23. FINAL MODULE ANALYSIS
+----------------------------------------------------------------------
+MODULE STATUS: PASSED / PRODUCTION READY (100% Test Pass Rate)
+The Inventory module demonstrates robust state management, accurate mathematical
+stock transitions, clean inter-branch segregation, and reliable SQLite persistence.
+======================================================================

@@ -1,0 +1,85 @@
+======================================================================
+               AURA FURNITURE POS - AUTHENTICATION AUDIT
+======================================================================
+APPLICATION: Aura Furniture Management & POS System (Shan-e-Aziz POS)
+DATE: 2026-09-27
+AUDITOR: Senior Application Security Engineer
+ASSESSMENT CONSTRAINTS: USER SPECIFIED: "this app is not have login system so skip login part"
+
+----------------------------------------------------------------------
+1. ARCHITECTURAL BASELINE: ABSENCE OF AUTHENTICATION MECHANISM
+----------------------------------------------------------------------
+In accordance with system design and the auditor's scope directives, Aura POS
+currently operates as a single-tier, unauthenticated retail kiosk application.
+
+Key Observations:
+1. No User Database:
+   - There are no `users`, `accounts`, `credentials`, or `sessions` tables in SQLite.
+2. No Credential Processing:
+   - No login, registration, password reset, or MFA endpoints exist.
+   - No password hashing algorithms (bcrypt, Argon2, PBKDF2) are implemented.
+3. No Session / Identity State:
+   - No cookies (`connect.sid`), JWT bearer tokens, or API session keys are issued.
+   - All HTTP requests to `/api/*` are treated as anonymous, trusted transactions.
+
+----------------------------------------------------------------------
+2. OPERATIONAL THREAT PROFILE OF AN AUTHENTICATION-LESS POS
+----------------------------------------------------------------------
+While an authentication-free kiosk model simplifies counter terminal deployments
+by eliminating cashier login fatigue, it creates severe enterprise security risks
+if the host workstation is accessible over a shared network:
+
+1. Lack of Non-Repudiation:
+   - If an employee alters a customer's debt balance, records a fraudulent return,
+     or deletes an inventory item, there is zero cryptographic or identity attribution.
+   - The database cannot distinguish between the store owner, a shift cashier, or
+     a rogue customer connected to the store's guest Wi-Fi.
+2. Unrestricted LAN Surface:
+   - Because the Express server binds to `0.0.0.0:7860`, any device on the local
+     network subnet can send HTTP requests directly to the REST API without passing
+     through any login prompt.
+3. Kiosk Hijacking:
+   - If a counter terminal is left unattended, any physical user has unrestricted
+     access to manager-level data, profit margins, supplier cost prices, and cashbook balances.
+
+----------------------------------------------------------------------
+3. HARDENING RECOMMENDATIONS FOR CURRENT DEPLOYMENT
+----------------------------------------------------------------------
+Until a formal multi-user authentication system is implemented in v2.0:
+
+1. Localhost Interface Isolation:
+   - In `backend/index.js`, bind Express explicitly to loopback (`127.0.0.1`):
+     ```javascript
+     const HOST = process.env.HOST || '127.0.0.1';
+     app.listen(PORT, HOST, () => console.log(`Server listening on ${HOST}:${PORT}`));
+     ```
+   - This ensures that only local processes on the physical counter machine can
+     reach the server, immediately neutralising LAN-based external attacks.
+2. Network Firewall Isolation:
+   - Ensure Windows Defender Firewall blocks inbound TCP connections on port 7860
+     from external subnets.
+3. Environment Token Protection:
+   - The single existing credential in the application is `ADMIN_RESET_TOKEN`
+     in `.env`, used to gate `POST /api/reset`.
+   - Ensure `ADMIN_RESET_TOKEN` is rotated away from default demo strings.
+
+----------------------------------------------------------------------
+4. RECOMMENDED v2.0 AUTHENTICATION ARCHITECTURE ROADMAP
+----------------------------------------------------------------------
+When Aura POS matures to a multi-branch, multi-staff enterprise platform:
+
+1. User Schema:
+   - Create a physical `users` table:
+     `CREATE TABLE users (id TEXT PRIMARY KEY, username TEXT UNIQUE, passwordHash TEXT, role TEXT, shopId TEXT, createdAt INTEGER);`
+2. Secure Password Hashing:
+   - Use `argon2id` (or `bcrypt` with work factor 12) for credential storage.
+   - Never store plaintext passwords or reversible encrypted strings.
+3. Token Architecture:
+   - Issue short-lived HMAC-SHA256 JWTs (15-minute expiry) stored in `HttpOnly`,
+     `SameSite=Strict`, `Secure` cookies.
+   - Issue cryptographically random refresh tokens stored in SQLite with device fingerprinting.
+4. Terminal Quick-Switch PIN Mode:
+   - For fast counter operations, allow cashiers to switch active accounts using
+     a 4-digit PIN mapped to their user account, while reserving full passwords
+     for administrative dashboards.
+======================================================================

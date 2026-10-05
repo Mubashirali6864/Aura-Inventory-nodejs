@@ -1,0 +1,20 @@
+{
+  "backend/index.js": {
+    "mtime": 1781541732.0,
+    "seen": 1788780641.2292364,
+    "ast_hash": "b87bee5ebe70128dafd99955b69bebbb",
+    "semantic_hash": "b87bee5ebe70128dafd99955b69bebbb"
+  },
+  "package.json": {
+    "mtime": 1781603990.0,
+    "seen": 1788780641.2292418,
+    "ast_hash": "a54966bcb9b86ae388340a58340e71db",
+    "semantic_hash": "a54966bcb9b86ae388340a58340e71db"
+  },
+  "server.js": {
+    "mtime": 1781603990.0,
+    "seen": 1788780641.2292442,
+    "ast_hash": "1c5be496b1ab2ad8dba0597caeb1b45d",
+    "semantic_hash": "1c5be496b1ab2ad8dba0597caeb1b45d"
+  }
+}

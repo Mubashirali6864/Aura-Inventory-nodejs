@@ -1,0 +1,2204 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "id": "backend_index_generateid",
+      "label": "generateId()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "Server Core & Startup Deduplication Engine",
+      "file_type": "code",
+      "norm_label": "generateid()",
+      "source_file": "backend/index.js",
+      "source_location": "L28"
+    },
+    {
+      "id": "backend_index_getall",
+      "label": "getAll()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "Server Core & Startup Deduplication Engine",
+      "file_type": "code",
+      "norm_label": "getall()",
+      "source_file": "backend/index.js",
+      "source_location": "L69"
+    },
+    {
+      "id": "backend_index_getbyid",
+      "label": "getById()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "Server Core & Startup Deduplication Engine",
+      "file_type": "code",
+      "norm_label": "getbyid()",
+      "source_file": "backend/index.js",
+      "source_location": "L78"
+    },
+    {
+      "id": "backend_index_insert",
+      "label": "insert()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "Server Core & Startup Deduplication Engine",
+      "file_type": "code",
+      "norm_label": "insert()",
+      "source_file": "backend/index.js",
+      "source_location": "L88"
+    },
+    {
+      "id": "backend_index_mergeduplicateproducts",
+      "label": "mergeDuplicateProducts()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "Server Core & Startup Deduplication Engine",
+      "file_type": "code",
+      "norm_label": "mergeduplicateproducts()",
+      "source_file": "backend/index.js",
+      "source_location": "L125"
+    },
+    {
+      "id": "backend_index_remove",
+      "label": "remove()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "Server Core & Startup Deduplication Engine",
+      "file_type": "code",
+      "norm_label": "remove()",
+      "source_file": "backend/index.js",
+      "source_location": "L116"
+    },
+    {
+      "id": "backend_index_stripundefined",
+      "label": "stripUndefined()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "Server Core & Startup Deduplication Engine",
+      "file_type": "code",
+      "norm_label": "stripundefined()",
+      "source_file": "backend/index.js",
+      "source_location": "L33"
+    },
+    {
+      "id": "backend_index_update",
+      "label": "update()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "Server Core & Startup Deduplication Engine",
+      "file_type": "code",
+      "norm_label": "update()",
+      "source_file": "backend/index.js",
+      "source_location": "L98"
+    },
+    {
+      "id": "backend_index_getnextinvoicenumber",
+      "label": "getNextInvoiceNumber()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "Transactional Write & POST Routers",
+      "file_type": "code",
+      "norm_label": "getnextinvoicenumber()",
+      "source_file": "backend/index.js",
+      "source_location": "L249"
+    },
+    {
+      "id": "backend_index_db",
+      "label": "db",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "Live SQLite Database & State Engine",
+      "file_type": "code",
+      "norm_label": "db",
+      "source_file": "backend/index.js",
+      "source_location": "L50"
+    },
+    {
+      "id": "backend_index",
+      "label": "index.js",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "Server Core & Startup Deduplication Engine",
+      "file_type": "code",
+      "norm_label": "index.js",
+      "source_file": "backend/index.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "backend_index_bodyparser",
+      "label": "bodyParser",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "Server Core & Startup Deduplication Engine",
+      "file_type": "code",
+      "norm_label": "bodyparser",
+      "source_file": "backend/index.js",
+      "source_location": "L4"
+    },
+    {
+      "id": "backend_index_cors",
+      "label": "cors",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "Server Core & Startup Deduplication Engine",
+      "file_type": "code",
+      "norm_label": "cors",
+      "source_file": "backend/index.js",
+      "source_location": "L3"
+    },
+    {
+      "id": "backend_index_crypto",
+      "label": "crypto",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "Server Core & Startup Deduplication Engine",
+      "file_type": "code",
+      "norm_label": "crypto",
+      "source_file": "backend/index.js",
+      "source_location": "L6"
+    },
+    {
+      "id": "backend_index_dbpath",
+      "label": "dbPath",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "Server Core & Startup Deduplication Engine",
+      "file_type": "code",
+      "norm_label": "dbpath",
+      "source_file": "backend/index.js",
+      "source_location": "L47"
+    },
+    {
+      "id": "backend_index_express",
+      "label": "express",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "Server Core & Startup Deduplication Engine",
+      "file_type": "code",
+      "norm_label": "express",
+      "source_file": "backend/index.js",
+      "source_location": "L2"
+    },
+    {
+      "id": "backend_index_path",
+      "label": "path",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "Server Core & Startup Deduplication Engine",
+      "file_type": "code",
+      "norm_label": "path",
+      "source_file": "backend/index.js",
+      "source_location": "L7"
+    },
+    {
+      "id": "backend_index_sqlite3",
+      "label": "sqlite3",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "Server Core & Startup Deduplication Engine",
+      "file_type": "code",
+      "norm_label": "sqlite3",
+      "source_file": "backend/index.js",
+      "source_location": "L5"
+    },
+    {
+      "id": "server",
+      "label": "server.js",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "Server Core & Startup Deduplication Engine",
+      "file_type": "code",
+      "norm_label": "server.js",
+      "source_file": "server.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "package",
+      "label": "package.json",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "Package Manifest & System Constraints",
+      "file_type": "code",
+      "norm_label": "package.json",
+      "source_file": "package.json",
+      "source_location": "L1"
+    },
+    {
+      "id": "package_description",
+      "label": "description",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "Package Manifest & System Constraints",
+      "file_type": "code",
+      "norm_label": "description",
+      "source_file": "package.json",
+      "source_location": "L4"
+    },
+    {
+      "id": "package_engines",
+      "label": "engines",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "Package Manifest & System Constraints",
+      "file_type": "code",
+      "norm_label": "engines",
+      "source_file": "package.json",
+      "source_location": "L9"
+    },
+    {
+      "id": "package_engines_node",
+      "label": "node",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "Package Manifest & System Constraints",
+      "file_type": "code",
+      "norm_label": "node",
+      "source_file": "package.json",
+      "source_location": "L10"
+    },
+    {
+      "id": "package_main",
+      "label": "main",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "Package Manifest & System Constraints",
+      "file_type": "code",
+      "norm_label": "main",
+      "source_file": "package.json",
+      "source_location": "L5"
+    },
+    {
+      "id": "package_name",
+      "label": "name",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "Package Manifest & System Constraints",
+      "file_type": "code",
+      "norm_label": "name",
+      "source_file": "package.json",
+      "source_location": "L2"
+    },
+    {
+      "id": "package_scripts",
+      "label": "scripts",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "Package Manifest & System Constraints",
+      "file_type": "code",
+      "norm_label": "scripts",
+      "source_file": "package.json",
+      "source_location": "L6"
+    },
+    {
+      "id": "package_scripts_start",
+      "label": "start",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "Package Manifest & System Constraints",
+      "file_type": "code",
+      "norm_label": "start",
+      "source_file": "package.json",
+      "source_location": "L7"
+    },
+    {
+      "id": "package_version",
+      "label": "version",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "Package Manifest & System Constraints",
+      "file_type": "code",
+      "norm_label": "version",
+      "source_file": "package.json",
+      "source_location": "L3"
+    },
+    {
+      "id": "ref_body_parser",
+      "label": "body-parser",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "Package Manifest & System Constraints",
+      "file_type": "concept",
+      "norm_label": "body-parser",
+      "source_file": "package.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "ref_cors",
+      "label": "cors",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "Package Manifest & System Constraints",
+      "file_type": "concept",
+      "norm_label": "cors",
+      "source_file": "package.json",
+      "source_location": "L14"
+    },
+    {
+      "id": "ref_dotenv",
+      "label": "dotenv",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "Package Manifest & System Constraints",
+      "file_type": "concept",
+      "norm_label": "dotenv",
+      "source_file": "package.json",
+      "source_location": "L15"
+    },
+    {
+      "id": "ref_express",
+      "label": "express",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "Package Manifest & System Constraints",
+      "file_type": "concept",
+      "norm_label": "express",
+      "source_file": "package.json",
+      "source_location": "L16"
+    },
+    {
+      "id": "ref_sqlite",
+      "label": "sqlite",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "Package Manifest & System Constraints",
+      "file_type": "concept",
+      "norm_label": "sqlite",
+      "source_file": "package.json",
+      "source_location": "L17"
+    },
+    {
+      "id": "ref_sqlite3",
+      "label": "sqlite3",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "Package Manifest & System Constraints",
+      "file_type": "concept",
+      "norm_label": "sqlite3",
+      "source_file": "package.json",
+      "source_location": "L18"
+    },
+    {
+      "id": "backend_index_app",
+      "label": "app",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "Express Application Lifecycle & Dashboard",
+      "file_type": "code",
+      "norm_label": "app",
+      "source_file": "backend/index.js",
+      "source_location": "L9"
+    },
+    {
+      "id": "package_dependencies",
+      "label": "dependencies",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "External NPM Dependencies",
+      "file_type": "code",
+      "norm_label": "dependencies",
+      "source_file": "package.json",
+      "source_location": "L12"
+    },
+    {
+      "id": "package_dependencies_body_parser",
+      "label": "body-parser",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "External NPM Dependencies",
+      "file_type": "code",
+      "norm_label": "body-parser",
+      "source_file": "package.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "package_dependencies_cors",
+      "label": "cors",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "External NPM Dependencies",
+      "file_type": "code",
+      "norm_label": "cors",
+      "source_file": "package.json",
+      "source_location": "L14"
+    },
+    {
+      "id": "package_dependencies_dotenv",
+      "label": "dotenv",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "External NPM Dependencies",
+      "file_type": "code",
+      "norm_label": "dotenv",
+      "source_file": "package.json",
+      "source_location": "L15"
+    },
+    {
+      "id": "package_dependencies_express",
+      "label": "express",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "External NPM Dependencies",
+      "file_type": "code",
+      "norm_label": "express",
+      "source_file": "package.json",
+      "source_location": "L16"
+    },
+    {
+      "id": "package_dependencies_sqlite",
+      "label": "sqlite",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "External NPM Dependencies",
+      "file_type": "code",
+      "norm_label": "sqlite",
+      "source_file": "package.json",
+      "source_location": "L17"
+    },
+    {
+      "id": "package_dependencies_sqlite3",
+      "label": "sqlite3",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "External NPM Dependencies",
+      "file_type": "code",
+      "norm_label": "sqlite3",
+      "source_file": "package.json",
+      "source_location": "L18"
+    },
+    {
+      "id": "backend_op_getbyid",
+      "label": "getById(table, id)",
+      "community": 0,
+      "community_name": "Live SQLite Database & State Engine",
+      "file_type": "code",
+      "norm_label": "getbyid(table, id)",
+      "source_file": "backend/index.js",
+      "source_location": "L78"
+    },
+    {
+      "id": "backend_op_update",
+      "label": "update(table, id, data)",
+      "community": 0,
+      "community_name": "Live SQLite Database & State Engine",
+      "file_type": "code",
+      "norm_label": "update(table, id, data)",
+      "source_file": "backend/index.js",
+      "source_location": "L98"
+    },
+    {
+      "id": "route_next_invoice",
+      "label": "GET /api/sales/next-invoice",
+      "community": 0,
+      "community_name": "Live SQLite Database & State Engine",
+      "file_type": "code",
+      "norm_label": "get /api/sales/next-invoice",
+      "source_file": "backend/index.js",
+      "source_location": "L514"
+    },
+    {
+      "id": "route_put_customers",
+      "label": "PUT /api/customers/:id",
+      "community": 0,
+      "community_name": "Live SQLite Database & State Engine",
+      "file_type": "code",
+      "norm_label": "put /api/customers/:id",
+      "source_file": "backend/index.js",
+      "source_location": "L438"
+    },
+    {
+      "id": "route_put_products",
+      "label": "PUT /api/products/:id",
+      "community": 0,
+      "community_name": "Live SQLite Database & State Engine",
+      "file_type": "code",
+      "norm_label": "put /api/products/:id",
+      "source_file": "backend/index.js",
+      "source_location": "L337"
+    },
+    {
+      "id": "route_put_suppliers",
+      "label": "PUT /api/suppliers/:id",
+      "community": 0,
+      "community_name": "Live SQLite Database & State Engine",
+      "file_type": "code",
+      "norm_label": "put /api/suppliers/:id",
+      "source_file": "backend/index.js",
+      "source_location": "L609"
+    },
+    {
+      "id": "route_reset_db",
+      "label": "POST /api/reset",
+      "community": 0,
+      "community_name": "Live SQLite Database & State Engine",
+      "file_type": "code",
+      "norm_label": "post /api/reset",
+      "source_file": "backend/index.js",
+      "source_location": "L728"
+    },
+    {
+      "id": "route_transfer_products",
+      "label": "POST /api/products/transfer",
+      "community": 0,
+      "community_name": "Live SQLite Database & State Engine",
+      "file_type": "code",
+      "norm_label": "post /api/products/transfer",
+      "source_file": "backend/index.js",
+      "source_location": "L354"
+    },
+    {
+      "id": "data_counters_live",
+      "label": "counters (invoiceNumber: 1 live row)",
+      "community": 0,
+      "community_name": "Live SQLite Database & State Engine",
+      "file_type": "concept",
+      "norm_label": "counters (invoicenumber: 1 live row)",
+      "rationale": "Active atomic sequence counter for invoices",
+      "source_file": "backend/database.sqlite"
+    },
+    {
+      "id": "data_customers_live",
+      "label": "customers (3 live rows)",
+      "community": 0,
+      "community_name": "Live SQLite Database & State Engine",
+      "file_type": "concept",
+      "norm_label": "customers (3 live rows)",
+      "rationale": "3 registered customer ledger profiles",
+      "source_file": "backend/database.sqlite"
+    },
+    {
+      "id": "data_payments_live",
+      "label": "payments (4 live rows)",
+      "community": 0,
+      "community_name": "Live SQLite Database & State Engine",
+      "file_type": "concept",
+      "norm_label": "payments (4 live rows)",
+      "rationale": "4 customer invoice payments and credit settlements",
+      "source_file": "backend/database.sqlite"
+    },
+    {
+      "id": "data_products_live",
+      "label": "products (63 live rows)",
+      "community": 0,
+      "community_name": "Live SQLite Database & State Engine",
+      "file_type": "concept",
+      "norm_label": "products (63 live rows)",
+      "rationale": "63 active inventory product records stored as JSON documents",
+      "source_file": "backend/database.sqlite"
+    },
+    {
+      "id": "data_purchases_live",
+      "label": "purchases (11 live rows)",
+      "community": 0,
+      "community_name": "Live SQLite Database & State Engine",
+      "file_type": "concept",
+      "norm_label": "purchases (11 live rows)",
+      "rationale": "11 supplier procurement transactions recorded",
+      "source_file": "backend/database.sqlite"
+    },
+    {
+      "id": "data_sales_live",
+      "label": "sales (50 live rows)",
+      "community": 0,
+      "community_name": "Live SQLite Database & State Engine",
+      "file_type": "concept",
+      "norm_label": "sales (50 live rows)",
+      "rationale": "50 historical sales orders and returns logged in system",
+      "source_file": "backend/database.sqlite"
+    },
+    {
+      "id": "data_stock_transfers_live",
+      "label": "stockTransfers (1 live rows)",
+      "community": 0,
+      "community_name": "Live SQLite Database & State Engine",
+      "file_type": "concept",
+      "norm_label": "stocktransfers (1 live rows)",
+      "rationale": "1 recorded cross-shop stock transfer",
+      "source_file": "backend/database.sqlite"
+    },
+    {
+      "id": "data_supplier_payments_live",
+      "label": "supplierPayments (2 live rows)",
+      "community": 0,
+      "community_name": "Live SQLite Database & State Engine",
+      "file_type": "concept",
+      "norm_label": "supplierpayments (2 live rows)",
+      "rationale": "2 vendor cash payment disbursements",
+      "source_file": "backend/database.sqlite"
+    },
+    {
+      "id": "data_suppliers_live",
+      "label": "suppliers (5 live rows)",
+      "community": 0,
+      "community_name": "Live SQLite Database & State Engine",
+      "file_type": "concept",
+      "norm_label": "suppliers (5 live rows)",
+      "rationale": "5 registered suppliers with active debt/credit accounts",
+      "source_file": "backend/database.sqlite"
+    },
+    {
+      "id": "backend_op_getall",
+      "label": "getAll(table)",
+      "community": 1,
+      "community_name": "Frontend UI Views & Read Dispatcher",
+      "file_type": "code",
+      "norm_label": "getall(table)",
+      "source_file": "backend/index.js",
+      "source_location": "L69"
+    },
+    {
+      "id": "fe_api_client",
+      "label": "Frontend HTTP API Client",
+      "community": 1,
+      "community_name": "Frontend UI Views & Read Dispatcher",
+      "file_type": "code",
+      "norm_label": "frontend http api client",
+      "rationale": "Centralized fetch/Axios service dispatching /api/* calls to the Node.js backend",
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "id": "fe_view_customers",
+      "label": "View: Customer Ledger",
+      "community": 1,
+      "community_name": "Frontend UI Views & Read Dispatcher",
+      "file_type": "code",
+      "norm_label": "view: customer ledger",
+      "rationale": "Customer profiles, phone numbers, outstanding debt balances, and payment history",
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "id": "fe_view_inventory",
+      "label": "View: Inventory & Products",
+      "community": 1,
+      "community_name": "Frontend UI Views & Read Dispatcher",
+      "file_type": "code",
+      "norm_label": "view: inventory & products",
+      "rationale": "Product management, SKU, size/unit variations, retail & purchase prices, and stock levels",
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "id": "fe_view_reports",
+      "label": "View: Sales & Profit Reports",
+      "community": 1,
+      "community_name": "Frontend UI Views & Read Dispatcher",
+      "file_type": "code",
+      "norm_label": "view: sales & profit reports",
+      "rationale": "Aggregated analytics on sales, revenue, profit margins, and expense tracking",
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "id": "fe_view_settings",
+      "label": "View: System Settings & Reset",
+      "community": 1,
+      "community_name": "Frontend UI Views & Read Dispatcher",
+      "file_type": "code",
+      "norm_label": "view: system settings & reset",
+      "rationale": "System maintenance, shop details, balance recalculation, and database reset triggers",
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "id": "fe_view_stock_transfer",
+      "label": "View: Multi-Shop Stock Transfer",
+      "community": 1,
+      "community_name": "Frontend UI Views & Read Dispatcher",
+      "file_type": "code",
+      "norm_label": "view: multi-shop stock transfer",
+      "rationale": "Transfer inventory across shops (shop-1 vs shop-2) with target auto-provisioning",
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "id": "fe_view_suppliers",
+      "label": "View: Supplier Procurement",
+      "community": 1,
+      "community_name": "Frontend UI Views & Read Dispatcher",
+      "file_type": "code",
+      "norm_label": "view: supplier procurement",
+      "rationale": "Supplier directory, procurement order creation, debt balances, and vendor payments",
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "id": "route_get_customers",
+      "label": "GET /api/customers",
+      "community": 1,
+      "community_name": "Frontend UI Views & Read Dispatcher",
+      "file_type": "code",
+      "norm_label": "get /api/customers",
+      "source_file": "backend/index.js",
+      "source_location": "L425"
+    },
+    {
+      "id": "route_get_expenses",
+      "label": "GET /api/expenses",
+      "community": 1,
+      "community_name": "Frontend UI Views & Read Dispatcher",
+      "file_type": "code",
+      "norm_label": "get /api/expenses",
+      "source_file": "backend/index.js",
+      "source_location": "L711"
+    },
+    {
+      "id": "route_get_payments",
+      "label": "GET /api/payments",
+      "community": 1,
+      "community_name": "Frontend UI Views & Read Dispatcher",
+      "file_type": "code",
+      "norm_label": "get /api/payments",
+      "source_file": "backend/index.js",
+      "source_location": "L457"
+    },
+    {
+      "id": "route_get_products",
+      "label": "GET /api/products",
+      "community": 1,
+      "community_name": "Frontend UI Views & Read Dispatcher",
+      "file_type": "code",
+      "norm_label": "get /api/products",
+      "source_file": "backend/index.js",
+      "source_location": "L268"
+    },
+    {
+      "id": "route_get_purchases",
+      "label": "GET /api/purchases",
+      "community": 1,
+      "community_name": "Frontend UI Views & Read Dispatcher",
+      "file_type": "code",
+      "norm_label": "get /api/purchases",
+      "source_file": "backend/index.js",
+      "source_location": "L628"
+    },
+    {
+      "id": "route_get_sales",
+      "label": "GET /api/sales",
+      "community": 1,
+      "community_name": "Frontend UI Views & Read Dispatcher",
+      "file_type": "code",
+      "norm_label": "get /api/sales",
+      "source_file": "backend/index.js",
+      "source_location": "L510"
+    },
+    {
+      "id": "route_get_supplier_payments",
+      "label": "GET /api/supplier-payments",
+      "community": 1,
+      "community_name": "Frontend UI Views & Read Dispatcher",
+      "file_type": "code",
+      "norm_label": "get /api/supplier-payments",
+      "source_file": "backend/index.js",
+      "source_location": "L686"
+    },
+    {
+      "id": "route_get_suppliers",
+      "label": "GET /api/suppliers",
+      "community": 1,
+      "community_name": "Frontend UI Views & Read Dispatcher",
+      "file_type": "code",
+      "norm_label": "get /api/suppliers",
+      "source_file": "backend/index.js",
+      "source_location": "L596"
+    },
+    {
+      "id": "route_get_transfers",
+      "label": "GET /api/stock-transfers",
+      "community": 1,
+      "community_name": "Frontend UI Views & Read Dispatcher",
+      "file_type": "code",
+      "norm_label": "get /api/stock-transfers",
+      "source_file": "backend/index.js",
+      "source_location": "L417"
+    },
+    {
+      "id": "route_recalculate_balances",
+      "label": "POST /api/recalculate-balances",
+      "community": 1,
+      "community_name": "Frontend UI Views & Read Dispatcher",
+      "file_type": "code",
+      "norm_label": "post /api/recalculate-balances",
+      "source_file": "backend/index.js",
+      "source_location": "L742"
+    },
+    {
+      "id": "backend_op_insert",
+      "label": "insert(table, id, data)",
+      "community": 4,
+      "community_name": "Transactional Write & POST Routers",
+      "file_type": "code",
+      "norm_label": "insert(table, id, data)",
+      "source_file": "backend/index.js",
+      "source_location": "L88"
+    },
+    {
+      "id": "route_post_customers",
+      "label": "POST /api/customers",
+      "community": 4,
+      "community_name": "Transactional Write & POST Routers",
+      "file_type": "code",
+      "norm_label": "post /api/customers",
+      "source_file": "backend/index.js",
+      "source_location": "L429"
+    },
+    {
+      "id": "route_post_expenses",
+      "label": "POST /api/expenses",
+      "community": 4,
+      "community_name": "Transactional Write & POST Routers",
+      "file_type": "code",
+      "norm_label": "post /api/expenses",
+      "source_file": "backend/index.js",
+      "source_location": "L715"
+    },
+    {
+      "id": "route_post_payments",
+      "label": "POST /api/payments",
+      "community": 4,
+      "community_name": "Transactional Write & POST Routers",
+      "file_type": "code",
+      "norm_label": "post /api/payments",
+      "source_file": "backend/index.js",
+      "source_location": "L461"
+    },
+    {
+      "id": "route_post_products",
+      "label": "POST /api/products",
+      "community": 4,
+      "community_name": "Transactional Write & POST Routers",
+      "file_type": "code",
+      "norm_label": "post /api/products",
+      "source_file": "backend/index.js",
+      "source_location": "L273"
+    },
+    {
+      "id": "route_post_purchases",
+      "label": "POST /api/purchases",
+      "community": 4,
+      "community_name": "Transactional Write & POST Routers",
+      "file_type": "code",
+      "norm_label": "post /api/purchases",
+      "source_file": "backend/index.js",
+      "source_location": "L632"
+    },
+    {
+      "id": "route_post_sales",
+      "label": "POST /api/sales",
+      "community": 4,
+      "community_name": "Transactional Write & POST Routers",
+      "file_type": "code",
+      "norm_label": "post /api/sales",
+      "source_file": "backend/index.js",
+      "source_location": "L524"
+    },
+    {
+      "id": "route_post_supplier_payments",
+      "label": "POST /api/supplier-payments",
+      "community": 4,
+      "community_name": "Transactional Write & POST Routers",
+      "file_type": "code",
+      "norm_label": "post /api/supplier-payments",
+      "source_file": "backend/index.js",
+      "source_location": "L690"
+    },
+    {
+      "id": "route_post_suppliers",
+      "label": "POST /api/suppliers",
+      "community": 4,
+      "community_name": "Transactional Write & POST Routers",
+      "file_type": "code",
+      "norm_label": "post /api/suppliers",
+      "source_file": "backend/index.js",
+      "source_location": "L600"
+    },
+    {
+      "id": "backend_db_initializer",
+      "label": "SQLite Schema Initializer",
+      "community": 5,
+      "community_name": "Express Application Lifecycle & Dashboard",
+      "file_type": "code",
+      "norm_label": "sqlite schema initializer",
+      "source_file": "backend/index.js",
+      "source_location": "L56"
+    },
+    {
+      "id": "backend_mw_logger",
+      "label": "Request Logger Middleware",
+      "community": 5,
+      "community_name": "Express Application Lifecycle & Dashboard",
+      "file_type": "code",
+      "norm_label": "request logger middleware",
+      "source_file": "backend/index.js",
+      "source_location": "L22"
+    },
+    {
+      "id": "fe_view_dashboard",
+      "label": "View: Dashboard",
+      "community": 5,
+      "community_name": "Express Application Lifecycle & Dashboard",
+      "file_type": "code",
+      "norm_label": "view: dashboard",
+      "rationale": "High-level overview of daily sales, low stock alerts, revenue metrics, and cash balance",
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "id": "route_spa_catchall",
+      "label": "GET * (SPA Catch-all)",
+      "community": 5,
+      "community_name": "Express Application Lifecycle & Dashboard",
+      "file_type": "code",
+      "norm_label": "get * (spa catch-all)",
+      "source_file": "backend/index.js",
+      "source_location": "L776"
+    },
+    {
+      "id": "config_firebase",
+      "label": "Config: FIREBASE_SERVICE_ACCOUNT_PATH",
+      "community": 5,
+      "community_name": "Express Application Lifecycle & Dashboard",
+      "file_type": "concept",
+      "norm_label": "config: firebase_service_account_path",
+      "source_file": ".env",
+      "source_location": "L4"
+    },
+    {
+      "id": "config_port",
+      "label": "Config: PORT (7860)",
+      "community": 5,
+      "community_name": "Express Application Lifecycle & Dashboard",
+      "file_type": "concept",
+      "norm_label": "config: port (7860)",
+      "source_file": ".env",
+      "source_location": "L7"
+    },
+    {
+      "id": "config_env",
+      "label": ".env Configuration",
+      "community": 5,
+      "community_name": "Express Application Lifecycle & Dashboard",
+      "file_type": "document",
+      "norm_label": ".env configuration",
+      "rationale": "Configures PORT=7860 and FIREBASE_SERVICE_ACCOUNT_PATH",
+      "source_file": ".env",
+      "source_location": "L1"
+    },
+    {
+      "id": "backend_op_remove",
+      "label": "remove(table, id)",
+      "community": 7,
+      "community_name": "Resource Removal & Deletion Handlers",
+      "file_type": "code",
+      "norm_label": "remove(table, id)",
+      "source_file": "backend/index.js",
+      "source_location": "L116"
+    },
+    {
+      "id": "route_delete_customers",
+      "label": "DELETE /api/customers/:id",
+      "community": 7,
+      "community_name": "Resource Removal & Deletion Handlers",
+      "file_type": "code",
+      "norm_label": "delete /api/customers/:id",
+      "source_file": "backend/index.js",
+      "source_location": "L446"
+    },
+    {
+      "id": "route_delete_products",
+      "label": "DELETE /api/products/:id",
+      "community": 7,
+      "community_name": "Resource Removal & Deletion Handlers",
+      "file_type": "code",
+      "norm_label": "delete /api/products/:id",
+      "source_file": "backend/index.js",
+      "source_location": "L346"
+    },
+    {
+      "id": "route_delete_suppliers",
+      "label": "DELETE /api/suppliers/:id",
+      "community": 7,
+      "community_name": "Resource Removal & Deletion Handlers",
+      "file_type": "code",
+      "norm_label": "delete /api/suppliers/:id",
+      "source_file": "backend/index.js",
+      "source_location": "L617"
+    },
+    {
+      "id": "fe_lib_dompurify",
+      "label": "Library: DOMPurify (XSS Sanitizer)",
+      "community": 8,
+      "community_name": "POS Billing, Thermal Receipts & XSS Sanitizer",
+      "file_type": "code",
+      "norm_label": "library: dompurify (xss sanitizer)",
+      "rationale": "Sanitizes customer notes, invoice descriptions, and user inputs to prevent XSS",
+      "source_file": "dist/assets/purify.es-BaNf_EpD.js"
+    },
+    {
+      "id": "fe_lib_html2canvas",
+      "label": "Library: html2canvas (Receipt PDF Generator)",
+      "community": 8,
+      "community_name": "POS Billing, Thermal Receipts & XSS Sanitizer",
+      "file_type": "code",
+      "norm_label": "library: html2canvas (receipt pdf generator)",
+      "rationale": "Renders thermal receipts and invoice print layouts to canvas/image",
+      "source_file": "dist/assets/html2canvas.esm-QH1iLAAe.js"
+    },
+    {
+      "id": "fe_view_pos_billing",
+      "label": "View: POS Billing & Sales",
+      "community": 8,
+      "community_name": "POS Billing, Thermal Receipts & XSS Sanitizer",
+      "file_type": "code",
+      "norm_label": "view: pos billing & sales",
+      "rationale": "Point-of-sale checkout, barcode/product search, cart calculation, discounts, and walk-in vs customer billing",
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    }
+  ],
+  "links": [
+    {
+      "source": "backend_index_getall",
+      "target": "backend_index_mergeduplicateproducts",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "backend/index.js",
+      "source_location": "L128",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index_getbyid",
+      "target": "backend_index_update",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "backend/index.js",
+      "source_location": "L100",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index_mergeduplicateproducts",
+      "target": "backend_index_remove",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "backend/index.js",
+      "source_location": "L169",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index_mergeduplicateproducts",
+      "target": "backend_index_update",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "backend/index.js",
+      "source_location": "L174",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index_mergeduplicateproducts",
+      "target": "backend_index_db",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "backend/index.js",
+      "source_location": "L62",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index_stripundefined",
+      "target": "backend_index_update",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "backend/index.js",
+      "source_location": "L105",
+      "weight": 1.0
+    },
+    {
+      "source": "package",
+      "target": "ref_body_parser",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "package.json",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "package",
+      "target": "ref_cors",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "package.json",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "package",
+      "target": "ref_dotenv",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "package.json",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "package",
+      "target": "ref_express",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "package.json",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "package",
+      "target": "ref_sqlite",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "package.json",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "package",
+      "target": "ref_sqlite3",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "package.json",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index",
+      "target": "ref_express",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "backend/index.js",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index",
+      "target": "ref_cors",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "backend/index.js",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index",
+      "target": "ref_body_parser",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "backend/index.js",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index",
+      "target": "backend_index_express",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index",
+      "target": "backend_index_cors",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index",
+      "target": "backend_index_bodyparser",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index",
+      "target": "backend_index_dbpath",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L47",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index",
+      "target": "backend_index_sqlite3",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index",
+      "target": "backend_index_crypto",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index",
+      "target": "backend_index_path",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index",
+      "target": "backend_index_app",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index_db",
+      "target": "backend_index",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L50",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index_generateid",
+      "target": "backend_index",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L28",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index_getall",
+      "target": "backend_index",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L69",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index_getbyid",
+      "target": "backend_index",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L78",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index_getnextinvoicenumber",
+      "target": "backend_index",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L249",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index_insert",
+      "target": "backend_index",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L88",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index_mergeduplicateproducts",
+      "target": "backend_index",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L125",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index_remove",
+      "target": "backend_index",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L116",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index_stripundefined",
+      "target": "backend_index",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L33",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index_update",
+      "target": "backend_index",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L98",
+      "weight": 1.0
+    },
+    {
+      "source": "package",
+      "target": "package_dependencies",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "package.json",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "package",
+      "target": "package_name",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "package.json",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "package",
+      "target": "package_version",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "package.json",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "package",
+      "target": "package_description",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "package.json",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "package",
+      "target": "package_main",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "package.json",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "package",
+      "target": "package_scripts",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "package.json",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "package",
+      "target": "package_engines",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "package.json",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "package_dependencies",
+      "target": "package_dependencies_body_parser",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "package.json",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "package_dependencies",
+      "target": "package_dependencies_cors",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "package.json",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "package_dependencies",
+      "target": "package_dependencies_dotenv",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "package.json",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "package_dependencies",
+      "target": "package_dependencies_express",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "package.json",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "package_dependencies",
+      "target": "package_dependencies_sqlite",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "package.json",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "package_dependencies",
+      "target": "package_dependencies_sqlite3",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "package.json",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "package_engines",
+      "target": "package_engines_node",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "package.json",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "package_scripts",
+      "target": "package_scripts_start",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "package.json",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_index",
+      "target": "server",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "server.js",
+      "source_location": "L3"
+    },
+    {
+      "source": "backend_index_app",
+      "target": "backend_mw_logger",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L22"
+    },
+    {
+      "source": "backend_index_app",
+      "target": "backend_db_initializer",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L50"
+    },
+    {
+      "source": "backend_index_app",
+      "target": "route_spa_catchall",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L776"
+    },
+    {
+      "source": "backend_index_db",
+      "target": "backend_op_update",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L108"
+    },
+    {
+      "source": "backend_index_db",
+      "target": "backend_op_remove",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L118"
+    },
+    {
+      "source": "backend_index_db",
+      "target": "backend_op_getall",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L71"
+    },
+    {
+      "source": "backend_index_db",
+      "target": "route_reset_db",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L732"
+    },
+    {
+      "source": "backend_index_db",
+      "target": "backend_op_getbyid",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L80"
+    },
+    {
+      "source": "backend_index_db",
+      "target": "backend_op_insert",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L91"
+    },
+    {
+      "source": "backend_index_getnextinvoicenumber",
+      "target": "route_post_sales",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L533"
+    },
+    {
+      "source": "backend_index_mergeduplicateproducts",
+      "target": "backend_db_initializer",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L62"
+    },
+    {
+      "source": "backend_op_getall",
+      "target": "route_get_products",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L269"
+    },
+    {
+      "source": "backend_op_getall",
+      "target": "route_get_transfers",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L418"
+    },
+    {
+      "source": "backend_op_getall",
+      "target": "route_get_customers",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L426"
+    },
+    {
+      "source": "backend_op_getall",
+      "target": "route_get_payments",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L458"
+    },
+    {
+      "source": "backend_op_getall",
+      "target": "route_get_sales",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L511"
+    },
+    {
+      "source": "backend_op_getall",
+      "target": "route_get_suppliers",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L597"
+    },
+    {
+      "source": "backend_op_getall",
+      "target": "route_get_purchases",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L629"
+    },
+    {
+      "source": "backend_op_getall",
+      "target": "route_get_supplier_payments",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L687"
+    },
+    {
+      "source": "backend_op_getall",
+      "target": "route_get_expenses",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L712"
+    },
+    {
+      "source": "backend_op_insert",
+      "target": "route_post_products",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L279"
+    },
+    {
+      "source": "backend_op_insert",
+      "target": "route_post_customers",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L433"
+    },
+    {
+      "source": "backend_op_insert",
+      "target": "route_post_payments",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L468"
+    },
+    {
+      "source": "backend_op_insert",
+      "target": "route_post_sales",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L544"
+    },
+    {
+      "source": "backend_op_insert",
+      "target": "route_post_suppliers",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L604"
+    },
+    {
+      "source": "backend_op_insert",
+      "target": "route_post_purchases",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L646"
+    },
+    {
+      "source": "backend_op_insert",
+      "target": "route_post_supplier_payments",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L694"
+    },
+    {
+      "source": "backend_op_insert",
+      "target": "route_post_expenses",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L719"
+    },
+    {
+      "source": "backend_op_remove",
+      "target": "route_delete_products",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L348"
+    },
+    {
+      "source": "backend_op_remove",
+      "target": "route_delete_customers",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L448"
+    },
+    {
+      "source": "backend_op_remove",
+      "target": "route_delete_suppliers",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L618"
+    },
+    {
+      "source": "backend_op_update",
+      "target": "route_put_products",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L341"
+    },
+    {
+      "source": "backend_op_update",
+      "target": "route_put_customers",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L441"
+    },
+    {
+      "source": "backend_op_update",
+      "target": "route_put_suppliers",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L612"
+    },
+    {
+      "source": "fe_api_client",
+      "target": "fe_view_customers",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "source": "fe_api_client",
+      "target": "fe_view_dashboard",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "source": "fe_api_client",
+      "target": "fe_view_inventory",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "source": "fe_api_client",
+      "target": "fe_view_pos_billing",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "source": "fe_api_client",
+      "target": "fe_view_reports",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "source": "fe_api_client",
+      "target": "fe_view_settings",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "source": "fe_api_client",
+      "target": "fe_view_stock_transfer",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "source": "fe_api_client",
+      "target": "fe_view_suppliers",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "source": "fe_api_client",
+      "target": "route_get_customers",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "source": "fe_api_client",
+      "target": "route_get_products",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "source": "fe_api_client",
+      "target": "route_get_sales",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "source": "fe_api_client",
+      "target": "route_get_suppliers",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "source": "fe_api_client",
+      "target": "route_post_payments",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "source": "fe_api_client",
+      "target": "route_post_products",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "source": "fe_api_client",
+      "target": "route_post_purchases",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "source": "fe_api_client",
+      "target": "route_post_sales",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "source": "fe_api_client",
+      "target": "route_recalculate_balances",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "source": "fe_lib_dompurify",
+      "target": "fe_view_pos_billing",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "source": "fe_lib_html2canvas",
+      "target": "fe_view_pos_billing",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "source": "route_transfer_products",
+      "target": "fe_api_client",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "dist/assets/index-BQlSbgAO.js"
+    },
+    {
+      "source": "config_firebase",
+      "target": "config_env",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".env"
+    },
+    {
+      "source": "config_port",
+      "target": "config_env",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".env"
+    },
+    {
+      "source": "backend_index_db",
+      "target": "data_counters_live",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/database.sqlite"
+    },
+    {
+      "source": "backend_index_db",
+      "target": "data_customers_live",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/database.sqlite"
+    },
+    {
+      "source": "backend_index_db",
+      "target": "data_payments_live",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/database.sqlite"
+    },
+    {
+      "source": "backend_index_db",
+      "target": "data_products_live",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/database.sqlite"
+    },
+    {
+      "source": "backend_index_db",
+      "target": "data_purchases_live",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/database.sqlite"
+    },
+    {
+      "source": "backend_index_db",
+      "target": "data_sales_live",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/database.sqlite"
+    },
+    {
+      "source": "backend_index_db",
+      "target": "data_stock_transfers_live",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/database.sqlite"
+    },
+    {
+      "source": "backend_index_db",
+      "target": "data_supplier_payments_live",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/database.sqlite"
+    },
+    {
+      "source": "backend_index_db",
+      "target": "data_suppliers_live",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/database.sqlite"
+    },
+    {
+      "source": "backend_index_app",
+      "target": "config_port",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L10"
+    },
+    {
+      "source": "fe_view_dashboard",
+      "target": "route_spa_catchall",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L777"
+    },
+    {
+      "source": "route_next_invoice",
+      "target": "data_counters_live",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/index.js",
+      "source_location": "L516"
+    },
+    {
+      "source": "route_transfer_products",
+      "target": "data_stock_transfers_live",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "backend/index.js",
+      "source_location": "L398"
+    }
+  ],
+  "hyperedges": []
+}

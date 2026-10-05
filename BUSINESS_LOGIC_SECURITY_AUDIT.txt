@@ -1,0 +1,121 @@
+======================================================================
+             AURA FURNITURE POS - BUSINESS LOGIC SECURITY AUDIT
+======================================================================
+APPLICATION: Aura Furniture Management & POS System (Shan-e-Aziz POS)
+DATE: 2026-09-27
+AUDITOR: Senior Business Logic Auditor & Application Analyst
+
+----------------------------------------------------------------------
+1. FINANCIAL RECALCULATION & CLIENT VALUE BLIND TRUST
+----------------------------------------------------------------------
+Fundamental Security Principle:
+"A financial backend must never trust client-supplied monetary totals."
+
+Vulnerability Analysis (SEC-002):
+- Endpoint: `POST /api/sales`
+- Flaw:
+  The controller verifies that individual item quantities are positive and item
+  prices are non-negative. However, it blindly accepts `req.body.total` as the
+  official invoice total and debt calculation baseline:
+  ```javascript
+  const parsedTotal = Number(total);
+  const remainingBalance = parsedTotal - (Number(customerDetails.amountPaid) || 0);
+  ```
+- Business Consequence:
+  A counter operator selling an executive sofa priced at 120,000 PKR can submit:
+  `items: [{ id: "sofa-1", quantity: 1, price: 120000, total: 120000 }]`
+  accompanied by `total: 1000` and `amountPaid: 1000`.
+  * The physical sofa is decremented from store stock.
+  * The invoice records `total = 1000, remainingBalance = 0`.
+  * The cash register registers only 1,000 PKR.
+  * 119,000 PKR of retail value is vanished from the books with zero trace of delinquency!
+
+Remediation Required:
+Enforce server-side summation:
+```javascript
+const recalculatedTotal = items.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.price || 0)), 0);
+if (Math.abs(recalculatedTotal - parsedTotal) > 0.01) {
+    return res.status(400).json({ error: 'Discrepancy detected: Invoice total does not match line items.' });
+}
+```
+
+----------------------------------------------------------------------
+2. CUSTOMER DEBT LEDGER OVERPAYMENT LOGIC
+----------------------------------------------------------------------
+Vulnerability Analysis (SEC-005):
+- Endpoint: `POST /api/payments`
+- Flaw:
+  When an installment is received from a customer, the controller performs:
+  `balance: (customer.balance || 0) - data.amount`
+  It checks that `data.amount > 0`, but does NOT verify that `data.amount <= customer.balance`.
+- Business Consequence:
+  If Customer X owes 5,000 PKR and makes a payment of 25,000 PKR, their balance
+  becomes `-20000` PKR. The customer transforms from a debtor into an unsecured
+  creditor. In furniture retail, customer advances should be handled through dedicated
+  advance deposit contracts, not arbitrary negative balances in the debt ledger.
+
+Remediation Required:
+Add balance check in `POST /api/payments`:
+```javascript
+const customerBalance = Number(customer.balance) || 0;
+if (customerBalance <= 0) {
+    return res.status(400).json({ error: 'Customer has no outstanding dues to settle.' });
+}
+if (data.amount > customerBalance) {
+    return res.status(400).json({ error: 'Installment amount cannot exceed outstanding balance.' });
+}
+```
+
+----------------------------------------------------------------------
+3. PRODUCT STOCK & VALUATION TAMPERING VIA PUT
+----------------------------------------------------------------------
+Vulnerability Analysis (SEC-003):
+- Endpoint: `PUT /api/products/:id`
+- Flaw:
+  `PUT /api/products/:id` merges the incoming JSON body into the SQLite product
+  document without validating values.
+- Business Consequence:
+  A rogue terminal or script can set:
+  * `stock: -500`: Causes inventory deficit and breaks physical stock auditing.
+  * `retailPrice: 0` or negative: Enables selling furniture at zero price.
+  * `purchasePrice: 999999`: Distorts asset valuation on executive balance sheets.
+
+Remediation Required:
+Enforce schema constraints on `PUT /api/products/:id`:
+```javascript
+if (data.stock !== undefined && (isNaN(Number(data.stock)) || Number(data.stock) < 0)) {
+    return res.status(400).json({ error: 'Stock must be non-negative.' });
+}
+if (data.retailPrice !== undefined && (isNaN(Number(data.retailPrice)) || Number(data.retailPrice) < 0)) {
+    return res.status(400).json({ error: 'Retail price must be non-negative.' });
+}
+```
+
+----------------------------------------------------------------------
+4. OPERATIONAL CASHBOOK EXPENSE BOUNDARIES
+----------------------------------------------------------------------
+Vulnerability Analysis (SEC-004):
+- Endpoint: `POST /api/expenses`
+- Flaw:
+  `POST /api/expenses` accepts any numerical or non-numerical `amount`.
+- Business Consequence:
+  Submitting `{ amount: -50000 }` logs a negative expense. In the Cashbook,
+  outflows are subtracted (`Inflow - Outflow`). Subtracting a negative number
+  acts as an artificial cash addition ($--50000 = +50000$), masking drawer shortages
+  or inflating reported net liquidity.
+
+Remediation Required:
+Enforce positive numeric validation on expense amounts.
+
+----------------------------------------------------------------------
+5. VERIFIED RESILIENT BUSINESS LOGIC CONTROLS
+----------------------------------------------------------------------
+The following business logic controls were empirically audited and verified
+100% resilient against manipulation:
+1. Supplier Zero-Balance Payment Lock: Server strictly rejects payments to vendors with $\le 0$ balance (`HTTP 400`).
+2. Supplier Overpayment Guard: Server strictly rejects payments exceeding pending dues (`HTTP 400`).
+3. Procurement Upfront Cash Bound: Server strictly rejects purchases where `paidAmount > totalAmount` (`HTTP 400`).
+4. Quotation Isolation: Quotations strictly never decrement physical inventory and never create customer debt.
+5. Sales Pre-Validation: Confirmed credit sales strictly require customer name and phone number.
+6. Cashbook Procurement Deduplication: Immediate procurement payments carry `purchaseId` and `isImmediate: true`, guaranteeing zero double-counting with purchase cash disbursements.
+======================================================================

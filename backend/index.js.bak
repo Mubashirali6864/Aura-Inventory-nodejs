@@ -1,0 +1,1118 @@
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const sqlite3 = require('sqlite3').verbose();
+const crypto = require('crypto');
+const path = require('path');
+const fs = require('fs');
+
+const app = express();
+const PORT = process.env.PORT || 7860;
+
+// Security Headers Middleware
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Content-Security-Policy', "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; img-src 'self' data: blob:; connect-src 'self' ws: wss: http: https:;");
+    next();
+});
+
+// Configurable CORS Middleware
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim().toLowerCase())
+    : null;
+
+app.use(cors({
+    origin: (origin, callback) => {
+        // Allow requests with no origin (curl, mobile, same-origin, file://)
+        if (!origin || !allowedOrigins || allowedOrigins.includes(origin.toLowerCase())) {
+            return callback(null, true);
+        }
+        return callback(new Error('CORS request blocked: Origin not allowed.'));
+    }
+}));
+app.use(bodyParser.json({ limit: '10mb' }));
+
+// Serve React frontend (both dev and production)
+const frontendPath = path.join(__dirname, '..', 'dist');
+if (fs.existsSync(frontendPath)) {
+    app.use(express.static(frontendPath));
+}
+
+// Chrome DevTools & Favicon endpoints
+app.get('/.well-known/appspecific/com.chrome.devtools.json', (req, res) => {
+    res.json({});
+});
+app.get('/favicon.ico', (req, res) => {
+    const faviconPath = path.join(frontendPath, 'favicon.ico');
+    if (fs.existsSync(faviconPath)) {
+        res.sendFile(faviconPath);
+    } else {
+        res.status(204).end();
+    }
+});
+
+// Request Logger
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    next();
+});
+
+// Helper function to generate unique IDs
+const generateId = () => {
+    return crypto.randomUUID();
+};
+
+// Helper to remove undefined fields recursively for JSON compatibility
+const stripUndefined = (obj) => {
+    if (!obj || typeof obj !== 'object') return obj;
+    Object.keys(obj).forEach(key => {
+        if (obj[key] === undefined) {
+            delete obj[key];
+        } else if (obj[key] !== null && typeof obj[key] === 'object') {
+            stripUndefined(obj[key]);
+        }
+    });
+    return obj;
+};
+
+// Database and Backups Connection
+const dataPath = process.env.APP_DATA_PATH || __dirname;
+const dbPath = path.join(dataPath, 'database.sqlite');
+const backupsDir = path.join(dataPath, 'backups');
+if (!fs.existsSync(backupsDir)) {
+    fs.mkdirSync(backupsDir, { recursive: true });
+}
+console.log(`[Backend] Using database at: ${dbPath}`);
+console.log(`[Backend] Backups directory at: ${backupsDir}`);
+
+let db;
+
+const initDb = (callback) => {
+    db = new sqlite3.Database(dbPath, (err) => {
+        if (err) {
+            console.error('Error opening database', err.message);
+            if (callback) callback(err);
+        } else {
+            console.log('Connected to the SQLite database.');
+            db.serialize(() => {
+                const tables = ['products', 'customers', 'payments', 'sales', 'suppliers', 'purchases', 'supplierPayments', 'expenses', 'stockTransfers'];
+                for (const table of tables) {
+                    db.run(`CREATE TABLE IF NOT EXISTS ${table} (id TEXT PRIMARY KEY, data TEXT)`);
+                }
+                db.run(`CREATE TABLE IF NOT EXISTS counters (id TEXT PRIMARY KEY, value INTEGER)`, () => {
+                    mergeDuplicateProducts();
+                    if (callback) callback(null);
+                });
+            });
+        }
+    });
+};
+
+initDb();
+
+// Backup helper: safe copy of current db
+const createBackupFile = (prefix = 'backup') => {
+    try {
+        if (!fs.existsSync(dbPath)) return null;
+        const now = new Date();
+        const dateStr = now.toISOString().split('T')[0];
+        const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '');
+        const filename = `${prefix}-${dateStr}-${timeStr}.sqlite`;
+        const destPath = path.join(backupsDir, filename);
+        fs.copyFileSync(dbPath, destPath);
+        const stats = fs.statSync(destPath);
+        return {
+            filename,
+            size: stats.size,
+            sizeFormatted: (stats.size / 1024).toFixed(1) + ' KB',
+            createdAt: stats.mtimeMs,
+            label: `${dateStr} (${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`
+        };
+    } catch (e) {
+        console.error('[Backup] Failed to create backup file:', e);
+        return null;
+    }
+};
+
+// Automatically ensure today's backup exists
+const ensureDailyBackup = () => {
+    try {
+        if (!fs.existsSync(dbPath)) return;
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todayBackupName = `backup-${todayStr}.sqlite`;
+        const destPath = path.join(backupsDir, todayBackupName);
+        if (!fs.existsSync(destPath)) {
+            console.log(`[Backup] Automatically generating daily backup for ${todayStr}...`);
+            fs.copyFileSync(dbPath, destPath);
+        }
+    } catch (e) {
+        console.error('[Backup] Error ensuring daily backup:', e);
+    }
+};
+
+ensureDailyBackup();
+
+// Daily automated backup schedule (every 6 hours checks and saves daily backup)
+setInterval(() => {
+    ensureDailyBackup();
+}, 6 * 60 * 60 * 1000);
+
+// Generic DB Operations
+const getAll = (table) => {
+    return new Promise((resolve, reject) => {
+        db.all(`SELECT id, data FROM ${table}`, (err, rows) => {
+            if (err) return reject(err);
+            resolve(rows.map(r => ({ id: r.id, ...JSON.parse(r.data) })));
+        });
+    });
+};
+
+const getById = (table, id) => {
+    return new Promise((resolve, reject) => {
+        db.get(`SELECT data FROM ${table} WHERE id = ?`, [id], (err, row) => {
+            if (err) return reject(err);
+            if (!row) return resolve(null);
+            resolve({ id, ...JSON.parse(row.data) });
+        });
+    });
+};
+
+const insert = (table, id, data) => {
+    return new Promise((resolve, reject) => {
+        const { id: _, ...rest } = data;
+        db.run(`INSERT INTO ${table} (id, data) VALUES (?, ?)`, [id, JSON.stringify(rest)], (err) => {
+            if (err) return reject(err);
+            resolve();
+        });
+    });
+};
+
+const update = (table, id, data) => {
+    return new Promise((resolve, reject) => {
+        getById(table, id).then(existing => {
+            if (!existing) return reject(new Error('Not found'));
+            // Remove undefined fields from incoming data to avoid accidentally
+            // clearing existing fields like createdAt when callers pass
+            // objects with undefined properties.
+            const cleanData = stripUndefined(data || {});
+            const merged = { ...existing, ...cleanData };
+            const { id: _, ...rest } = merged;
+            db.run(`UPDATE ${table} SET data = ? WHERE id = ?`, [JSON.stringify(rest), id], (err) => {
+                if (err) return reject(err);
+                resolve(merged);
+            });
+        }).catch(reject);
+    });
+};
+
+const remove = (table, id) => {
+    return new Promise((resolve, reject) => {
+        db.run(`DELETE FROM ${table} WHERE id = ?`, [id], (err) => {
+            if (err) return reject(err);
+            resolve();
+        });
+    });
+};
+
+const mergeDuplicateProducts = async () => {
+    try {
+        console.log('[Startup Reconciler] Checking for duplicate products...');
+        const products = await getAll('products');
+        const groups = {};
+        
+        for (const p of products) {
+            const name = (p.name || '').trim().toLowerCase();
+            const size = (p.size || '').trim().toLowerCase();
+            const unit = (p.unit || '').trim().toLowerCase();
+            const shopId = p.shopId || 'shop-1';
+            const key = `${shopId}::${name}::${size}::${unit}`;
+            
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(p);
+        }
+
+        const idMap = {};
+        let updatedCount = 0;
+
+        for (const key of Object.keys(groups)) {
+            const group = groups[key];
+            if (group.length <= 1) continue;
+
+            // Sort so the preferred product is first
+            group.sort((a, b) => {
+                const aHasStock = (a.stock || 0) > 0;
+                const bHasStock = (b.stock || 0) > 0;
+                if (aHasStock && !bHasStock) return -1;
+                if (!aHasStock && bHasStock) return 1;
+                return (a.createdAt || 0) - (b.createdAt || 0);
+            });
+
+            const primary = group[0];
+            const secondaries = group.slice(1);
+            let combinedStock = primary.stock || 0;
+            let needsUpdate = false;
+
+            console.log(`[Startup Reconciler] Found duplicate group for key "${key}". Primary ID: ${primary.id} (SKU: ${primary.sku}, Stock: ${primary.stock})`);
+
+            for (const sec of secondaries) {
+                console.log(`[Startup Reconciler] Merging duplicate ID: ${sec.id} (SKU: ${sec.sku}, Stock: ${sec.stock}) -> Primary`);
+                combinedStock += (sec.stock || 0);
+                idMap[sec.id] = primary.id;
+                await remove('products', sec.id);
+                needsUpdate = true;
+            }
+
+            if (needsUpdate || primary.stock !== combinedStock) {
+                await update('products', primary.id, { stock: combinedStock });
+                updatedCount++;
+            }
+        }
+
+        const mergedIdsCount = Object.keys(idMap).length;
+        if (mergedIdsCount > 0) {
+            console.log(`[Startup Reconciler] Merged ${mergedIdsCount} duplicate product entities. Updating transaction references...`);
+
+            // Update Sales references
+            const sales = await getAll('sales');
+            for (const sale of sales) {
+                let saleChanged = false;
+                if (sale.items && Array.isArray(sale.items)) {
+                    sale.items = sale.items.map(item => {
+                        const pid = item.id || item.productId;
+                        if (pid && idMap[pid]) {
+                            saleChanged = true;
+                            return { ...item, id: idMap[pid], productId: idMap[pid] };
+                        }
+                        return item;
+                    });
+                }
+                if (saleChanged) {
+                    await update('sales', sale.id, sale);
+                }
+            }
+
+            // Update Purchases references
+            const purchases = await getAll('purchases');
+            for (const purchase of purchases) {
+                let purchaseChanged = false;
+                if (purchase.items && Array.isArray(purchase.items)) {
+                    purchase.items = purchase.items.map(item => {
+                        if (item.productId && idMap[item.productId]) {
+                            purchaseChanged = true;
+                            return { ...item, productId: idMap[item.productId] };
+                        }
+                        return item;
+                    });
+                }
+                if (purchaseChanged) {
+                    await update('purchases', purchase.id, purchase);
+                }
+            }
+
+            // Update Stock Transfers references
+            const transfers = await getAll('stockTransfers');
+            for (const transfer of transfers) {
+                let transferChanged = false;
+                if (transfer.sourceProductId && idMap[transfer.sourceProductId]) {
+                    transfer.sourceProductId = idMap[transfer.sourceProductId];
+                    transferChanged = true;
+                }
+                if (transfer.targetProductId && idMap[transfer.targetProductId]) {
+                    transfer.targetProductId = idMap[transfer.targetProductId];
+                    transferChanged = true;
+                }
+                if (transferChanged) {
+                    await update('stockTransfers', transfer.id, transfer);
+                }
+            }
+
+            console.log('[Startup Reconciler] Database references update complete.');
+        } else {
+            console.log('[Startup Reconciler] No duplicate product entities found.');
+        }
+    } catch (err) {
+        console.error('[Startup Reconciler] Error during duplicate merge:', err);
+    }
+};
+
+// ============================================================================================
+// INVOICE NUMBERING HELPER
+// ============================================================================================
+const getNextInvoiceNumber = () => {
+    return new Promise((resolve, reject) => {
+        db.get(`SELECT value FROM counters WHERE id = 'invoiceNumber'`, (err, row) => {
+            if (err) return reject(err);
+            const currentNumber = row ? row.value : 0;
+            const newNumber = currentNumber >= 100 ? 1 : currentNumber + 1;
+            if (row) {
+                db.run(`UPDATE counters SET value = ? WHERE id = 'invoiceNumber'`, [newNumber], err => err ? reject(err) : resolve(newNumber));
+            } else {
+                db.run(`INSERT INTO counters (id, value) VALUES ('invoiceNumber', ?)`, [newNumber], err => err ? reject(err) : resolve(newNumber));
+            }
+        });
+    });
+};
+
+// ============================================================================================
+// PRODUCTS API
+// ============================================================================================
+
+app.get('/api/products', async (req, res) => {
+    try { res.json(await getAll('products')); } 
+    catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.post('/api/products', async (req, res) => {
+    try {
+        const { name, stock, purchasePrice, retailPrice, paidAmount, ...productData } = req.body || {};
+        if (!name || typeof name !== 'string' || !name.trim()) {
+            return res.status(400).json({ error: 'Product name is required.' });
+        }
+
+        const parsedStock = stock !== undefined && stock !== null ? Number(stock) : 0;
+        const parsedPurchasePrice = purchasePrice !== undefined && purchasePrice !== null ? Number(purchasePrice) : 0;
+        const parsedRetailPrice = retailPrice !== undefined && retailPrice !== null ? Number(retailPrice) : 0;
+
+        if (isNaN(parsedStock) || parsedStock < 0) {
+            return res.status(400).json({ error: 'Stock must be a non-negative number.' });
+        }
+        if (isNaN(parsedPurchasePrice) || parsedPurchasePrice < 0 || isNaN(parsedRetailPrice) || parsedRetailPrice < 0) {
+            return res.status(400).json({ error: 'Prices cannot be negative numbers.' });
+        }
+
+        const id = generateId();
+        const newProduct = {
+            ...productData,
+            name: name.trim(),
+            stock: parsedStock,
+            purchasePrice: parsedPurchasePrice,
+            retailPrice: parsedRetailPrice,
+            createdAt: Date.now()
+        };
+        await insert('products', id, newProduct);
+
+        // Auto-create purchase if initial stock is added and supplier is selected
+        if (newProduct.stock > 0 && newProduct.supplierId && newProduct.purchasePrice > 0) {
+            const totalAmount = newProduct.stock * newProduct.purchasePrice;
+            const supplier = await getById('suppliers', newProduct.supplierId);
+            const actualPaidAmount = Number(paidAmount) || 0;
+            
+            const purchaseId = generateId();
+            const date = Date.now();
+            const purchase = {
+                id: purchaseId, 
+                supplierId: newProduct.supplierId, 
+                supplierName: newProduct.supplierName || (supplier ? supplier.name : 'Unknown'), 
+                totalAmount: totalAmount, 
+                paidAmount: actualPaidAmount, 
+                remainingAmount: totalAmount - actualPaidAmount, 
+                createdAt: date, 
+                shopId: newProduct.shopId || 'shop-1', 
+                items: [{
+                    productId: id,
+                    name: newProduct.name,
+                    quantity: newProduct.stock,
+                    costPrice: newProduct.purchasePrice,
+                    total: totalAmount
+                }]
+            };
+            await insert('purchases', purchaseId, purchase);
+
+            if (supplier) {
+                await update('suppliers', newProduct.supplierId, {
+                    totalPurchased: (supplier.totalPurchased || 0) + totalAmount,
+                    balance: (supplier.balance || 0) + totalAmount
+                });
+            }
+
+            if (actualPaidAmount > 0) {
+                const paymentId = generateId();
+                await insert('supplierPayments', paymentId, {
+                    id: paymentId, 
+                    supplierId: newProduct.supplierId, 
+                    amount: actualPaidAmount, 
+                    createdAt: date, 
+                    method: 'Cash', 
+                    note: `Immediate payment for initial stock of ${newProduct.name}`
+                });
+                if (supplier) {
+                    await update('suppliers', newProduct.supplierId, {
+                        balance: (supplier.balance || 0) + totalAmount - actualPaidAmount,
+                        totalPaid: (supplier.totalPaid || 0) + actualPaidAmount
+                    });
+                }
+            }
+        }
+
+        res.status(201).json({ id, ...newProduct });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.put('/api/products/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const data = req.body;
+        await update('products', id, data);
+        res.json({ id, ...data, message: 'Product updated successfully' });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.delete('/api/products/:id', async (req, res) => {
+    try {
+        await remove('products', req.params.id);
+        res.json({ message: 'Product deleted' });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// Stock Transfer endpoint
+app.post('/api/products/transfer', async (req, res) => {
+    try {
+        const { sourceProductId, quantity, targetShopId } = req.body || {};
+        const parsedQty = Number(quantity);
+        if (!sourceProductId || isNaN(parsedQty) || parsedQty <= 0) {
+            return res.status(400).json({ error: 'Invalid transfer parameters. Quantity must be a positive number.' });
+        }
+
+        const sourceProduct = await getById('products', sourceProductId);
+        if (!sourceProduct) return res.status(404).json({ error: 'Source product not found' });
+        if (sourceProduct.stock < parsedQty) return res.status(400).json({ error: 'Insufficient stock for transfer' });
+
+        const sourceShopId = sourceProduct.shopId || 'shop-1';
+        const targetShop = targetShopId || (sourceShopId === 'shop-1' ? 'shop-2' : 'shop-1');
+
+        const allProducts = await getAll('products');
+        let targetProduct = null;
+        const srcName = (sourceProduct.name || '').trim().toLowerCase();
+        const srcSku = (sourceProduct.sku || '').trim().toLowerCase();
+        const srcSize = (sourceProduct.size || '').trim().toLowerCase();
+        const srcUnit = (sourceProduct.unit || '').trim().toLowerCase();
+        for (const p of allProducts) {
+            if (p.shopId === targetShop) {
+                const pName = (p.name || '').trim().toLowerCase();
+                const pSku = (p.sku || '').trim().toLowerCase();
+                const pSize = (p.size || '').trim().toLowerCase();
+                const pUnit = (p.unit || '').trim().toLowerCase();
+                // Match by SKU (if non-empty) or by Name + Size + Unit
+                const skuMatch = srcSku && pSku && srcSku === pSku;
+                const detailsMatch = srcName && (srcName === pName) && (srcSize === pSize) && (srcUnit === pUnit);
+                if (skuMatch || detailsMatch) { targetProduct = p; break; }
+            }
+        }
+
+        await update('products', sourceProductId, { stock: sourceProduct.stock - quantity });
+
+        if (targetProduct) {
+            await update('products', targetProduct.id, { stock: (targetProduct.stock || 0) + quantity });
+        } else {
+            const newId = generateId();
+            const newProduct = { ...sourceProduct, shopId: targetShop, stock: quantity, createdAt: Date.now() };
+            delete newProduct.id;
+            await insert('products', newId, newProduct);
+            targetProduct = { id: newId, ...newProduct };
+        }
+
+        const transferId = generateId();
+        await insert('stockTransfers', transferId, {
+            id: transferId,
+            sourceProductId,
+            targetProductId: targetProduct.id,
+            productName: sourceProduct.name,
+            quantity,
+            sourceShopId,
+            targetShopId: targetShop,
+            date: Date.now()
+        });
+
+        res.json({
+            message: 'Stock transferred successfully',
+            sourceProductId, targetProductId: targetProduct.id, targetShopId: targetShop, quantity,
+            newSourceStock: sourceProduct.stock - quantity, newTargetStock: targetProduct.stock
+        });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.get('/api/stock-transfers', async (req, res) => {
+    try { res.json(await getAll('stockTransfers')); } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// ============================================================================================
+// CUSTOMERS API
+// ============================================================================================
+
+app.get('/api/customers', async (req, res) => {
+    try { res.json(await getAll('customers')); } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.post('/api/customers', async (req, res) => {
+    try {
+        const { name } = req.body || {};
+        if (!name || typeof name !== 'string' || !name.trim()) {
+            return res.status(400).json({ error: 'Customer name is required.' });
+        }
+        const id = generateId();
+        const newCustomer = { ...stripUndefined(req.body), name: name.trim(), createdAt: Date.now() };
+        await insert('customers', id, newCustomer);
+        res.status(201).json({ id, ...newCustomer });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.put('/api/customers/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+        await update('customers', id, stripUndefined(req.body));
+        res.json({ id, ...req.body });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.delete('/api/customers/:id', async (req, res) => {
+    try {
+        await remove('customers', req.params.id);
+        res.json({ message: 'Customer deleted' });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// ============================================================================================
+// PAYMENTS API
+// ============================================================================================
+
+app.get('/api/payments', async (req, res) => {
+    try { res.json(await getAll('payments')); } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.post('/api/payments', async (req, res) => {
+    try {
+        const data = stripUndefined(req.body || {});
+        const amount = Number(data.amount);
+        if (isNaN(amount) || amount <= 0) {
+            return res.status(400).json({ error: 'Payment amount must be a positive number.' });
+        }
+        const id = generateId();
+        const now = Date.now();
+        // Always store both `date` and `createdAt` so the frontend Payment type (which uses `date`) works correctly
+        const newPayment = { ...data, amount, date: now, createdAt: now };
+        await insert('payments', id, newPayment);
+
+        if (data.customerId && data.customerId !== 'walk-in') {
+            const customer = await getById('customers', data.customerId);
+            if (customer) {
+                // Re-calculate totalPaid from all payments to avoid double-counting
+                // if this endpoint is accidentally called twice.
+                const allPayments = await getAll('payments');
+                const recalcTotalPaid = allPayments
+                    .filter(p => p.customerId === data.customerId)
+                    .reduce((sum, p) => sum + (p.amount || 0), 0);
+
+                await update('customers', data.customerId, {
+                    balance: (customer.balance || 0) - data.amount,
+                    totalPaid: recalcTotalPaid
+                });
+            }
+        }
+
+        if (data.saleId) {
+            const sale = await getById('sales', data.saleId);
+            if (sale) {
+                const currentRemaining = sale.remainingBalance ?? sale.customerDetails?.remainingBalance ?? 0;
+                const currentPaid = sale.amountPaid ?? sale.customerDetails?.amountPaid ?? 0;
+                const newRemaining = Math.max(0, currentRemaining - data.amount);
+                const newPaid = currentPaid + data.amount;
+                const newStatus = newRemaining <= 0 ? 'Full' : 'Partial';
+
+                await update('sales', data.saleId, {
+                    remainingBalance: newRemaining, amountPaid: newPaid, paymentType: newStatus,
+                    customerDetails: { ...sale.customerDetails, remainingBalance: newRemaining, amountPaid: newPaid, paymentType: newStatus }
+                });
+            }
+        }
+        res.status(201).json({ id, ...newPayment });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// ============================================================================================
+// SALES API
+// ============================================================================================
+
+app.get('/api/sales', async (req, res) => {
+    try { res.json(await getAll('sales')); } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.get('/api/sales/next-invoice', async (req, res) => {
+    try {
+        db.get(`SELECT value FROM counters WHERE id = 'invoiceNumber'`, (err, row) => {
+            if (err) return res.status(500).json({ error: err.message });
+            const currentNumber = row ? row.value : 0;
+            res.json({ nextInvoiceNumber: currentNumber + 1 });
+        });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.post('/api/sales', async (req, res) => {
+    try {
+        const { items, total, customerDetails = {}, shopId, type } = req.body || {};
+
+        if (!Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: 'Sales order must contain at least one item.' });
+        }
+
+        for (const item of items) {
+            const qty = Number(item.quantity);
+            if (isNaN(qty) || qty <= 0) {
+                return res.status(400).json({ error: `Invalid item quantity (${item.quantity}). Quantity must be a positive number.` });
+            }
+            const price = Number(item.price ?? item.costPrice ?? 0);
+            if (isNaN(price) || price < 0) {
+                return res.status(400).json({ error: `Invalid item price (${item.price}). Price cannot be negative.` });
+            }
+        }
+
+        const parsedTotal = Number(total);
+        if (isNaN(parsedTotal) || parsedTotal < 0) {
+            return res.status(400).json({ error: 'Total amount must be a non-negative number.' });
+        }
+
+        const saleId = generateId();
+        const { date: providedDate } = req.body || {};
+        const date = providedDate || Date.now();
+        const remainingBalance = parsedTotal - (Number(customerDetails.amountPaid) || 0);
+        const shopIdValue = shopId || 'shop-1';
+        const paymentType = customerDetails.paymentType || 'Full';
+
+        // Validation: If bill is on partial or pending, customer name and phone are strictly required
+        if (paymentType === 'Partial' || paymentType === 'Pending' || (type !== 'Quotation' && remainingBalance > 0)) {
+            let cName = (customerDetails.customerName || customerDetails.name || '').trim();
+            let cPhone = (customerDetails.customerPhone || customerDetails.phone || '').trim();
+
+            if (!cPhone && customerDetails.customerId) {
+                const existingCustomer = await getById('customers', customerDetails.customerId);
+                if (existingCustomer && existingCustomer.phone) {
+                    cPhone = existingCustomer.phone.trim();
+                    customerDetails.customerPhone = cPhone;
+                    customerDetails.phone = cPhone;
+                }
+            }
+
+            if (!cName || cName.toLowerCase() === 'walk-in customer' || cName.toLowerCase() === 'walk-in') {
+                return res.status(400).json({ error: 'Customer name is required for partial and pending bills.' });
+            }
+            if (!cPhone) {
+                return res.status(400).json({ error: 'Customer phone number is required for partial and pending bills.' });
+            }
+        }
+
+        // Pre-validate stock availability for all items before modifying any database state
+        for (const item of items) {
+            const pid = item.id || item.productId;
+            if (!pid) continue;
+            const product = await getById('products', pid);
+            if (product && type !== 'Return' && (product.stock || 0) < item.quantity) {
+                return res.status(400).json({ error: `Insufficient stock for product: ${product.name}. Available: ${product.stock}, Requested: ${item.quantity}` });
+            }
+        }
+
+        const invoiceNumber = await getNextInvoiceNumber();
+
+        const sale = stripUndefined({
+            id: saleId, invoiceNumber, type: type || 'Sale', total: parsedTotal, createdAt: date, date: date,
+            customerName: customerDetails.customerName || customerDetails.name || 'Walk-in Customer',
+            customerPhone: customerDetails.customerPhone || customerDetails.phone || '',
+            paymentType: customerDetails.paymentType || 'Full', dueDate: customerDetails.dueDate,
+            customerDetails: { ...customerDetails, name: customerDetails.name || customerDetails.customerName || 'Walk-in Customer', customerName: customerDetails.customerName || customerDetails.name || 'Walk-in Customer', remainingBalance, dueDate: customerDetails.dueDate },
+            remainingBalance, shopId: shopIdValue, items
+        });
+
+        await insert('sales', saleId, sale);
+
+        for (const item of items) {
+            const pid = item.id || item.productId;
+            if (!pid) continue;
+            const product = await getById('products', pid);
+            if (product) {
+                const stockChange = type === 'Return' ? item.quantity : -item.quantity;
+                await update('products', pid, { stock: (product.stock || 0) + stockChange });
+            }
+        }
+
+        const cName = customerDetails.name || customerDetails.customerName;
+        // Only update EXISTING customers (those already in the DB with a real customerId).
+        // Do NOT auto-create new customer profiles just because a name was typed at billing.
+        // The sale record already stores customerName/customerPhone for reference.
+        if (cName && cName !== 'Walk-in Customer' && cName !== 'Walk-in' && customerDetails.customerId) {
+            const customerId = customerDetails.customerId;
+            const existingCustomer = await getById('customers', customerId);
+            if (existingCustomer) {
+                const existingBalance = existingCustomer.balance || 0;
+                const existingTotalPurchased = existingCustomer.totalPurchased || 0;
+                const existingTotalPaid = existingCustomer.totalPaid || 0;
+
+                const isReturn = type === 'Return';
+                const balanceAdjustment = isReturn ? -remainingBalance : remainingBalance;
+
+                const customerData = stripUndefined({
+                    name: cName || 'Unknown', phone: customerDetails.phone || customerDetails.customerPhone || '',
+                    address: customerDetails.address || customerDetails.customerAddress || '',
+                    balance: existingBalance + balanceAdjustment,
+                    totalPurchased: existingTotalPurchased + (isReturn ? -total : total),
+                    totalPaid: existingTotalPaid + (customerDetails.amountPaid || 0),
+                    updatedAt: date
+                });
+
+                await update('customers', customerId, customerData);
+                await update('sales', saleId, { customerId });
+            }
+        }
+
+        res.status(201).json({ id: saleId, ...sale });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// ============================================================================================
+// SUPPLIERS API
+// ============================================================================================
+
+app.get('/api/suppliers', async (req, res) => {
+    try { res.json(await getAll('suppliers')); } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.post('/api/suppliers', async (req, res) => {
+    try {
+        const { name, ...rest } = req.body || {};
+        if (!name || typeof name !== 'string' || !name.trim()) {
+            return res.status(400).json({ error: 'Supplier name is required.' });
+        }
+        const id = generateId();
+        const newSupplier = { ...rest, name: name.trim(), balance: 0, totalPurchased: 0, totalPaid: 0, createdAt: Date.now() };
+        await insert('suppliers', id, newSupplier);
+        res.status(201).json({ id, ...newSupplier });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.put('/api/suppliers/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+        await update('suppliers', id, req.body);
+        res.json({ id, ...req.body });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.delete('/api/suppliers/:id', async (req, res) => {
+    try {
+        await remove('suppliers', req.params.id);
+        res.json({ message: 'Supplier deleted' });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// ============================================================================================
+// PURCHASES API
+// ============================================================================================
+
+app.get('/api/purchases', async (req, res) => {
+    try { res.json(await getAll('purchases')); } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.post('/api/purchases', async (req, res) => {
+    try {
+        const { supplierId, items, paidAmount, shopId, dueDate } = req.body;
+        const purchaseId = generateId();
+        const { date: providedDate } = req.body;
+        const date = providedDate || Date.now();
+        const totalAmount = items.reduce((sum, item) => sum + item.total, 0);
+
+        const supplier = await getById('suppliers', supplierId);
+        const supplierName = supplier?.name || 'Unknown';
+
+        const purchase = {
+            id: purchaseId, supplierId, supplierName, totalAmount, paidAmount, remainingAmount: totalAmount - paidAmount, createdAt: date, date: date, shopId, items
+        };
+        await insert('purchases', purchaseId, purchase);
+
+        for (const item of items) {
+            const product = await getById('products', item.productId);
+            if (product) {
+                await update('products', item.productId, {
+                    stock: (product.stock || 0) + item.quantity, purchasePrice: item.costPrice, supplierId, supplierName
+                });
+            }
+        }
+
+        if (supplier) {
+            await update('suppliers', supplierId, {
+                totalPurchased: (supplier.totalPurchased || 0) + totalAmount,
+                balance: (supplier.balance || 0) + totalAmount,
+                ...(dueDate ? { nextPaymentDate: dueDate } : {})
+            });
+        }
+
+        if (paidAmount > 0) {
+            const paymentId = generateId();
+            await insert('supplierPayments', paymentId, {
+                id: paymentId, supplierId, amount: paidAmount, createdAt: date, method: 'Cash', note: `Immediate payment for Purchase #${purchaseId}`
+            });
+            if (supplier) {
+                await update('suppliers', supplierId, {
+                    balance: (supplier.balance || 0) + totalAmount - paidAmount,
+                    totalPaid: (supplier.totalPaid || 0) + paidAmount
+                });
+            }
+        }
+
+        res.status(201).json({ id: purchaseId, message: 'Purchase recorded' });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// ============================================================================================
+// SUPPLIER PAYMENTS API
+// ============================================================================================
+
+app.get('/api/supplier-payments', async (req, res) => {
+    try { res.json(await getAll('supplierPayments')); } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.post('/api/supplier-payments', async (req, res) => {
+    try {
+        const { supplierId, amount } = req.body || {};
+        if (!supplierId) {
+            return res.status(400).json({ error: 'Supplier ID is required.' });
+        }
+        const parsedAmount = Number(amount);
+        if (isNaN(parsedAmount) || parsedAmount <= 0) {
+            return res.status(400).json({ error: 'Payment amount must be a positive number.' });
+        }
+
+        const supplier = await getById('suppliers', supplierId);
+        if (!supplier) {
+            return res.status(404).json({ error: 'Supplier not found.' });
+        }
+
+        const currentBalance = Number(supplier.balance) || 0;
+        if (currentBalance <= 0) {
+            return res.status(400).json({ error: 'Cannot pay supplier: Supplier has no pending dues (balance is 0 or negative).' });
+        }
+
+        const paymentId = generateId();
+        const payment = { ...stripUndefined(req.body), amount: parsedAmount, createdAt: Date.now() };
+        await insert('supplierPayments', paymentId, payment);
+
+        await update('suppliers', supplierId, {
+            balance: currentBalance - parsedAmount,
+            totalPaid: (Number(supplier.totalPaid) || 0) + parsedAmount
+        });
+        res.status(201).json({ id: paymentId, ...payment });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// ============================================================================================
+// EXPENSES API
+// ============================================================================================
+
+app.get('/api/expenses', async (req, res) => {
+    try { res.json(await getAll('expenses')); } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.post('/api/expenses', async (req, res) => {
+    try {
+        const id = generateId();
+        const newExpense = { ...req.body, createdAt: Date.now() };
+        await insert('expenses', id, newExpense);
+        res.status(201).json({ id, ...newExpense });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// ============================================================================================
+// BACKUP & RESTORE APIS
+// ============================================================================================
+
+// List available backups (past week & all available)
+app.get('/api/backups', (req, res) => {
+    try {
+        if (!fs.existsSync(backupsDir)) {
+            return res.json([]);
+        }
+        const files = fs.readdirSync(backupsDir)
+            .filter(f => f.endsWith('.sqlite') || f.endsWith('.db'))
+            .map(filename => {
+                const filePath = path.join(backupsDir, filename);
+                const stats = fs.statSync(filePath);
+                const d = new Date(stats.mtimeMs);
+                const dateStr = d.toISOString().split('T')[0];
+                const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                const now = new Date();
+                const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+                let relLabel = `${diffDays} days ago`;
+                if (diffDays === 0) relLabel = 'Today';
+                else if (diffDays === 1) relLabel = 'Yesterday';
+
+                return {
+                    filename,
+                    size: stats.size,
+                    sizeFormatted: (stats.size / 1024).toFixed(1) + ' KB',
+                    createdAt: stats.mtimeMs,
+                    label: `${dateStr} (${relLabel} - ${timeStr})`
+                };
+            })
+            .sort((a, b) => b.createdAt - a.createdAt);
+
+        res.json(files);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Create an immediate backup snapshot
+app.post('/api/backups/create', (req, res) => {
+    try {
+        const backup = createBackupFile('backup-manual');
+        if (!backup) {
+            return res.status(500).json({ error: 'Failed to create database snapshot.' });
+        }
+        res.status(201).json({ success: true, backup });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Download a backup file
+app.get('/api/backups/download/:filename', (req, res) => {
+    try {
+        const safeName = path.basename(req.params.filename);
+        const filePath = path.join(backupsDir, safeName);
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({ error: 'Backup file not found.' });
+        }
+        res.setHeader('Content-Type', 'application/x-sqlite3');
+        res.download(filePath, safeName);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Switch / Restore database to a selected backup
+app.post('/api/backups/restore', async (req, res) => {
+    try {
+        const { filename } = req.body || {};
+        if (!filename) {
+            return res.status(400).json({ error: 'Filename is required for database restore.' });
+        }
+        const safeName = path.basename(filename);
+        const sourcePath = path.join(backupsDir, safeName);
+        if (!fs.existsSync(sourcePath)) {
+            return res.status(404).json({ error: `Backup file ${safeName} does not exist.` });
+        }
+
+        // 1. Automatically create a safety backup of current state first
+        createBackupFile('pre-restore-safety');
+
+        // 2. Close active database connections
+        if (db) {
+            await new Promise((resolve) => db.close(() => resolve()));
+        }
+
+        // 3. Replace database.sqlite with the selected backup
+        fs.copyFileSync(sourcePath, dbPath);
+
+        // 4. Re-initialize database
+        await new Promise((resolve, reject) => {
+            initDb((err) => {
+                if (err) return reject(err);
+                resolve();
+            });
+        });
+
+        console.log(`[Backup] Successfully switched database to: ${safeName}`);
+        res.json({ success: true, message: `Database successfully restored to ${safeName}` });
+    } catch (error) {
+        console.error('[Backup] Restore error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============================================================================================
+// SYSTEM RESET API
+// ============================================================================================
+
+app.post('/api/reset', async (req, res) => {
+    try {
+        const adminToken = req.headers['x-admin-token'] || req.query.token;
+        const configuredToken = process.env.ADMIN_RESET_TOKEN;
+        const isLocalOrSameOrigin = !req.headers.origin || req.headers.origin.includes('localhost') || req.headers.origin.includes('127.0.0.1');
+
+        if (process.env.ALLOW_DB_RESET !== 'true') {
+            return res.status(403).json({ error: 'Database reset is disabled. Set ALLOW_DB_RESET=true in .env to enable.' });
+        }
+
+        if (configuredToken && adminToken !== configuredToken && !isLocalOrSameOrigin) {
+            return res.status(403).json({ error: 'Unauthorized: Invalid or missing admin reset token.' });
+        }
+
+        // Always take an automated safety snapshot before any wipe
+        createBackupFile('pre-reset-safety');
+
+        const tables = ['products', 'customers', 'payments', 'sales', 'suppliers', 'purchases', 'supplierPayments', 'expenses', 'stockTransfers', 'counters'];
+        for (const table of tables) {
+            await new Promise((resolve, reject) => db.run(`DELETE FROM ${table}`, err => err ? reject(err) : resolve()));
+        }
+        res.json({ message: 'Database reset successfully' });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// ============================================================================================
+// RECALCULATE BALANCES API  — fixes any existing double-counted totalPaid in the DB
+// ============================================================================================
+
+app.post('/api/recalculate-balances', async (req, res) => {
+    try {
+        const customers = await getAll('customers');
+        const allPayments = await getAll('payments');
+        const allSales = await getAll('sales');
+
+        for (const customer of customers) {
+            // Sum all payments made by this customer
+            const totalPaid = allPayments
+                .filter(p => p.customerId === customer.id)
+                .reduce((sum, p) => sum + (p.amount || 0), 0);
+
+            // Sum all sale totals for this customer (excluding returns)
+            const totalPurchased = allSales
+                .filter(s => s.customerId === customer.id && s.type !== 'Return')
+                .reduce((sum, s) => sum + (s.total || 0), 0);
+
+            // Sum all return totals
+            const totalReturned = allSales
+                .filter(s => s.customerId === customer.id && s.type === 'Return')
+                .reduce((sum, s) => sum + (s.total || 0), 0);
+
+            // balance = what they still owe = totalPurchased - totalReturned - totalPaid
+            const balance = (totalPurchased - totalReturned) - totalPaid;
+
+            await update('customers', customer.id, { totalPaid, totalPurchased: totalPurchased - totalReturned, balance });
+        }
+
+        res.json({ message: `Recalculated balances for ${customers.length} customers.` });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// Catch-all: serve React app for any non-API route
+if (fs.existsSync(frontendPath)) {
+    app.get('*', (req, res, next) => {
+        if (req.path.startsWith('/api/')) return next();
+        res.sendFile(path.join(frontendPath, 'index.html'));
+    });
+}
+
+// Centralized Express Error Handler
+app.use((err, req, res, next) => {
+    console.error(`[Unhandled Error] ${req.method} ${req.url}:`, err.message || err);
+    if (res.headersSent) return next(err);
+    res.status(err.status || 500).json({
+        error: process.env.NODE_ENV === 'production' ? 'Internal server error occurred.' : (err.message || 'Internal server error')
+    });
+});
+
+// Start server
+app.listen(PORT, () => {
+    console.log(`Backend server running on port ${PORT}`);
+});

@@ -1,0 +1,236 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Aura Inventory & POS System Architecture",
+    "output": "architecture.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "full-flow",
+        "label": "End-to-End System Flow",
+        "focus": ["client_spa", "hostinger_gw", "api_router", "billing_engine", "credit_engine", "doc_store", "sqlite_db"],
+        "note": "Trace user interactions from browser SPA through Express controllers into SQLite document persistence."
+      },
+      {
+        "id": "financial-ledger",
+        "label": "Financial & Credit Ledger",
+        "focus": ["client_spa", "api_router", "credit_engine", "doc_store", "sqlite_db"],
+        "note": "Inspect customer credit accounting, upfront down payments, and subsequent invoice settlements."
+      },
+      {
+        "id": "storage-persistence",
+        "label": "Persistence & Backup Lifecycle",
+        "focus": ["doc_store", "sqlite_db", "backup_engine"],
+        "note": "Review SQLite document storage abstraction and scheduled automated filesystem snapshot cycles."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "client_spa",
+      "type": "frontend",
+      "label": "Shan-e-Aziz POS SPA",
+      "sublabel": "React 18 · Vite · Tailwind",
+      "brand": "react",
+      "pos": [40, 240],
+      "size": [140, 64],
+      "tag": "Client Edge"
+    },
+    {
+      "id": "hostinger_gw",
+      "type": "cloud",
+      "label": "Hostinger Gateway",
+      "sublabel": "Passenger · server.js",
+      "pos": [230, 150],
+      "size": [140, 64],
+      "tag": "Entry Proxy"
+    },
+    {
+      "id": "api_router",
+      "type": "backend",
+      "label": "Express API Core",
+      "sublabel": "Middleware & Routing",
+      "brand": "node-js",
+      "pos": [230, 270],
+      "size": [140, 64],
+      "tag": "Port 7860"
+    },
+    {
+      "id": "billing_engine",
+      "type": "backend",
+      "label": "Sales & Billing",
+      "sublabel": "Stock Deduction & Invoicing",
+      "pos": [430, 130],
+      "size": [150, 64],
+      "tag": "POST /api/sales"
+    },
+    {
+      "id": "credit_engine",
+      "type": "backend",
+      "label": "Credit & Ledger",
+      "sublabel": "Receivables & Settlements",
+      "pos": [430, 250],
+      "size": [150, 64],
+      "tag": "Debtor Balances"
+    },
+    {
+      "id": "procure_engine",
+      "type": "backend",
+      "label": "Procurement & Stock",
+      "sublabel": "Suppliers & Transfers",
+      "pos": [430, 370],
+      "size": [150, 64],
+      "tag": "Vendor Payables"
+    },
+    {
+      "id": "doc_store",
+      "type": "backend",
+      "label": "Document Store DAO",
+      "sublabel": "getAll · getById · update",
+      "pos": [640, 250],
+      "size": [150, 64],
+      "tag": "JSON Abstraction"
+    },
+    {
+      "id": "sqlite_db",
+      "type": "database",
+      "label": "SQLite Database",
+      "sublabel": "database.sqlite · 10 Tables",
+      "brand": "sqlite",
+      "pos": [850, 250],
+      "size": [140, 64],
+      "tag": "Local Store"
+    },
+    {
+      "id": "backup_engine",
+      "type": "backend",
+      "label": "Backup Scheduler",
+      "sublabel": "6-Hour Snapshot Service",
+      "pos": [850, 380],
+      "size": [140, 64],
+      "tag": "Daily Snapshots"
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Business Logic & Express Controllers",
+      "wraps": ["api_router", "billing_engine", "credit_engine", "procure_engine", "doc_store"]
+    },
+    {
+      "kind": "security-group",
+      "label": "Persistence & Storage Tier",
+      "wraps": ["sqlite_db", "backup_engine"]
+    }
+  ],
+  "connections": [
+    {
+      "id": "spa-to-gateway",
+      "from": "client_spa",
+      "to": "hostinger_gw",
+      "label": "HTTPS",
+      "variant": "emphasis",
+      "fromSide": "top",
+      "toSide": "left"
+    },
+    {
+      "id": "gateway-to-router",
+      "from": "hostinger_gw",
+      "to": "api_router",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "router-to-billing",
+      "from": "api_router",
+      "to": "billing_engine",
+      "label": "Sales",
+      "fromSide": "top",
+      "toSide": "left"
+    },
+    {
+      "id": "router-to-credit",
+      "from": "api_router",
+      "to": "credit_engine",
+      "label": "Credit",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "router-to-procure",
+      "from": "api_router",
+      "to": "procure_engine",
+      "label": "Procure",
+      "fromSide": "bottom",
+      "toSide": "left"
+    },
+    {
+      "id": "billing-to-docstore",
+      "from": "billing_engine",
+      "to": "doc_store",
+      "fromSide": "right",
+      "toSide": "top"
+    },
+    {
+      "id": "credit-to-docstore",
+      "from": "credit_engine",
+      "to": "doc_store",
+      "label": "Payments",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "procure-to-docstore",
+      "from": "procure_engine",
+      "to": "doc_store",
+      "fromSide": "right",
+      "toSide": "bottom"
+    },
+    {
+      "id": "docstore-to-sqlite",
+      "from": "doc_store",
+      "to": "sqlite_db",
+      "label": "SQL Queries"
+    },
+    {
+      "id": "sqlite-to-backup",
+      "from": "sqlite_db",
+      "to": "backup_engine",
+      "label": "Snapshot",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [920, 335]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Client Edge & Presentation",
+      "items": [
+        "Single Page Application built with React 18 & Vite, served from dist/",
+        "Multi-shop POS interface (Shop 1 & Shop 2) with real-time balance calculations",
+        "Reverse-proxied through root server.js entry point on Hostinger Node.js environment"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Business Logic & Ledger",
+      "items": [
+        "Express REST controllers managing Sales, Stock, Customers, Suppliers, and Cashbook",
+        "Atomic down-payment and invoice balance tracking preventing ledger discrepancies",
+        "Document-store DAO layer wrapping SQLite3 tables with JSON data payloads"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Reliability & Integrity",
+      "items": [
+        "Automated backup engine capturing full database snapshots every 6 hours",
+        "Input validation guards blocking negative stock exploitation and invalid prices",
+        "CORS configurable middleware and HTTP security headers enforced at gateway"
+      ]
+    }
+  ]
+}

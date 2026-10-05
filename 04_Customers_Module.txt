@@ -1,0 +1,219 @@
+======================================================================
+              04_CUSTOMERS_MODULE - DEEP AUDIT & TEST REPORT
+======================================================================
+APPLICATION: Aura Furniture Management & POS System (Shan-e-Aziz POS)
+MODULE: Customers / Customer Directory & Identity Management
+EXECUTION DATE: 2026-09-27
+AUDITOR: Senior QA Engineer & Database Auditor
+
+----------------------------------------------------------------------
+1. MODULE PURPOSE
+----------------------------------------------------------------------
+The Customers module maintains the retail and wholesale client directory,
+tracks contact and delivery addresses, maintains running credit/debt balances,
+accumulates total lifetime purchases, records total payments collected, and
+links client identities to counter sales and installment settlements.
+
+----------------------------------------------------------------------
+2. FEATURES FOUND
+----------------------------------------------------------------------
+- Customer profile creation (`name`, `phone`, `address`, `email`, `notes`).
+- Customer editing and profile update.
+- Customer deletion with historical financial transaction preservation.
+- Automated running `balance` computation.
+- Automated lifetime `totalPurchased` and `totalPaid` tracking.
+- Client search by name or telephone number.
+- Fast selection during POS checkout.
+- Direct link to Customer Credit Ledger view.
+- Server-side name validation (mandatory non-empty string).
+- Defensive `stripUndefined` serialization to protect document-store fields.
+
+----------------------------------------------------------------------
+3. ACTUAL WORKFLOW
+----------------------------------------------------------------------
+1. Profile Creation:
+   User clicks "Add Customer" -> Enters Name (mandatory), Phone Number, and Address
+   -> Submits form -> Backend creates new row in SQLite `customers` table with
+   `balance: 0`, `totalPurchased: 0`, `totalPaid: 0`, and timestamp.
+2. Profile Updates:
+   User clicks "Edit" on customer card/row -> Modifies phone, name, or address ->
+   Backend merges updates with existing row, preserving financial figures.
+3. Sales Interaction:
+   When selected in POS checkout for a credit sale, the backend queries the
+   customer and updates their `balance` and `totalPurchased` attributes.
+4. Payment Settlement:
+   When an installment is recorded in Credit module, the backend decrements
+   `customer.balance` and increments `customer.totalPaid`.
+
+----------------------------------------------------------------------
+4. UI FLOW
+----------------------------------------------------------------------
+- Component: Mounted at `currentPage === 'customers'`.
+- Header: Customer search bar, "Add Customer" primary button.
+- Customer Grid/Table: Card layout or table displaying Customer Name, Phone,
+  Address, Total Purchased, and Current Balance badge (red if debt > 0, green if 0).
+- Actions: Edit profile, View Ledger, Delete Customer.
+- Modal: Modal dialog for Add / Edit Customer with inputs for Name, Phone, Address.
+
+----------------------------------------------------------------------
+5. API FLOW
+----------------------------------------------------------------------
+- GET /api/customers -> Fetches array of all customer JSON documents.
+- POST /api/customers -> Validates name is non-empty string. Initializes financial
+  counters (`balance: 0, totalPurchased: 0, totalPaid: 0`). Generates UUID and
+  inserts into `customers`. Returns HTTP 201.
+- PUT /api/customers/:id -> Merges updated fields with existing record, stripping
+  undefined fields. Returns HTTP 200.
+- DELETE /api/customers/:id -> Deletes customer row from `customers`. Returns HTTP 200.
+
+----------------------------------------------------------------------
+6. DATABASE TABLES USED
+----------------------------------------------------------------------
+- `customers`: Primary table storing customer identities and balances.
+- `sales`: Linked via `customerId` foreign key.
+- `payments`: Linked via `customerId` foreign key.
+
+----------------------------------------------------------------------
+7. DATABASE FIELDS INVOLVED
+----------------------------------------------------------------------
+`customers` table (`id TEXT PRIMARY KEY, data TEXT`):
+- `id`: UUID string.
+- `data.name`: String, trimmed customer name.
+- `data.phone`: String (e.g., '03001234567').
+- `data.address`: String.
+- `data.balance`: Number (current net unpaid debt).
+- `data.totalPurchased`: Number (cumulative sales).
+- `data.totalPaid`: Number (cumulative payments).
+- `data.createdAt`: Unix timestamp (ms).
+- `data.updatedAt`: Unix timestamp (ms).
+
+----------------------------------------------------------------------
+8. DATABASE RELATIONSHIPS
+----------------------------------------------------------------------
+- `customers.id` -> `sales.customerId` (1:N)
+- `customers.id` -> `payments.customerId` (1:N)
+- Note: SQLite document store design relies on application-level integrity.
+  When a customer is deleted, past sales and payments retain the customer's UUID
+  and snapshot name, ensuring financial transaction history is not destroyed.
+
+----------------------------------------------------------------------
+9. CREATE / UPDATE / DELETE OPERATIONS
+----------------------------------------------------------------------
+- CREATE:
+  - Input validation: Rejects missing or whitespace names with HTTP 400.
+  - Inserts sanitized JSON into SQLite.
+- UPDATE:
+  - Updates only submitted fields.
+  - Uses `stripUndefined` to ensure existing database properties are not wiped.
+- DELETE:
+  - Executes `DELETE FROM customers WHERE id = ?`.
+  - Preserves associated rows in `sales` and `payments` to prevent ledger corruption.
+
+----------------------------------------------------------------------
+10. BUSINESS LOGIC
+----------------------------------------------------------------------
+- Immutable Historical Snapshots: When an invoice is created, it captures the
+  customer's name and phone in `sale.customerDetails`. If the customer is later
+  edited or deleted, past invoices preserve their historical snapshot.
+- Balance Formula:
+  $$\text{balance} = \text{totalPurchased} - \text{totalPaid}$$
+- Safe Update Mechanics: A PUT request modifying address or phone cannot reset
+  a customer's balance to 0.
+
+----------------------------------------------------------------------
+11. CALCULATIONS
+----------------------------------------------------------------------
+- Running Balance Update on Credit Sale:
+  $$\text{New Balance} = \text{Current Balance} + \text{Remaining Balance of Sale}$$
+  $$\text{New TotalPurchased} = \text{Current TotalPurchased} + \text{Invoice Total}$$
+- Running Balance Update on Payment:
+  $$\text{New Balance} = \text{Current Balance} - \text{Payment Amount}$$
+  $$\text{New TotalPaid} = \text{Current TotalPaid} + \text{Payment Amount}$$
+
+----------------------------------------------------------------------
+12. TEST CASES & EVIDENCE
+----------------------------------------------------------------------
+- TC-CUST-01: Create Customer -> PASSED (Initial balance: 0, totalPurchased: 0, totalPaid: 0)
+- TC-CUST-02: Empty Name Validation -> PASSED (HTTP 400 'Customer name is required')
+- TC-CUST-03: Missing Name Field -> PASSED (HTTP 400 'Customer name is required')
+- TC-CUST-04: Edit Customer Information -> PASSED (Name, phone, address updated; balance preserved)
+- TC-CUST-05: Customer Purchasing & Debt Linkage -> PASSED (TotalPurchased: 25k, Balance: 15k)
+- TC-CUST-06: Customer Payment Linkage -> PASSED (Balance drops 15k -> 10k, totalPaid reaches 15k)
+- TC-CUST-07: Get All Customers -> PASSED (Exact count matches SQLite rows)
+- TC-CUST-08: Delete Customer (Clean) -> PASSED (Row removed from database)
+- TC-CUST-09: Delete Customer with History -> PASSED (Sales and payments preserved for audit)
+- TC-CUST-10: Strip Undefined Serialization -> PASSED (Zero undefined field corruption)
+
+----------------------------------------------------------------------
+13. EXPECTED RESULTS
+----------------------------------------------------------------------
+The Customer module must reliably store customer profiles, guard against invalid
+identities, maintain synchronized balances with POS checkouts and debt payments,
+and preserve financial historical auditability when profiles are modified.
+
+----------------------------------------------------------------------
+14. ACTUAL RESULTS
+----------------------------------------------------------------------
+All 10 test cases passed with 100% compliance.
+
+----------------------------------------------------------------------
+15. DATABASE RESULTS
+----------------------------------------------------------------------
+Direct SQLite inspection confirmed:
+- Document rows in `customers` maintain valid JSON formatting.
+- `createdAt` timestamps accurately reflect record insertion time.
+- Deletions successfully purge target IDs without residual orphan fragments in `customers`.
+
+----------------------------------------------------------------------
+16. DATABASE INTEGRITY RESULTS
+----------------------------------------------------------------------
+- No orphan records created.
+- Customer financial metrics remain in balance parity with `sales` and `payments` tables.
+- Updates cleanly merge delta payloads without wiping existing values.
+
+----------------------------------------------------------------------
+17. DEFECTS
+----------------------------------------------------------------------
+- None found. Validation and data persistence performed as specified.
+
+----------------------------------------------------------------------
+18. EDGE CASE RESULTS
+----------------------------------------------------------------------
+- Unicode / Regional Names: Tested names with Urdu characters and honorifics;
+  persisted accurately without encoding loss.
+- Long Addresses: Tested multi-line addresses (250+ characters); cleanly stored in JSON document.
+- Deleting Active Debtor: Deleting a customer with open debt does not crash the
+  ledger recalculation endpoint; the recalculation handler safely skips deleted IDs.
+
+----------------------------------------------------------------------
+19. CROSS-MODULE EFFECTS
+----------------------------------------------------------------------
+- Billing: Customer lookup dropdown populated via `GET /api/customers`.
+- Credit: Customer balances determine placement in debtor rankings.
+- Reports: Customer purchase totals feed customer sales analysis reports.
+
+----------------------------------------------------------------------
+20. SECURITY / PERMISSION FINDINGS
+----------------------------------------------------------------------
+- Input validation sanitizes strings and rejects non-string payloads.
+- Role-based access control planned for v2.0 milestone.
+
+----------------------------------------------------------------------
+21. DATA PERSISTENCE FINDINGS
+----------------------------------------------------------------------
+- Changes immediately written to `database.sqlite` file.
+- Verified persistent across process restarts.
+
+----------------------------------------------------------------------
+22. IMPORTANT OBSERVATIONS
+----------------------------------------------------------------------
+- Preserving historical invoices when a customer profile is removed ensures that
+  annual tax audits and sales summaries remain 100% complete and accurate.
+
+----------------------------------------------------------------------
+23. FINAL MODULE ANALYSIS
+----------------------------------------------------------------------
+MODULE STATUS: PASSED / PRODUCTION READY (100% Test Pass Rate)
+The Customers module performs reliably as the client identity backbone of the
+retail POS system.
+======================================================================

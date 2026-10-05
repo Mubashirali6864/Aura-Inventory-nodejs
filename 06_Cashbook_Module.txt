@@ -1,0 +1,231 @@
+======================================================================
+              06_CASHBOOK_MODULE - DEEP AUDIT & TEST REPORT
+======================================================================
+APPLICATION: Aura Furniture Management & POS System (Shan-e-Aziz POS)
+MODULE: Cashbook / Unified Cash-Flow Accounting & Journal
+EXECUTION DATE: 2026-09-27
+AUDITOR: Senior QA Engineer & Database Auditor
+
+----------------------------------------------------------------------
+1. MODULE PURPOSE
+----------------------------------------------------------------------
+The Cashbook module serves as the primary consolidated cash-flow journal,
+aggregating all physical and bank transactions into a single unified stream.
+It computes real-time daily cash inflows, operational and procurement outflows,
+net register cash balances, and provides multi-dimension filtering across
+branches, date ranges, and transaction types.
+
+----------------------------------------------------------------------
+2. FEATURES FOUND
+----------------------------------------------------------------------
+- Unified Chronological Cash Journal interleaving:
+  - Inflows (+): Counter Cash Sales, Down Payments, Customer Debt Installments.
+  - Outflows (-): Operating Expenses, Upfront Procurement Cash, Subsequent
+    Supplier Payments, and Sales Return Customer Refunds.
+  - Informational (0): Inter-shop stock transfers.
+- Top KPI Summary Cards:
+  - Total Inflow (PKR)
+  - Total Outflow (PKR)
+  - Net Cash In Register (PKR)
+- Quick-Add Operational Expense Modal (`POST /api/expenses`).
+- Store location filtering (`All`, `Shop 1`, `Shop 2`).
+- Date range filtering (`All Time`, `Today`, `This Week`, `This Month`, Custom).
+- Transaction type filtering dropdown (`All Types`, `Sale`, `Payment`, `Expense`,
+  `Purchase`, `Supplier Payment`, `Return`, `Transfer`).
+- Expense category filtering (Utilities, Rent, Salaries, Transport, Maintenance, etc.).
+- Search transactions by invoice number, customer name, supplier name, or description.
+- Visual Badges: Green (+) for Cash In, Red (-) for Cash Out, Purple for Stock Transfers.
+
+----------------------------------------------------------------------
+3. ACTUAL WORKFLOW
+----------------------------------------------------------------------
+1. Inflow Ingestion:
+   - When a sale is made with cash paid upfront (`amountPaid > 0`), the cashbook
+     records the entry with type "Sale".
+   - When a debtor customer pays an installment, `payments` records an entry with
+     type "Payment".
+2. Outflow Ingestion:
+   - When staff logs an operational expense, `expenses` records an entry with type "Expense".
+   - When new inventory is procured with cash paid upfront, `purchases` records
+     the upfront payment under type "Purchase".
+   - When a supplier is paid a subsequent installment, `supplierPayments` records
+     an entry under type "Supplier Payment".
+   - When a customer returns furniture for a refund, `sales` logs type "Return".
+3. Balance Aggregation:
+   The UI dynamically computes:
+   $$\text{Inflows} = \sum (\text{Sale.initialPaid} + \text{Customer Payments})$$
+   $$\text{Outflows} = \sum (\text{Expenses} + \text{Purchase.initialPaid} + \text{Supplier Payments} + \text{Return Refunds})$$
+   $$\text{Net Balance} = \text{Inflows} - \text{Outflows}$$
+
+----------------------------------------------------------------------
+4. UI FLOW
+----------------------------------------------------------------------
+- Component: Mounted at `currentPage === 'cashbook'`.
+- Top Metrics: Three gradient cards showing Inflows, Outflows, and Net Balance.
+- Control Bar: Search input, Location selector, Date filter, Type dropdown,
+  and "+ Add Expense" button.
+- Transaction Table: Columns for Date, Type (with colored badge), Description,
+  Store, and Amount (green for +inflow, red for -outflow).
+- Add Expense Modal: Form with Category dropdown, Amount, Description, and Store selector.
+
+----------------------------------------------------------------------
+5. API FLOW
+----------------------------------------------------------------------
+- GET /api/sales -> Ingests sales and returns.
+- GET /api/payments -> Ingests customer installment settlements.
+- GET /api/expenses -> Ingests operational expenses.
+- GET /api/purchases -> Ingests procurement receiving shipments.
+- GET /api/supplier-payments -> Ingests vendor payment disbursements.
+- GET /api/stock-transfers -> Ingests inter-shop stock movements.
+- POST /api/expenses -> Creates a new expense record in `expenses` table. Returns HTTP 201.
+
+----------------------------------------------------------------------
+6. DATABASE TABLES USED
+----------------------------------------------------------------------
+- `expenses`: Dedicated table for operational business overhead.
+- `sales`: Supplies cash sales, down payments, and returns.
+- `payments`: Supplies customer debt settlements.
+- `purchases`: Supplies upfront procurement disbursements.
+- `supplierPayments`: Supplies subsequent supplier debt payments.
+- `stockTransfers`: Supplies audit trail of branch inventory transfers.
+
+----------------------------------------------------------------------
+7. DATABASE FIELDS INVOLVED
+----------------------------------------------------------------------
+`expenses` table (`id TEXT PRIMARY KEY, data TEXT`):
+- `id`: UUID string.
+- `data.category`: String (e.g., 'Utilities', 'Maintenance', 'Rent', 'Salaries').
+- `data.description`: String.
+- `data.amount`: Number.
+- `data.shopId`: 'shop-1' | 'shop-2'.
+- `data.paymentMethod`: 'Cash' | 'Bank Transfer' (optional).
+- `data.createdAt`: Unix timestamp (ms).
+
+----------------------------------------------------------------------
+8. DATABASE RELATIONSHIPS
+----------------------------------------------------------------------
+- The Cashbook operates as a virtual unified ledger synthesizing data from
+  6 SQLite tables (`sales`, `payments`, `expenses`, `purchases`, `supplierPayments`,
+  `stockTransfers`).
+- All financial streams link back to their respective entity primary keys.
+
+----------------------------------------------------------------------
+9. CREATE / UPDATE / DELETE OPERATIONS
+----------------------------------------------------------------------
+- CREATE (Expense): Direct insertion into `expenses` table.
+- Cashbook is read-heavy; its records reflect underlying transactional events.
+
+----------------------------------------------------------------------
+10. BUSINESS LOGIC
+----------------------------------------------------------------------
+- Immediate Payment Deduplication: When a purchase is created with upfront cash,
+  the backend records the purchase in `purchases` and creates an auditable record in
+  `supplierPayments` carrying `purchaseId: purchaseId` and `isImmediate: true`.
+  The Cashbook deduplication engine checks `!he.isImmediate`, reading `initialPaid` on the purchase,
+  guaranteeing that immediate procurement payments are never double-counted, while
+  legitimate manual ledger payments with descriptive text are never accidentally suppressed.
+- Debt Exclusion: Pending sales with 0 down payment register 0 in the Cashbook.
+  Unpaid receivables do not represent liquid cash in hand.
+- Non-Cash Transfers: Stock transfers represent internal physical shifts and are
+  logged with amount = 0, ensuring net cash register figures are never distorted.
+
+----------------------------------------------------------------------
+11. CALCULATIONS
+----------------------------------------------------------------------
+- Inflow Calculation:
+  $$\text{Inflow} = \text{Cash Sales} + \text{Down Payments} + \text{Customer Debt Settlements}$$
+- Outflow Calculation:
+  $$\text{Outflow} = \text{Expenses} + \text{Procurement Upfront} + \text{Supplier Payments} + \text{Refunds}$$
+- Net Cash Register:
+  $$\text{Net Balance} = \text{Inflow} - \text{Outflow}$$
+
+----------------------------------------------------------------------
+12. TEST CASES & EVIDENCE
+----------------------------------------------------------------------
+- TC-CASH-01: Full Cash Sale Inflow -> PASSED (Full 28,000 PKR registered as inflow)
+- TC-CASH-02: Partial Down Payment Inflow -> PASSED (Only 10,000 PKR down payment registered, debt excluded)
+- TC-CASH-03: Customer Settlement Inflow -> PASSED (8,000 PKR installment registered as inflow)
+- TC-CASH-04: Operational Expense Outflow -> PASSED (4,500 PKR maintenance expense registered as outflow)
+- TC-CASH-05: Procurement Upfront Outflow -> PASSED (30,000 PKR upfront cash registered as outflow)
+- TC-CASH-06: Supplier Payment Outflow -> PASSED (20,000 PKR installment registered as outflow)
+- TC-CASH-07: Sales Return Outflow -> PASSED (5,000 PKR refund registered as outflow)
+- TC-CASH-08: Pending Sale Zero-Inflow Guard -> PASSED (0 upfront registers 0 cash inflow)
+- TC-CASH-09: Cash Stream Reconciliation -> PASSED (Inflows: 46k, Outflows: 59.5k, Net: -13.5k)
+- TC-CASH-10: Expenses Table Persistence -> PASSED (Accurately saved and retrieved from SQLite)
+
+----------------------------------------------------------------------
+13. EXPECTED RESULTS
+----------------------------------------------------------------------
+Cashbook totals must reconcile with 100% precision against underlying database
+records across all 7 transaction streams, deduplicate immediate procurement
+disbursements, accurately isolate cash receipts from extended credit, and reflect
+real counter register liquidity.
+
+----------------------------------------------------------------------
+14. ACTUAL RESULTS
+----------------------------------------------------------------------
+All 10 test cases passed with 100% compliance.
+
+----------------------------------------------------------------------
+15. DATABASE RESULTS
+----------------------------------------------------------------------
+Direct SQLite inspection confirmed:
+- `expenses` table contains exact expense rows with timestamp and category.
+- `purchases` and `supplierPayments` correctly coordinate immediate vs subsequent notes.
+- Inflow and outflow sums equal raw transaction figures.
+
+----------------------------------------------------------------------
+16. DATABASE INTEGRITY RESULTS
+----------------------------------------------------------------------
+- Zero double counting when filtering immediate procurement payments.
+- All transaction dates maintain chronological integrity.
+
+----------------------------------------------------------------------
+17. DEFECTS
+----------------------------------------------------------------------
+- Architectural Finding: If a sale has subsequent payments, displaying `sale.amountPaid`
+  together with `payment.amount` would double-count if the frontend mapped `amountPaid`
+  rather than `initialPaid`. Verified that `dist/assets/index-BQlSbgAO.js` and our
+  backend properly preserve `initialPaid` to maintain stream purity.
+
+----------------------------------------------------------------------
+18. EDGE CASE RESULTS
+----------------------------------------------------------------------
+- Negative Net Balance: When expenditures exceed inflows (e.g. initial stock procurement),
+  net balance cleanly displays negative cash (-13,500 PKR) without math NaN errors.
+- Quotation Infiltration: Verified quotations never enter the cash stream.
+- Zero-Expense Submission: Prevented via UI form validation.
+
+----------------------------------------------------------------------
+19. CROSS-MODULE EFFECTS
+----------------------------------------------------------------------
+- Billing: Every sale or return instantly appears in Cashbook.
+- Credit: Every customer debt payment instantly appears in Cashbook.
+- Suppliers: Every vendor procurement and disbursement instantly appears in Cashbook.
+- Reports: Cashbook totals feed executive cash-flow reporting.
+
+----------------------------------------------------------------------
+20. SECURITY / PERMISSION FINDINGS
+----------------------------------------------------------------------
+- Operational expenses require non-empty categories.
+- Direct API execution is open (tracked for v2.0 auth).
+
+----------------------------------------------------------------------
+21. DATA PERSISTENCE FINDINGS
+----------------------------------------------------------------------
+- All expenses persist in `backend/database.sqlite`.
+- Verified 100% resilient across database reloads.
+
+----------------------------------------------------------------------
+22. IMPORTANT OBSERVATIONS
+----------------------------------------------------------------------
+- The unified transaction stream gives owners a real-time "x-ray" of the cash
+  drawer across all showrooms without requiring end-of-day spreadsheet reconciliation.
+
+----------------------------------------------------------------------
+23. FINAL MODULE ANALYSIS
+----------------------------------------------------------------------
+MODULE STATUS: PASSED / PRODUCTION READY (100% Test Pass Rate)
+The Cashbook module provides impeccable multi-stream financial auditing,
+accurate liquidity reporting, and clean procurement payment deduplication.
+======================================================================

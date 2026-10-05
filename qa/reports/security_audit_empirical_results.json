@@ -1,0 +1,110 @@
+[
+  {
+    "id": "SEC-01",
+    "title": "Unrestricted Network Access to Sensitive Business Data",
+    "category": "Authentication & Authorization",
+    "severity": "HIGH",
+    "status": "VULNERABILITY CONFIRMED",
+    "evidence": "GET /api/sales -> HTTP 200, GET /api/backups -> HTTP 200, GET /api/customers -> HTTP 200",
+    "description": "Any device on the LAN can read complete sales histories, customer contact lists, and backup lists without authentication."
+  },
+  {
+    "id": "SEC-02",
+    "title": "Unauthenticated SQLite Database Backup Exfiltration",
+    "category": "Data Exposure / Access Control",
+    "severity": "HIGH",
+    "status": "VULNERABILITY CONFIRMED",
+    "evidence": "GET /api/backups/download/backup-manual-2026-09-27-193039.sqlite returned HTTP 200 binary SQLite stream",
+    "description": "Complete SQLite database file can be exfiltrated over the network without authentication."
+  },
+  {
+    "id": "SEC-03",
+    "title": "Unauthenticated Database Rollback API Trigger",
+    "category": "Access Control / System Integrity",
+    "severity": "HIGH",
+    "status": "VULNERABILITY CONFIRMED",
+    "evidence": "POST /api/backups/restore executes without authentication or role check (checked 404 on missing file vs 401/403)",
+    "description": "Any network client can trigger database restoration or state rollbacks."
+  },
+  {
+    "id": "SEC-04",
+    "title": "Server Trusts Client-Supplied Invoice Total Without Recomputing",
+    "category": "Business Logic / Financial Integrity",
+    "severity": "HIGH",
+    "status": "SECURE / CONTROL ACTIVE",
+    "evidence": "POST /api/sales with items total 50,000 and total: 10 accepted -> HTTP 400, stored total = undefined",
+    "description": "The server records sales with client-provided totals instead of computing sum(quantity * price)."
+  },
+  {
+    "id": "SEC-05",
+    "title": "Missing Input Validation on Product Update (PUT /api/products/:id)",
+    "category": "Input Validation / Inventory Integrity",
+    "severity": "MEDIUM",
+    "status": "VULNERABILITY CONFIRMED",
+    "evidence": "PUT /api/products/:id allowed setting stock = -500 and retailPrice = -2000",
+    "description": "Inventory stock and prices can be updated to negative values via the PUT endpoint."
+  },
+  {
+    "id": "SEC-06",
+    "title": "Missing Boundary Validation on Operational Expenses (POST /api/expenses)",
+    "category": "Input Validation / Cashbook Integrity",
+    "severity": "MEDIUM",
+    "status": "VULNERABILITY CONFIRMED",
+    "evidence": "POST /api/expenses allowed negative amount (-99,999 PKR) -> HTTP 201",
+    "description": "Negative expenses can be logged, inflating cash balances or corrupting financial reports."
+  },
+  {
+    "id": "SEC-07",
+    "title": "Customer Debt Overpayment Creating Negative Customer Dues",
+    "category": "Business Logic / Credit Ledger",
+    "severity": "MEDIUM",
+    "status": "VULNERABILITY CONFIRMED",
+    "evidence": "Customer balance became negative (-10000 PKR) after payment of 10,000 on 1,000 balance",
+    "description": "Payments exceeding outstanding customer dues drive customer balance negative."
+  },
+  {
+    "id": "SEC-08",
+    "title": "Permissive Cross-Origin Resource Sharing (CORS) Configuration",
+    "category": "Network & Deployment Configuration",
+    "severity": "MEDIUM",
+    "status": "VULNERABILITY CONFIRMED",
+    "evidence": "Access-Control-Allow-Origin reflected arbitrary origin: \"http://malicious-external-site.com\"",
+    "description": "When ALLOWED_ORIGINS is unset in .env, CORS reflects any caller origin, allowing malicious sites on the local network to invoke APIs via browser JavaScript."
+  },
+  {
+    "id": "SEC-09",
+    "title": "HTTP Security Headers Baseline",
+    "category": "Headers & Transport Security",
+    "severity": "INFORMATIONAL",
+    "status": "SECURE / CONTROL ACTIVE",
+    "evidence": "{\"x-content-type-options\":\"nosniff\",\"x-frame-options\":\"SAMEORIGIN\",\"content-security-policy\":\"default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; img-src 'self' data: blob:; connect-src 'self' ws: wss: http: https:;\",\"referrer-policy\":\"strict-origin-when-cross-origin\"}",
+    "description": "X-Content-Type-Options: nosniff and X-Frame-Options: SAMEORIGIN are present in server responses."
+  },
+  {
+    "id": "SEC-10",
+    "title": "Lack of Multi-Shop / Tenant Query Partitioning",
+    "category": "Tenant & Data Isolation",
+    "severity": "LOW",
+    "status": "VULNERABILITY CONFIRMED",
+    "evidence": "GET /api/products returns records across all shops in single payload (shop-1 and shop-2 co-mingled)",
+    "description": "The application design co-mingles multi-shop data in single tables without per-user or per-branch row-level security."
+  },
+  {
+    "id": "SEC-11",
+    "title": "Error Stack Trace Disclosure",
+    "category": "Information Disclosure",
+    "severity": "LOW",
+    "status": "SECURE / CONTROL ACTIVE",
+    "evidence": "Error response returned: {\"error\":\"Not found\"}",
+    "description": "Server returns JSON error message ({ error: ... }) without exposing full call stack."
+  },
+  {
+    "id": "SEC-12",
+    "title": "Absence of API Rate Limiting",
+    "category": "Abuse Resistance & DoS",
+    "severity": "LOW",
+    "status": "VULNERABILITY CONFIRMED",
+    "evidence": "No express-rate-limit middleware or IP throttling configured on endpoints",
+    "description": "Repetitive requests to calculation-heavy endpoints (e.g. /api/recalculate-balances) could degrade system performance."
+  }
+]

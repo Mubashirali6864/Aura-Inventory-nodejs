@@ -1,0 +1,663 @@
+{
+  "timestamp": "2026-09-27T14:30:39.244Z",
+  "passRate": "100.0",
+  "passedCount": 35,
+  "failedCount": 0,
+  "totalCount": 35,
+  "testResults": [
+    {
+      "id": "QA-1",
+      "module": "Security & Headers",
+      "requirement": "NFR-SEC-01",
+      "description": "Security headers present in API responses",
+      "status": "PASSED",
+      "duration": 5,
+      "details": {
+        "duration": 5,
+        "headers": {
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "SAMEORIGIN",
+          "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; img-src 'self' data: blob:; connect-src 'self' ws: wss: http: https:;"
+        }
+      }
+    },
+    {
+      "id": "QA-2",
+      "module": "Performance",
+      "requirement": "NFR-PERF-01",
+      "description": "Read API response time < 50ms under local network conditions",
+      "status": "PASSED",
+      "duration": 5,
+      "details": {
+        "duration": 5,
+        "threshold": "< 50ms ideal"
+      }
+    },
+    {
+      "id": "QA-3",
+      "module": "Inventory",
+      "requirement": "FR-INV-01",
+      "description": "Create product in Shop 1 with complete catalog attributes",
+      "status": "PASSED",
+      "duration": 55,
+      "details": {
+        "status": 201,
+        "body": {
+          "id": "945b9ffb-9343-415c-852e-f7e1de21b0fe",
+          "category": "Bed Sets",
+          "size": "6x6.5 ft",
+          "unit": "Piece",
+          "shopId": "shop-1",
+          "name": "Royal Oak King Bed",
+          "stock": 10,
+          "purchasePrice": 45000,
+          "retailPrice": 65000,
+          "createdAt": 1790519437315
+        },
+        "duration": 55
+      }
+    },
+    {
+      "id": "QA-4",
+      "module": "Inventory",
+      "requirement": "FR-INV-01",
+      "description": "Create product in Shop 2 branch context",
+      "status": "PASSED",
+      "duration": 51,
+      "details": {
+        "status": 201,
+        "body": {
+          "id": "a8dbcee3-61a9-4cb9-b8dd-f4ce84438a0b",
+          "category": "Sofas",
+          "size": "Standard",
+          "unit": "Piece",
+          "shopId": "shop-2",
+          "name": "Luxury Velvet Sofa 3-Seater",
+          "stock": 5,
+          "purchasePrice": 30000,
+          "retailPrice": 48000,
+          "createdAt": 1790519437369
+        },
+        "duration": 51
+      }
+    },
+    {
+      "id": "QA-5",
+      "module": "Data Integrity",
+      "requirement": "NFR-DATA-01",
+      "description": "Reject product creation with negative stock quantity (HTTP 400)",
+      "status": "PASSED",
+      "duration": 2,
+      "details": {
+        "status": 400,
+        "body": {
+          "error": "Stock must be a non-negative number."
+        },
+        "duration": 2
+      }
+    },
+    {
+      "id": "QA-6",
+      "module": "Data Integrity",
+      "requirement": "NFR-DATA-01",
+      "description": "Reject product creation with negative price (HTTP 400)",
+      "status": "PASSED",
+      "duration": 2,
+      "details": {
+        "status": 400,
+        "body": {
+          "error": "Prices cannot be negative numbers."
+        },
+        "duration": 2
+      }
+    },
+    {
+      "id": "QA-7",
+      "module": "Inventory",
+      "requirement": "FR-INV-03",
+      "description": "Transfer stock from Shop 1 to Shop 2 (source stock dec, target stock inc)",
+      "status": "PASSED",
+      "duration": 180,
+      "details": {
+        "status": 200,
+        "body": {
+          "message": "Stock transferred successfully",
+          "sourceProductId": "945b9ffb-9343-415c-852e-f7e1de21b0fe",
+          "targetProductId": "08c5a558-23f7-4223-b751-7603326ff925",
+          "targetShopId": "shop-2",
+          "quantity": 3,
+          "newSourceStock": 7,
+          "newTargetStock": 3
+        },
+        "duration": 180
+      }
+    },
+    {
+      "id": "QA-8",
+      "module": "Inventory",
+      "requirement": "FR-INV-03",
+      "description": "Target shop receives transferred product with correct shopId and stock",
+      "status": "PASSED",
+      "duration": 0,
+      "details": {
+        "product": {
+          "id": "08c5a558-23f7-4223-b751-7603326ff925",
+          "category": "Bed Sets",
+          "size": "6x6.5 ft",
+          "unit": "Piece",
+          "shopId": "shop-2",
+          "name": "Royal Oak King Bed",
+          "stock": 3,
+          "purchasePrice": 45000,
+          "retailPrice": 65000,
+          "createdAt": 1790519437501
+        }
+      }
+    },
+    {
+      "id": "QA-9",
+      "module": "Inventory",
+      "requirement": "FR-INV-03",
+      "description": "Auditable stockTransfers entry recorded with source/target shop IDs and quantity",
+      "status": "PASSED",
+      "duration": 3,
+      "details": {
+        "transferAudit": {
+          "id": "35f454c2-b13c-4842-b0f8-e95a43b6c44d",
+          "sourceProductId": "945b9ffb-9343-415c-852e-f7e1de21b0fe",
+          "targetProductId": "08c5a558-23f7-4223-b751-7603326ff925",
+          "productName": "Royal Oak King Bed",
+          "quantity": 3,
+          "sourceShopId": "shop-1",
+          "targetShopId": "shop-2",
+          "date": 1790519437551
+        },
+        "duration": 3
+      }
+    },
+    {
+      "id": "QA-10",
+      "module": "Inventory",
+      "requirement": "FR-INV-03",
+      "description": "Reject inter-shop transfer with insufficient stock (HTTP 400)",
+      "status": "PASSED",
+      "duration": 2,
+      "details": {
+        "status": 400,
+        "body": {
+          "error": "Insufficient stock for transfer"
+        },
+        "duration": 2
+      }
+    },
+    {
+      "id": "QA-11",
+      "module": "POS",
+      "requirement": "FR-POS-05",
+      "description": "Retrieve next sequential invoice number from counters",
+      "status": "PASSED",
+      "duration": 2,
+      "details": {
+        "status": 200,
+        "nextInvoiceNumber": 1,
+        "duration": 2
+      }
+    },
+    {
+      "id": "QA-12",
+      "module": "POS",
+      "requirement": "FR-POS-03",
+      "description": "Process Full cash sale: decrements stock immediately and assigns sequential invoice number",
+      "status": "PASSED",
+      "duration": 151,
+      "details": {
+        "status": 201,
+        "body": {
+          "id": "5bfb989e-0dd8-45eb-a469-e52af348ddec",
+          "invoiceNumber": 1,
+          "type": "Sale",
+          "total": 130000,
+          "createdAt": 1790519437615,
+          "date": 1790519437615,
+          "customerName": "Walk-in Customer",
+          "customerPhone": "",
+          "paymentType": "Full",
+          "amountPaid": 130000,
+          "initialPaid": 130000,
+          "customerDetails": {
+            "customerName": "Walk-in Customer",
+            "paymentType": "Full",
+            "amountPaid": 130000,
+            "name": "Walk-in Customer",
+            "initialPaid": 130000,
+            "remainingBalance": 0
+          },
+          "remainingBalance": 0,
+          "shopId": "shop-1",
+          "items": [
+            {
+              "id": "945b9ffb-9343-415c-852e-f7e1de21b0fe",
+              "productId": "945b9ffb-9343-415c-852e-f7e1de21b0fe",
+              "name": "Royal Oak King Bed",
+              "quantity": 2,
+              "price": 65000,
+              "total": 130000
+            }
+          ]
+        },
+        "duration": 151
+      }
+    },
+    {
+      "id": "QA-13",
+      "module": "POS",
+      "requirement": "FR-POS-02",
+      "description": "Product physical stock decremented accurately following checkout (7 -> 5)",
+      "status": "PASSED",
+      "duration": 0,
+      "details": {
+        "previousStock": 7,
+        "currentStock": 5
+      }
+    },
+    {
+      "id": "QA-14",
+      "module": "POS",
+      "requirement": "FR-POS-04",
+      "description": "Reject partial credit sale for generic \"Walk-in Customer\" (HTTP 400)",
+      "status": "PASSED",
+      "duration": 2,
+      "details": {
+        "status": 400,
+        "body": {
+          "error": "Customer name is required for partial and pending bills."
+        },
+        "duration": 2
+      }
+    },
+    {
+      "id": "QA-15",
+      "module": "POS",
+      "requirement": "FR-POS-04",
+      "description": "Reject pending credit sale when customer phone number is missing (HTTP 400)",
+      "status": "PASSED",
+      "duration": 1,
+      "details": {
+        "status": 400,
+        "body": {
+          "error": "Customer phone number is required for partial and pending bills."
+        },
+        "duration": 1
+      }
+    },
+    {
+      "id": "QA-16",
+      "module": "POS",
+      "requirement": "FR-POS-03",
+      "description": "Quotation mode successfully saved without decrementing product physical stock",
+      "status": "PASSED",
+      "duration": 0,
+      "details": {
+        "status": 201,
+        "stockBefore": 5,
+        "stockAfter": 5
+      }
+    },
+    {
+      "id": "QA-17",
+      "module": "POS",
+      "requirement": "NFR-DATA-01",
+      "description": "Reject negative line item quantity in sales to prevent inventory inflation",
+      "status": "PASSED",
+      "duration": 2,
+      "details": {
+        "status": 400,
+        "body": {
+          "error": "Invalid item quantity (-5). Quantity must be a positive number."
+        },
+        "duration": 2
+      }
+    },
+    {
+      "id": "QA-18",
+      "module": "POS",
+      "requirement": "FR-POS-02",
+      "description": "Prevent sales checkout if item quantity exceeds available shop stock (HTTP 400)",
+      "status": "PASSED",
+      "duration": 2,
+      "details": {
+        "status": 400,
+        "body": {
+          "error": "Insufficient stock for product: Royal Oak King Bed. Available: 5, Requested: 50"
+        },
+        "duration": 2
+      }
+    },
+    {
+      "id": "QA-19",
+      "module": "Customer Ledger",
+      "requirement": "FR-CUST-01",
+      "description": "Create customer profile with contact information and initial zero balance",
+      "status": "PASSED",
+      "duration": 51,
+      "details": {
+        "status": 201,
+        "customer": {
+          "id": "cc352885-396a-4ae4-a6bd-19dc54ee3e42",
+          "name": "Haji Muhammad Usman",
+          "phone": "03001234567",
+          "address": "Main Bazar, Gujrat",
+          "balance": 0,
+          "totalPurchased": 0,
+          "totalPaid": 0,
+          "createdAt": 1790519437888
+        },
+        "duration": 51
+      }
+    },
+    {
+      "id": "QA-20",
+      "module": "Customer Ledger",
+      "requirement": "FR-CUST-02",
+      "description": "Automated customer debt accumulation: balance increments by remaining balance (40,000 PKR)",
+      "status": "PASSED",
+      "duration": 0,
+      "details": {
+        "creditSaleId": "5df6e674-c36f-402a-8103-5492a2792f40",
+        "customerBalance": 40000,
+        "totalPurchased": 65000,
+        "totalPaid": 25000
+      }
+    },
+    {
+      "id": "QA-21",
+      "module": "Customer Ledger",
+      "requirement": "FR-CUST-03",
+      "description": "Subsequent debt settlement: customer balance reduced (40,000 -> 25,000) and sale remainingBalance updated",
+      "status": "PASSED",
+      "duration": 0,
+      "details": {
+        "payment": {
+          "id": "0df3dfee-bdc4-4fd1-8b49-2cab20eb501f",
+          "customerId": "cc352885-396a-4ae4-a6bd-19dc54ee3e42",
+          "saleId": "5df6e674-c36f-402a-8103-5492a2792f40",
+          "amount": 15000,
+          "method": "Bank Transfer",
+          "notes": "Settlement installment via Meezan Bank",
+          "date": 1790519438192,
+          "createdAt": 1790519438192
+        },
+        "updatedCustomerBalance": 25000,
+        "updatedSaleRemaining": 25000,
+        "updatedSalePaid": 40000
+      }
+    },
+    {
+      "id": "QA-22",
+      "module": "Customer Ledger",
+      "requirement": "FR-POS-06",
+      "description": "Sales return: inverts inventory stock (+1 piece) and reverses customer debt/purchase ledger",
+      "status": "PASSED",
+      "duration": 0,
+      "details": {
+        "returnSale": {
+          "id": "0d5be391-f8d3-458d-914a-9125babdd304",
+          "invoiceNumber": 4,
+          "type": "Return",
+          "total": 65000,
+          "createdAt": 1790519438358,
+          "date": 1790519438358,
+          "customerName": "Haji Muhammad Usman",
+          "customerPhone": "03001234567",
+          "paymentType": "Full",
+          "amountPaid": 40000,
+          "initialPaid": 40000,
+          "customerDetails": {
+            "customerId": "cc352885-396a-4ae4-a6bd-19dc54ee3e42",
+            "customerName": "Haji Muhammad Usman",
+            "customerPhone": "03001234567",
+            "paymentType": "Full",
+            "amountPaid": 40000,
+            "name": "Haji Muhammad Usman",
+            "initialPaid": 40000,
+            "remainingBalance": 25000
+          },
+          "remainingBalance": 25000,
+          "shopId": "shop-1",
+          "items": [
+            {
+              "id": "945b9ffb-9343-415c-852e-f7e1de21b0fe",
+              "productId": "945b9ffb-9343-415c-852e-f7e1de21b0fe",
+              "name": "Royal Oak King Bed",
+              "quantity": 1,
+              "price": 65000,
+              "total": 65000
+            }
+          ]
+        },
+        "restoredStock": 5,
+        "customerBalance": 0
+      }
+    },
+    {
+      "id": "QA-23",
+      "module": "Customer Ledger",
+      "requirement": "FR-CUST-04",
+      "description": "POST /api/recalculate-balances executes full mathematical audit across all customer journals",
+      "status": "PASSED",
+      "duration": 4,
+      "details": {
+        "status": 200,
+        "body": {
+          "message": "Recalculated balances for 1 customers."
+        },
+        "duration": 4
+      }
+    },
+    {
+      "id": "QA-24",
+      "module": "Suppliers & Procurement",
+      "requirement": "FR-SUP-01",
+      "description": "Create supplier profile with Accounts Payable balance tracking initialized to 0",
+      "status": "PASSED",
+      "duration": 52,
+      "details": {
+        "status": 201,
+        "supplier": {
+          "id": "76a3761d-57c7-467b-9e0a-04edf042b4ed",
+          "contactPerson": "Khurram Shehzad",
+          "phone": "03217654321",
+          "email": "procurement@chenone-timber.pk",
+          "address": "Industrial Estate, Gujranwala",
+          "name": "ChenOne Timber & Upholstery Mills",
+          "balance": 0,
+          "totalPurchased": 0,
+          "totalPaid": 0,
+          "createdAt": 1790519438624
+        },
+        "duration": 52
+      }
+    },
+    {
+      "id": "QA-25",
+      "module": "Suppliers & Procurement",
+      "requirement": "FR-SUP-02",
+      "description": "Procurement receiving: increments inventory stock (+10) and logs supplier liability (200,000 PKR)",
+      "status": "PASSED",
+      "duration": 0,
+      "details": {
+        "purchase": {
+          "id": "dcd181a9-21d4-469e-8c60-759d49a02cf9",
+          "message": "Purchase recorded"
+        },
+        "diningStock": 10,
+        "supplierBalance": 200000,
+        "supplierTotalPurchased": 350000,
+        "supplierTotalPaid": 150000
+      }
+    },
+    {
+      "id": "QA-26",
+      "module": "Suppliers & Procurement",
+      "requirement": "FR-SUP-03",
+      "description": "Supplier debt settlement: reduces Accounts Payable balance (200,000 -> 100,000)",
+      "status": "PASSED",
+      "duration": 0,
+      "details": {
+        "supPayment": {
+          "id": "9165d1fa-91b2-4b6f-9cc7-afa509749f32",
+          "supplierId": "76a3761d-57c7-467b-9e0a-04edf042b4ed",
+          "amount": 100000,
+          "method": "Cheque",
+          "notes": "Progress payment via Cheque #49281",
+          "isImmediate": false,
+          "purchaseId": null,
+          "createdAt": 1790519438934
+        },
+        "updatedBalance": 100000,
+        "updatedTotalPaid": 250000
+      }
+    },
+    {
+      "id": "QA-27",
+      "module": "Suppliers & Procurement",
+      "requirement": "FR-SUP-03",
+      "description": "Reject non-positive supplier payment amount (HTTP 400)",
+      "status": "PASSED",
+      "duration": 0,
+      "details": {
+        "status": 400,
+        "body": {
+          "error": "Payment amount must be a positive number."
+        }
+      }
+    },
+    {
+      "id": "QA-28",
+      "module": "Expense Tracking",
+      "requirement": "FR-CASH-01",
+      "description": "Record operational expense in Cashbook outflows",
+      "status": "PASSED",
+      "duration": 58,
+      "details": {
+        "status": 201,
+        "expense": {
+          "id": "e73224eb-8b52-41ea-93e9-8de90c93ff3f",
+          "category": "Utilities",
+          "description": "Electricity Bill - Showroom 1",
+          "amount": 18500,
+          "shopId": "shop-1",
+          "paymentMethod": "Cash",
+          "createdAt": 1790519439045
+        },
+        "duration": 58
+      }
+    },
+    {
+      "id": "QA-29",
+      "module": "Expense Tracking",
+      "requirement": "FR-CASH-01",
+      "description": "Retrieve expense records with category and shop filtering metadata",
+      "status": "PASSED",
+      "duration": 2,
+      "details": {
+        "count": 1,
+        "duration": 2
+      }
+    },
+    {
+      "id": "QA-30",
+      "module": "Disaster Recovery",
+      "requirement": "FR-ADMIN-02",
+      "description": "Trigger on-demand manual SQLite database snapshot",
+      "status": "PASSED",
+      "duration": 3,
+      "details": {
+        "status": 201,
+        "backup": {
+          "filename": "backup-manual-2026-09-27-193039.sqlite",
+          "size": 94208,
+          "sizeFormatted": "92.0 KB",
+          "createdAt": 1790519439083.4626,
+          "label": "2026-09-27 (07:30 PM)"
+        },
+        "duration": 3
+      }
+    },
+    {
+      "id": "QA-31",
+      "module": "Disaster Recovery",
+      "requirement": "FR-ADMIN-01",
+      "description": "List available SQLite backups with file sizes, timestamps, and relative age labels",
+      "status": "PASSED",
+      "duration": 9,
+      "details": {
+        "count": 36,
+        "latest": {
+          "filename": "backup-manual-2026-09-27-193039.sqlite",
+          "size": 94208,
+          "sizeFormatted": "92.0 KB",
+          "createdAt": 1790519439083.4626,
+          "label": "2026-09-27 (Today - 07:30 PM)"
+        },
+        "duration": 9
+      }
+    },
+    {
+      "id": "QA-32",
+      "module": "Disaster Recovery",
+      "requirement": "FR-ADMIN-03",
+      "description": "Download SQLite database backup binary stream",
+      "status": "PASSED",
+      "duration": 7,
+      "details": {
+        "status": 200,
+        "contentType": "application/x-sqlite3",
+        "duration": 7
+      }
+    },
+    {
+      "id": "QA-33",
+      "module": "Disaster Recovery",
+      "requirement": "FR-ADMIN-03",
+      "description": "Restore database from selected snapshot with automatic pre-restore safety copy",
+      "status": "PASSED",
+      "duration": 7,
+      "details": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "Database successfully restored to backup-manual-2026-09-27-193039.sqlite"
+        },
+        "duration": 7
+      }
+    },
+    {
+      "id": "QA-34",
+      "module": "Administration",
+      "requirement": "FR-ADMIN-04",
+      "description": "Reject unauthorized administrative database reset (HTTP 403)",
+      "status": "PASSED",
+      "duration": 2,
+      "details": {
+        "status": 403,
+        "body": {
+          "error": "Unauthorized: Invalid or missing admin reset token."
+        },
+        "duration": 2
+      }
+    },
+    {
+      "id": "QA-35",
+      "module": "Inventory Reconciler",
+      "requirement": "FR-INV-04",
+      "description": "Two duplicate products created with identical (shopId, name, size, unit)",
+      "status": "PASSED",
+      "duration": 0,
+      "details": {
+        "dup1Id": "9ed4c50e-155a-4155-89f4-e7c83063af9e",
+        "dup2Id": "03110f94-0b96-4180-9769-5d9388f91db3"
+      }
+    }
+  ]
+}

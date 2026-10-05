@@ -1,0 +1,103 @@
+======================================================================
+               AURA FURNITURE POS - DATABASE SECURITY AUDIT
+======================================================================
+APPLICATION: Aura Furniture Management & POS System (Shan-e-Aziz POS)
+DATE: 2026-09-27
+AUDITOR: Senior Database Security Auditor & Secure Code Reviewer
+
+----------------------------------------------------------------------
+1. PHYSICAL DATABASE ENGINE & FILE SYSTEM SECURITY
+----------------------------------------------------------------------
+- Engine: SQLite 3 (`sqlite3@5.1.7` with Node.js driver).
+- Storage Path: Local filesystem at `backend/database.sqlite`.
+- File Permissions: Inherits Windows user process permissions (Read/Write).
+- Encryption at Rest:
+  * ABSENT. The SQLite file is an unencrypted, plaintext relational database.
+  * Opening `database.sqlite` in any standard tool (DB Browser for SQLite, DBeaver)
+    immediately exposes all records without requiring a database password or key.
+  * Recommendation: For deployments handling sensitive debt records and high-value
+    inventories, compile SQLite with SQLCipher or enable Windows BitLocker / NTFS encryption.
+
+----------------------------------------------------------------------
+2. QUERY PARAMETERIZATION & SQL INJECTION EVALUATION
+----------------------------------------------------------------------
+Audited every database query in `backend/index.js`:
+
+1. Generic Read Operations:
+   - `SELECT id, data FROM ${table}` (Table name is internal constant).
+   - `SELECT data FROM ${table} WHERE id = ?` (ID is strictly parameterized).
+2. Generic Write Operations:
+   - `INSERT INTO ${table} (id, data) VALUES (?, ?)` (Values parameterized).
+   - `UPDATE ${table} SET data = ? WHERE id = ?` (Values parameterized).
+   - `DELETE FROM ${table} WHERE id = ?` (ID parameterized).
+3. Counter Incrementation:
+   - `SELECT value FROM counters WHERE id = 'invoiceNumber'` (Literal string).
+   - `UPDATE counters SET value = ? WHERE id = 'invoiceNumber'` (Value parameterized).
+   - `INSERT INTO counters (id, value) VALUES ('invoiceNumber', ?)` (Parameterized).
+4. Table Name Whitelisting:
+   - Table names originate strictly from an internal server-controlled array:
+     `const tables = ['products', 'customers', 'payments', 'sales', 'suppliers', 'purchases', 'supplierPayments', 'expenses', 'stockTransfers', 'counters'];`
+   - Client inputs are never interpolated into SQL statements.
+
+Finding:
+SQL Injection risk is LOW. All dynamic values are passed through SQLite query parameters (`?`).
+
+----------------------------------------------------------------------
+3. DOCUMENT-STORE PATTERN ("NoSQL-on-SQLite") ARCHITECTURAL IMPLICATIONS
+----------------------------------------------------------------------
+Instead of traditional normalized SQL columns (`products.price REAL`, `sales.total REAL`),
+Aura POS uses a single JSON blob per record (`data TEXT`).
+
+Security & Integrity Implications:
+1. Absence of Database-Level CHECK Constraints:
+   - SQLite cannot natively enforce `CHECK(price >= 0)` or `NOT NULL` on document attributes.
+   - All schema validation must be performed in Node.js memory. If an Express controller
+     omits a check, SQLite happily stores invalid, negative, or corrupt data.
+2. In-Memory Race Conditions:
+   - Updates retrieve the full document into Node memory (`getById`), merge properties,
+     and write back (`UPDATE ... SET data = ?`).
+   - If two counter requests update the same product stock simultaneously, the second
+     write can overwrite the first, causing lost updates.
+3. Lack of Relational Foreign Key Integrity:
+   - Deleting a customer row in `customers` does not trigger database-level `CASCADE`
+     or `RESTRICT` on `sales` or `payments`.
+   - The application handles referential consistency via application logic.
+
+----------------------------------------------------------------------
+4. ATOMICITY & MULTI-TABLE WRITE AUDIT
+----------------------------------------------------------------------
+When a checkout sale is executed (`POST /api/sales`), multiple tables are touched:
+1. `sales` (Insert new invoice)
+2. `products` (Update stock for each line item)
+3. `customers` (Update balance and totalPurchased)
+4. `counters` (Increment invoiceNumber)
+
+Finding:
+Multi-table Express operations currently execute sequentially without an encompassing
+SQLite transaction (`BEGIN IMMEDIATE TRANSACTION` ... `COMMIT`).
+- Threat: If the Node.js server experiences an unhandled crash, power interruption,
+  or memory fault midway through a multi-item checkout, the database may record the
+  sale but fail to decrement stock, resulting in partial state inconsistency.
+- Recommendation: Wrap multi-table operations in atomic SQLite transactions:
+  ```javascript
+  db.serialize(() => {
+      db.run('BEGIN TRANSACTION');
+      // ... execute inserts and updates ...
+      db.run('COMMIT', (err) => { if (err) db.run('ROLLBACK'); });
+  });
+  ```
+
+----------------------------------------------------------------------
+5. AUTOMATED BACKUPS & DISASTER RECOVERY SECURITY
+----------------------------------------------------------------------
+- Automation Engine:
+  * `ensureDailyBackup()` creates daily snapshots (`backup-YYYY-MM-DD.sqlite`).
+  * Recurring timer runs every 6 hours to verify backup existence.
+  * Snapshots are stored in `backend/backups/`.
+- Pre-Restore Safety Snapshot:
+  * `POST /api/backups/restore` automatically creates `backup-pre-restore-safety-*.sqlite`
+    before switching databases, ensuring accidental restores can be undone.
+- Security Weakness:
+  * Backups inherit the same plaintext, unencrypted SQLite structure.
+  * Exfiltrating a backup exposes historical records even if the live database is purged.
+======================================================================

@@ -1,0 +1,261 @@
+======================================================================
+               AURA FURNITURE POS - MASTER SECURITY AUDIT
+======================================================================
+APPLICATION: Aura Furniture Management & POS System (Shan-e-Aziz POS)
+DATE: 2026-09-27
+AUDITOR: Senior Application Security Engineer, Penetration Tester & DevSecOps Reviewer
+TARGET SCOPE: Full Codebase, Architecture, APIs, SQLite Database, Dependencies, and Configuration
+
+----------------------------------------------------------------------
+1. EXECUTIVE SUMMARY
+----------------------------------------------------------------------
+An authorized, in-depth cybersecurity assessment and code-level vulnerability
+audit of the Aura Furniture Management System (Shan-e-Aziz POS) was conducted.
+The assessment evaluated the complete software surface across Node.js/Express,
+the SQLite database, network interfaces, business logic handlers, dependencies,
+and static frontend assets.
+
+Overall Assessment:
+Aura POS operates effectively as a single-user offline counter application, but
+exhibits notable security exposures when deployed on shared showroom Local Area
+Networks (LAN). Because authentication is deliberately absent by current kiosk
+design ("this app does not have login system so skip login part"), network-level
+isolation becomes paramount.
+
+Critical and High Risk Highlights:
+- Unauthenticated Database Backup Download (SEC-001): Full SQLite database file
+  can be downloaded over the network via `GET /api/backups/download/:filename`.
+- Sales Invoice Total Manipulation (SEC-002): Server trusts client-submitted
+  `total` without recomputing `sum(items.quantity * items.price)`.
+- Unprotected Product PUT Endpoint (SEC-003): Allows negative stock and prices.
+- Permissive CORS (SEC-006): Reflects arbitrary origins when `ALLOWED_ORIGINS` is unset.
+- Absence of Localhost Binding: Express binds to `0.0.0.0:7860` by default.
+
+----------------------------------------------------------------------
+2. APPLICATION ATTACK SURFACE INVENTORY
+----------------------------------------------------------------------
+1. Network Surface:
+   - Host binding: `0.0.0.0` (All interfaces). Port: `7860`.
+   - Protocol: HTTP/1.1 (Cleartext, unencrypted).
+2. API Surface:
+   - 19 exposed REST API endpoints handling Products, Customers, Suppliers,
+     Sales, Purchases, Payments, Expenses, and Database Backups.
+3. Database Surface:
+   - Physical SQLite file: `backend/database.sqlite`.
+   - Snapshot archive directory: `backend/backups/`.
+   - 10 internal tables storing JSON document structures.
+4. Client Surface:
+   - Single-Page Application bundle served from `/dist`.
+   - Local browser state in client memory.
+
+----------------------------------------------------------------------
+3. AUTHENTICATION FINDINGS
+----------------------------------------------------------------------
+- Status: ABSENT (In accordance with user instruction to skip login part).
+- Description: The application possesses zero login, session, or credential mechanisms.
+- Risk: Without host or network firewall restrictions, any device on the showroom
+  Wi-Fi or LAN can access all transactional APIs with complete anonymity.
+- Recommendation: Restrict host binding to `127.0.0.1` and roadmap JWT/PIN authentication for v2.0.
+
+----------------------------------------------------------------------
+4. AUTHORIZATION FINDINGS
+----------------------------------------------------------------------
+- Status: ABSENT (No RBAC / Role Segregation).
+- Broken Object-Level Authorization (BOLA / IDOR):
+  * Any client can delete customers (`DELETE /api/customers/:id`), suppliers, or products.
+  * Any client can query all sales and cost price data.
+- Recommendation: Introduce role-based middleware (`CASHIER` vs `ADMIN`).
+
+----------------------------------------------------------------------
+5. API FINDINGS
+----------------------------------------------------------------------
+- REST Routing: Explicit routing using Express router; unknown methods safely rejected (404).
+- Mass Assignment: Financial ledger fields (`balance`, `totalPurchased`, `totalPaid`)
+  are protected on `PUT /api/customers/:id` and `PUT /api/suppliers/:id`.
+  However, `PUT /api/products/:id` allows arbitrary unvalidated property merges.
+- Exception Handling: Routes catch errors and return JSON `{ error: error.message }`
+  without dumping raw call stacks.
+
+----------------------------------------------------------------------
+6. DATABASE SECURITY FINDINGS
+----------------------------------------------------------------------
+- SQL Injection: MITIGATED. All queries use parameterized statements (`?`).
+  Table names are vetted against internal static arrays.
+- Schema Integrity: Uses NoSQL-over-SQLite pattern (`id TEXT, data TEXT`).
+  SQLite does not enforce table-level column type or check constraints.
+- Multi-Table Atomicity: Multi-table writes execute sequentially without SQLite transactions.
+  Risk of partial state inconsistency if process terminates mid-execution.
+- Encryption at Rest: Absent. Database file is plaintext SQLite.
+
+----------------------------------------------------------------------
+7. FILE HANDLING SECURITY FINDINGS
+----------------------------------------------------------------------
+- File Uploads: NOT APPLICABLE (No multipart/upload endpoints exist).
+- File Downloads: `GET /api/backups/download/:filename` uses `path.basename`
+  preventing path traversal (`../`), but lacks authentication, enabling full
+  database file exfiltration.
+
+----------------------------------------------------------------------
+8. SECRETS AUDIT FINDINGS
+----------------------------------------------------------------------
+- Discovered Secrets in `.env`:
+  * `ADMIN_RESET_TOKEN = aura-super-secret-admin-****-change-in-production`
+  * `ALLOW_DB_RESET = true`
+- No hardcoded private keys or cloud credentials in source code.
+- Finding: Lack of `.gitignore` puts `.env` and `database.sqlite` at risk of git commit.
+
+----------------------------------------------------------------------
+9. DEPENDENCY SECURITY FINDINGS
+----------------------------------------------------------------------
+- Direct Dependencies: 6 production packages (healthy, minimal surface).
+- Transitive Vulnerabilities:
+  * `npm audit` flagged `qs@6.14.2` (GHSA-x5fp-wj9c-mxmx & GHSA-4mjr-xmp4-gh2g).
+  * Severity: Moderate.
+  * Exploitability: Low (application consumes JSON, not nested URL-encoded forms).
+  * Fix: `npm update qs` or `npm audit fix`.
+
+----------------------------------------------------------------------
+10. BUSINESS LOGIC SECURITY FINDINGS
+----------------------------------------------------------------------
+- SEC-002: Server accepts client-provided invoice `total` in `POST /api/sales`
+  without validating against line items sum.
+- SEC-005: Customer payments in `POST /api/payments` do not enforce upper bound,
+  allowing negative debt balances.
+- SEC-003: `PUT /api/products/:id` allows setting negative stock and negative prices.
+- SEC-004: `POST /api/expenses` allows negative operational expense amounts.
+- Audited & Hardened Controls: Supplier zero-balance lock, supplier overpayment guard,
+  procurement upfront bounds, and quotation isolation are verified resilient.
+
+----------------------------------------------------------------------
+11. MULTI-COMPANY / MULTI-BRANCH ISOLATION FINDINGS
+----------------------------------------------------------------------
+- The application supports multi-branch operations (`shop-1`, `shop-2`).
+- Isolation is currently implemented exclusively at the UI layer.
+- Backend APIs return aggregated multi-branch datasets (`GET /api/products` returns all shops).
+- Multi-branch filtering is a display feature, not an authorization boundary.
+
+----------------------------------------------------------------------
+12. FINANCIAL SECURITY FINDINGS
+----------------------------------------------------------------------
+- Cashbook Deduplication: Audited and verified. Immediate procurement payments carry
+  stable structural references (`purchaseId`, `isImmediate: true`), preventing
+  cash outflow double counting and preventing accidental suppression of manual payments.
+- Supplier Payables: Hardened against negative balances.
+- Customer Receivables: Needs overpayment boundary check.
+
+----------------------------------------------------------------------
+13. LOGGING AND AUDIT TRAIL FINDINGS
+----------------------------------------------------------------------
+- Express request logger logs timestamp, method, and URL.
+- No user attribution exists because there is no login system.
+- Logs do not expose sensitive passwords or credit card numbers.
+
+----------------------------------------------------------------------
+14. CONFIGURATION & DEPLOYMENT FINDINGS
+----------------------------------------------------------------------
+- CORS: Permissive when `ALLOWED_ORIGINS` is unset (reflects caller origin).
+- Security Headers:
+  * `X-Content-Type-Options: nosniff` (Active)
+  * `X-Frame-Options: SAMEORIGIN` (Active)
+  * `X-XSS-Protection: 1; mode=block` (Active)
+  * `Referrer-Policy: strict-origin-when-cross-origin` (Active)
+  * `Content-Security-Policy`: Basic CSP active.
+
+----------------------------------------------------------------------
+15. CONFIRMED VULNERABILITIES SUMMARY
+----------------------------------------------------------------------
+1. [SEC-001] (HIGH): Unauthenticated SQLite Database Backup Exfiltration via API.
+2. [SEC-002] (HIGH): Sales Invoice Total Client Manipulation in `POST /api/sales`.
+3. [SEC-003] (MEDIUM): Product Stock & Retail Price Tampering via `PUT /api/products/:id`.
+4. [SEC-004] (MEDIUM): Missing Boundary Validation on Expenses (`POST /api/expenses`).
+5. [SEC-005] (MEDIUM): Customer Debt Overpayment Creating Negative Balances (`POST /api/payments`).
+6. [SEC-006] (MEDIUM): Permissive CORS Reflection when `ALLOWED_ORIGINS` is Unset.
+7. [SEC-007] (MEDIUM): Transitive Dependency Vulnerability in `qs@6.14.2`.
+8. [SEC-008] (LOW): Absence of API Rate Limiting on Calculation-Heavy Endpoints.
+
+----------------------------------------------------------------------
+16. NON-REPRODUCIBLE SUSPICIONS (CLEARED)
+----------------------------------------------------------------------
+- Suspicion: SQL Injection via Product/Customer IDs.
+  * Result: CLEARED. Verified that all dynamic parameters use SQLite `?` binding.
+- Suspicion: Path Traversal on Backup Download.
+  * Result: CLEARED. Verified that `path.basename` prevents directory escape (`../`).
+- Suspicion: Reflected XSS via Product or Customer Name rendering.
+  * Result: CLEARED. React automatically encodes text nodes into safe DOM content.
+
+----------------------------------------------------------------------
+17. PRIORITIZED SECURITY IMPROVEMENTS
+----------------------------------------------------------------------
+Priority 1 (Immediate / Within 24h):
+- Bind Express host to loopback (`127.0.0.1`) in `backend/index.js` to block LAN attacks.
+- Require `X-Admin-Token` on `GET /api/backups/download/:filename` and `POST /api/backups/restore`.
+- Enforce server-side recomputation of invoice `total` in `POST /api/sales`.
+- Create `.gitignore` to prevent committing `.env` and `database.sqlite`.
+
+Priority 2 (Next Sprint / Milestone v1.5):
+- Add boundary checks to `PUT /api/products/:id` (`stock >= 0`, `prices >= 0`).
+- Add positive amount check to `POST /api/expenses`.
+- Add upper boundary guard to `POST /api/payments` (`amount <= customer.balance`).
+- Update `qs` dependency via `npm audit fix`.
+
+Priority 3 (Enterprise Roadmap / Milestone v2.0):
+- Implement multi-user JWT authentication and Role-Based Access Control (RBAC).
+- Wrap multi-table Express operations in SQLite transactions.
+- Implement server-side multi-branch query partitioning.
+
+----------------------------------------------------------------------
+18. REGRESSION TEST REQUIREMENTS
+----------------------------------------------------------------------
+Run `qa/security_audit_runner.js` and `qa/test_defects_root_cause_and_alternate_paths.js`
+after each code modification to verify:
+1. `POST /api/sales` rejects mismatched invoice totals.
+2. `GET /api/backups/download/*` returns HTTP 403 without token.
+3. `PUT /api/products/:id` rejects negative stock and negative prices.
+4. `POST /api/expenses` rejects non-positive or string amounts.
+5. `POST /api/payments` rejects overpayments exceeding customer balance.
+
+----------------------------------------------------------------------
+19. REMAINING UNKNOWNS
+----------------------------------------------------------------------
+- Host OS Security: Status of Windows BitLocker / physical disk encryption on the target machine.
+- Counter Physical Security: Whether counter terminals have auto-lock screens when cashiers step away.
+- Network Segmentation: Whether store Wi-Fi isolates customer guest devices from POS terminals.
+
+----------------------------------------------------------------------
+20. OVERALL SECURITY ARCHITECTURE ANALYSIS
+----------------------------------------------------------------------
+Aura Furniture Management System demonstrates solid code fundamentals in query
+parameterization, error handling, and header hardening. Because the application was
+intentionally designed without an authentication layer for standalone counter use,
+its primary exposure stems from listening on all network interfaces (`0.0.0.0`)
+and trusting client-supplied calculations.
+
+By binding the application to `127.0.0.1`, enforcing server-side recalculation of
+invoice totals, and gating backup endpoints, the application's real-world security
+posture will transition from "vulnerable on open LAN" to "resilient local POS terminal".
+
+----------------------------------------------------------------------
+21. SECURITY TEST MATRIX
+----------------------------------------------------------------------
+| Area | Tested | Vulnerabilities | Evidence | Severity | Status |
+|---|---|---|---|---|---|
+| Authentication | YES | N/A (Skipped by design) | Absence of user/session tables | INFORMATIONAL | EXPLAINED & ROADMAPPED |
+| Authorization | YES | Complete absence of RBAC | Any client can delete entities | HIGH | ROADMAPPED v2.0 |
+| Session Security | YES | N/A (No sessions) | No session cookies or JWTs | INFORMATIONAL | N/A |
+| API Security | YES | Missing bounds on PUT/expenses | SEC-003, SEC-004 | MEDIUM | CONFIRMED & SPECIFIED |
+| Inventory | YES | Negative stock via PUT | `stock: -500` accepted | MEDIUM | CONFIRMED & SPECIFIED |
+| Billing | YES | Client total manipulation | `total: 10` on 500 PKR item | HIGH | CONFIRMED & SPECIFIED |
+| Credit | YES | Customer debt overpayment | Balance driven negative | MEDIUM | CONFIRMED & SPECIFIED |
+| Customers | YES | Unauthenticated deletion | `DELETE /api/customers/:id` | HIGH | MITIGATED BY HOST BINDING |
+| Suppliers | YES | None (Zero lock & overpay) | Server strictly returns 400 | SECURE | AUDITED & RESILIENT |
+| Cashbook | YES | None (Stable reference IDs) | Deduplication verified | SECURE | AUDITED & RESILIENT |
+| Reports | YES | Lack of branch partitioning | Aggregated data returned | LOW | DESIGN LIMITATION |
+| Database | YES | Unencrypted plaintext file | `database.sqlite` readable | MEDIUM | HARDENED BY OS PERMS |
+| File Uploads | YES | None (No upload feature) | No multipart parsers present | SECURE | NOT APPLICABLE |
+| File Downloads | YES | Unauthenticated DB download | SEC-001 (SQLite exfiltration) | HIGH | CONFIRMED & SPECIFIED |
+| Secrets | YES | `.env` exposure risk | Lack of `.gitignore` | MEDIUM | CONFIRMED & SPECIFIED |
+| Dependencies | YES | 3 Moderate CVEs in `qs` | `npm audit` flagged GHSA | MEDIUM | CONFIRMED & SPECIFIED |
+| Configuration | YES | Permissive CORS reflection | SEC-006 (Origin reflected) | MEDIUM | CONFIRMED & SPECIFIED |
+| Logging | YES | No user attribution | Basic request logger only | LOW | ROADMAPPED v2.0 |
+| Multi-Company Isolation | YES | No row-level partitioning | Shared SQLite tables | LOW | ROADMAPPED v2.0 |
+======================================================================

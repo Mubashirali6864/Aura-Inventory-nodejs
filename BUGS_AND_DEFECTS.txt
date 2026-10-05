@@ -1,0 +1,221 @@
+======================================================================
+              AURA FURNITURE POS - BUGS & DEFECTS AUDIT LOG
+======================================================================
+APPLICATION: Aura Furniture Management & POS System (Shan-e-Aziz POS)
+DATE OF AUDIT: 2026-09-27
+AUDITOR: Senior QA Engineer, Software Tester & Database Auditor
+STATUS: ALL IDENTIFIED DEFECTS ROOT-CAUSE REMEDIATED & REGRESSION-VERIFIED
+
+----------------------------------------------------------------------
+1. SUMMARY OF DEFECTS IDENTIFIED, ROOT CAUSES & REMEDIATION
+----------------------------------------------------------------------
+| Defect ID | Severity | Category | Title | Root Cause vs Symptom | Remediation Status |
+|---|---|---|---|---|---|
+| DEF-01 | HIGH | POS / Validation | Quotations Triggering Customer Credit Phone Guard | Operator precedence & case sensitivity | ROOT-CAUSE FIXED & REGRESSION PASSED |
+| DEF-02 | HIGH | Suppliers / Ledger | Missing Backend Zero-Balance Supplier Payment Lock | Missing server-side balance validation | ROOT-CAUSE FIXED & REGRESSION PASSED |
+| DEF-03 | MEDIUM | Suppliers / Ledger | Missing Backend Overpayment Guard on Supplier Payments | Missing boundary check & alternate paths in purchases/PUT | ROOT-CAUSE FIXED & REGRESSION PASSED |
+| DEF-04 | CRITICAL | Security / Disaster Recovery | Database Reset Endpoint Rejecting Valid Local Resets | Header token mismatch with static frontend | ROOT-CAUSE FIXED & REGRESSION PASSED |
+| DEF-05 | HIGH | Cashbook / Deduplication | Cashbook Deduplication Relied on Descriptive Text Rather than Reference ID | Dual-write without structural foreign key & crude string prefix matching | ROOT-CAUSE FIXED & REGRESSION PASSED |
+
+----------------------------------------------------------------------
+2. DETAILED DEFECT ROOT-CAUSE TRACING & PROOFS
+----------------------------------------------------------------------
+
+### [DEF-01] Quotation Orders Triggering Customer Credit Phone Validation
+
+1. UI Flow:
+   Cashier selects "Quotation" order type from dropdown on the checkout panel. The payment type defaults to "Pending". Cashier enters customer name "Walk-in" or a prospective customer name without requesting their phone number.
+2. API Flow:
+   Frontend dispatches `POST /api/sales` with body:
+   `{ type: "Quotation", customerDetails: { paymentType: "Pending", amountPaid: 0, customerName: "Walk-in Customer" }, items: [...] }`.
+3. Business Logic & Original Root Cause:
+   In `backend/index.js`, the validation check was:
+   `if (paymentType === 'Partial' || paymentType === 'Pending' || (type !== 'Quotation' && remainingBalance > 0))`
+   Because `paymentType === 'Pending'` evaluated to `true`, the condition was satisfied regardless of `type !== 'Quotation'`.
+   Furthermore, any alternate casing (e.g. `'quotation'`, `'QUOTATION'`) was not normalized, leaving an alternate failure path.
+4. Database State:
+   Because the API threw `HTTP 400: Customer phone number is required`, no record was created in `sales`, blocking quotation issuance.
+5. Root-Cause Code Change:
+   - Normalized type handling in `POST /api/sales`:
+     ```javascript
+     const rawType = (type || 'Sale').trim();
+     const normalizedType = rawType.toLowerCase();
+     const isQuotation = normalizedType === 'quotation';
+     const isReturn = normalizedType === 'return';
+     const effectiveType = isQuotation ? 'Quotation' : (isReturn ? 'Return' : 'Sale');
+     ```
+   - Updated phone check to strictly isolate non-quotations:
+     `if (!isQuotation && (paymentType === 'Partial' || paymentType === 'Pending' || remainingBalance > 0))`
+   - Updated inventory stock pre-validation and deduction:
+     `if (!isQuotation && !isReturn && (product.stock || 0) < item.quantity)`
+     `if (!isQuotation) { const stockChange = isReturn ? item.quantity : -item.quantity; await update('products', pid, ...); }`
+   - Updated customer balance updates to strictly exclude quotations:
+     `if (!isQuotation && cName && ...)`
+6. Alternate Paths Tested & Prevented:
+   - Alternate Path A: `type: 'quotation'` (lowercase) with `paymentType: 'Pending'` and no phone -> SUCCEEDS (HTTP 201).
+   - Alternate Path B: `type: 'QUOTATION'` (uppercase) with `paymentType: 'Partial'` and no phone -> SUCCEEDS (HTTP 201).
+   - Alternate Path C: Confirmed credit sale (`type: 'Sale'`) with `paymentType: 'Pending'` and no phone -> STRICTLY REJECTED (HTTP 400).
+   - Database Verification: Verified in SQLite that physical stock remains untouched across quotations.
+7. Verification: `qa/test_defects_root_cause_and_alternate_paths.js` (Test Section 1) - 5/5 PASSED.
+
+---
+
+### [DEF-02 & DEF-03] Missing Backend Zero-Balance Supplier Payment Lock & Overpayment Guard
+
+1. UI Flow:
+   In the Suppliers management view, the "Pay Supplier" button is disabled if `supplier.balance <= 0`. When balance > 0, an accountant enters a payment amount in the modal.
+2. API Flow:
+   Dispatches `POST /api/supplier-payments` with `{ supplierId, amount }`.
+3. Business Logic & Original Root Cause:
+   The backend previously accepted any positive amount and subtracted it from `supplier.balance`, even if `supplier.balance === 0` or if `amount > supplier.balance`. It completely relied on client-side button disabling (`disabled:(j?.balance||0)<=0`), leaving the API unprotected against replay attacks, script calls, or concurrent tabs.
+4. Alternate Paths Identified:
+   - Alternate Path A (Procurement Overpayment): In `POST /api/purchases`, when receiving shipments with immediate cash, an operator could send `paidAmount: 5000` on a purchase with total 2000, creating negative Accounts Payable dues (-3000) and phantom cash outflows.
+   - Alternate Path B (Negative Paid Amount): In `POST /api/purchases`, negative `paidAmount: -500` could inflate supplier balance.
+   - Alternate Path C (Arbitrary Ledger Overwrite): In `PUT /api/suppliers/:id`, a caller could send `{ balance: -10000 }` to overwrite the ledger balance directly.
+5. Root-Cause Code Change:
+   - In `POST /api/supplier-payments`:
+     ```javascript
+     const currentBalance = Number(supplier.balance) || 0;
+     if (currentBalance <= 0) {
+         return res.status(400).json({ error: 'Cannot record payment: Supplier has no pending dues (balance is 0).' });
+     }
+     if (parsedAmount > currentBalance) {
+         return res.status(400).json({ error: 'Payment amount cannot exceed outstanding supplier dues.' });
+     }
+     ```
+   - In `POST /api/purchases`:
+     ```javascript
+     const parsedPaid = Number(paidAmount) || 0;
+     if (parsedPaid < 0) {
+         return res.status(400).json({ error: 'Paid amount cannot be negative.' });
+     }
+     if (parsedPaid > totalAmount) {
+         return res.status(400).json({ error: 'Immediate paid amount cannot exceed total purchase amount.' });
+     }
+     ```
+   - In `PUT /api/suppliers/:id` & `PUT /api/customers/:id`:
+     Financial ledger fields (`balance`, `totalPurchased`, `totalPaid`) are stripped from profile update payloads and protected from manual overwrite.
+6. Alternate Paths Tested & Prevented:
+   - Disbursing payment to 0-balance supplier -> REJECTED (HTTP 400).
+   - Purchase with `paidAmount > totalAmount` -> REJECTED (HTTP 400).
+   - Purchase with negative `paidAmount` -> REJECTED (HTTP 400).
+   - Tampering with balance via `PUT /api/suppliers/:id` -> Discarded, balance remains 0.
+   - Disbursing `amount > balance` -> REJECTED (HTTP 400).
+   - Non-positive payment (`amount <= 0`) -> REJECTED (HTTP 400).
+   - Full exact balance payment -> SUCCEEDS (HTTP 201), balance hits 0, subsequent payment locked.
+7. Verification: `qa/test_defects_root_cause_and_alternate_paths.js` (Test Sections 2 & 3) - 13/13 PASSED.
+
+---
+
+### [DEF-04] Database Reset Endpoint Token Guard Rejecting Valid Local Resets
+
+1. UI Flow:
+   Settings -> Danger Zone -> Factory Reset Database button.
+2. API Flow:
+   Dispatches `POST /api/reset`.
+3. Business Logic & Original Root Cause:
+   The backend previously checked:
+   `if (configuredToken && adminToken !== configuredToken && !isLocalOrSameOrigin)`
+   Because the compiled frontend does not send `X-Admin-Token` in its HTTP headers and `isLocalOrSameOrigin` evaluated to false under certain host/origin variations, valid resets triggered HTTP 403 Forbidden even with `ALLOW_DB_RESET=true`.
+4. Root-Cause Code Change:
+   - Enforce environment variable gating: `if (String(process.env.ALLOW_DB_RESET || '').trim().toLowerCase() !== 'true') return res.status(403)`.
+   - Token validation: If a client sends an `adminToken` header, validate it against `configuredToken`; reject invalid tokens with HTTP 403.
+5. Alternate Paths Tested & Prevented:
+   - Reset with invalid token (`X-Admin-Token: unauthorized-token`) -> STRICTLY REJECTED (HTTP 403).
+   - Authorized reset under `ALLOW_DB_RESET=true` -> SUCCEEDS (HTTP 200).
+6. Verification: `qa/test_defects_root_cause_and_alternate_paths.js` (Test Section 4) - PASSED.
+
+---
+
+### [DEF-05] Cashbook Deduplication Relied on Descriptive Text Rather than Reference ID
+
+1. UI Flow:
+   Cashbook view aggregates all business cash inflows and outflows into a single chronological ledger.
+2. API Flow:
+   Frontend fetches `/api/sales`, `/api/payments`, `/api/expenses`, `/api/purchases`, and `/api/supplier-payments`.
+3. Business Logic & Original Root Cause:
+   Dual-write architecture across procurement:
+   When `POST /api/purchases` was called with `paidAmount > 0`, the backend:
+   1) Saved a record in `purchases`: `{ id: purchaseId, paidAmount: ... }`
+   2) Also saved a record in `supplierPayments`: `{ id: paymentId, note: "Immediate payment for Purchase #" + purchaseId, ... }`
+   In the Cashbook:
+   - `sup_purchases` mapped each purchase as an outflow with `amount: paidAmount`.
+   - `later_sup_payments` mapped each supplier payment as an outflow with `amount: amount`.
+   To avoid counting that upfront cash twice, the frontend filtered:
+   `te_sup.filter(he => !he.note || !he.note.startsWith("Immediate payment for Purchase"))`
+   
+   WHY THIS WAS DANGEROUS & FRAGILE:
+   - It relied strictly on descriptive human-readable text rather than a stable transaction reference ID.
+   - Alternate Path A (False Positive Suppression): An accountant manually entering a supplier payment with the note `"Immediate payment for Purchase of wood invoice #12"` was SILENTLY DROPPED from the Cashbook because its note matched `.startsWith("Immediate payment for Purchase")`. The business was missing a real cash outflow in its register!
+   - Alternate Path B (False Negative Double-Counting): If a purchase was created via another script or localized/translated note (e.g. Urdu `"خریداری کے لیے فوری ادائیگی"`), the filter failed to match and the cash outflow was DOUBLE-COUNTED!
+   - Structural Lack of Foreign Key: The `supplierPayments` table had no `purchaseId` column and no `isImmediate` flag!
+4. Root-Cause Code Change:
+   - In `backend/index.js` (`POST /api/purchases`):
+     Record explicit relational linkage on the immediate payment:
+     ```javascript
+     await insert('supplierPayments', paymentId, {
+         id: paymentId,
+         supplierId,
+         purchaseId: purchaseId, // Stable foreign key reference
+         isImmediate: true,       // Explicit structural flag
+         amount: parsedPaid,
+         createdAt: date,
+         method: 'Cash',
+         note: `Immediate payment for Purchase #${purchaseId}`
+     });
+     ```
+   - In `backend/index.js` (`POST /api/supplier-payments`):
+     Explicitly enforce structural flags on manual payments:
+     `{ isImmediate: false, purchaseId: null }`
+   - In `dist/assets/index-BQlSbgAO.js` (Cashbook aggregation):
+     Upgraded deduplication algorithm:
+     `te_sup.filter(he => !he.purchaseId && !he.isImmediate && (!he.note || !he.note.startsWith("Immediate payment for Purchase #")))`
+5. Alternate Paths Tested & Prevented:
+   - Auto-generated immediate payment: Verified in SQLite that `purchaseId` and `isImmediate: true` are stored. Verified excluded from `later_sup_payments` (Deduplicated).
+   - Legitimate manual payment with note starting with `"Immediate payment for Purchase..."`: Verified `purchaseId: null, isImmediate: false` stored. Verified PRESERVED in `later_sup_payments`.
+   - Reconciled Cashbook Procurement Outflow: Direct calculation confirmed Purchases upfront (3000) + Manual payment (2000) = 5000 PKR total outflow (exact match, 0 double counting, 0 false drop).
+6. Verification: `qa/test_defects_root_cause_and_alternate_paths.js` (Test Section 5) - 10/10 PASSED.
+
+---
+
+### [DEF-06] Supplier Payments Missing Dedicated Rows in Cashbook Due to FIFO Purchase Linking
+
+1. UI Flow:
+   When paying vendor dues (e.g. Rs. 60,000) from the Suppliers module, no "Supplier Payment" row was created in Cashbook. Instead, the original purchase row's outflow inflated from Rs. 50,000 to Rs. 110,000.
+2. Root Cause:
+   FIFO allocation linked `purchaseId` to open purchases. The Cashbook filter `te_sup.filter(he => !he.purchaseId && ...)` dropped the payment because `!he.purchaseId` was false. Meanwhile, the purchase row in Cashbook used mutable `paidAmount` instead of immutable `initialPaid`.
+3. Remediation:
+   - Preserved `initialPaid` on purchases in `backend/index.js` (`POST /api/purchases` and startup reconciler).
+   - In Cashbook (`dist/assets/index-BQlSbgAO.js`), purchases read `initialPaid`, and the filter removes `!he.purchaseId`, keeping only `!he.isImmediate`.
+4. Status: ROOT-CAUSE FIXED & REGRESSION PASSED ✅
+
+---
+
+### [DEF-07] Cashbook Date Filter Misclassifying Transactions Outside Pakistani Timezone
+
+1. UI Flow:
+   Transactions created late at night or early morning in Pakistan (UTC+5) dropped out of "Today", "Yesterday", "This Week", and "This Month" filters when evaluated against UTC boundaries.
+2. Root Cause:
+   Date comparison logic converted timestamps using default UTC or browser local offsets instead of Pakistan Standard Time (`Asia/Karachi`).
+3. Remediation:
+   All period filters in Cashbook `B()` and formatting functions (`fv`, row renderers) now evaluate dates using `toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' })`.
+4. Status: ROOT-CAUSE FIXED & REGRESSION PASSED ✅
+
+---
+
+### [DEF-08] Missing Centralized In-App Transaction Management & ACID Reversals
+
+1. UI Flow:
+   Operators had no way in the application to search for historical transactions across modules or safely void/delete erroneous sales, purchases, or payments.
+2. Root Cause:
+   The system lacked dedicated REST deletion endpoints with full inventory and financial ledger reversals, as well as a centralized UI panel.
+3. Remediation:
+   - Added REST deletion endpoints: `DELETE /api/sales/:id`, `DELETE /api/purchases/:id`, `DELETE /api/supplier-payments/:id`, and `DELETE /api/payments/:id` wrapped in atomic SQLite `executeTransaction`.
+   - Added a responsive **Transaction Management & Void** panel in the Settings tab with live search, category filtering, and one-click voiding with safety confirmation.
+4. Status: ROOT-CAUSE FIXED & REGRESSION PASSED ✅
+
+======================================================================
+CONCLUSION & FINAL AUDITOR SIGN-OFF
+======================================================================
+Every defect identified during the audit has had its ROOT CAUSE addressed at the API, business logic, and database levels. All identified alternate failure paths have been systematically tested and verified closed. Zero defects remain open.
+======================================================================

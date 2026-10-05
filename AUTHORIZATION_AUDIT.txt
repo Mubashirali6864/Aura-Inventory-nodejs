@@ -1,0 +1,96 @@
+======================================================================
+               AURA FURNITURE POS - AUTHORIZATION AUDIT
+======================================================================
+APPLICATION: Aura Furniture Management & POS System (Shan-e-Aziz POS)
+DATE: 2026-09-27
+AUDITOR: Senior Application Security Engineer & Penetration Tester
+
+----------------------------------------------------------------------
+1. ROLE-BASED ACCESS CONTROL (RBAC) EVALUATION
+----------------------------------------------------------------------
+Current Implementation Status: ABSENT (All Clients Possess Super-Admin Rights)
+
+In retail and inventory environments, best practice mandates a separation of duties:
+- Cashier: Can create sales, view catalog prices, issue receipts. Cannot view
+  cost prices, supplier balances, profit reports, or delete inventory.
+- Shift Manager: Can approve discounts, accept customer debt settlements,
+  initiate stock transfers, view daily register cash totals.
+- Store Owner / Admin: Can view profit/loss reports, manage suppliers, alter
+  master pricing, trigger database backups, and perform system resets.
+
+Finding:
+In Aura POS, all 19 REST API endpoints possess zero role discrimination:
+- A counter cashier has the exact same API access level as the company owner.
+- Any client can trigger `DELETE /api/customers/:id` or `DELETE /api/suppliers/:id`.
+- Any client can query `GET /api/sales` and compute historical business margins.
+
+----------------------------------------------------------------------
+2. INSECURE DIRECT OBJECT REFERENCES (IDOR / BOLA)
+----------------------------------------------------------------------
+The system utilizes client-supplied identifiers (`id`, `customerId`, `supplierId`,
+`productId`, `saleId`) across all CRUD endpoints:
+
+1. Customer ID Manipulation (`DELETE /api/customers/:id`, `PUT /api/customers/:id`):
+   - Any client can delete or edit any customer record by submitting their UUID.
+   - There is no ownership check or deletion confirmation approval.
+2. Supplier ID Manipulation (`DELETE /api/suppliers/:id`, `PUT /api/suppliers/:id`):
+   - A client can delete a vendor profile with active supply history by specifying their UUID.
+3. Product ID Manipulation (`PUT /api/products/:id`, `DELETE /api/products/:id`):
+   - Any client can change prices, alter SKU barcodes, or delete catalog entities.
+4. Stock Transfer Manipulation (`POST /api/products/transfer`):
+   - Inter-branch stock transfers do not require two-way approval (sending branch
+     dispatch + receiving branch acknowledgement). A single request immediately
+     shifts physical stock records across showrooms.
+
+----------------------------------------------------------------------
+3. ADMINISTRATIVE ACTIONS & SYSTEM LEVEL ENDPOINTS
+----------------------------------------------------------------------
+Three high-impact endpoints exist:
+
+1. `POST /api/reset`:
+   - Truncates all tables in SQLite and re-initializes counters.
+   - Security Control: Gated by `ALLOW_DB_RESET=true` and optional `ADMIN_RESET_TOKEN`.
+   - Audit Status: HARDENED. Without `ALLOW_DB_RESET=true` or with an invalid token,
+     the endpoint returns HTTP 403 Forbidden.
+2. `POST /api/backups/restore`:
+   - Closes database connection, backs up current state, and switches active DB to selected snapshot.
+   - Security Control: None.
+   - Audit Status: VULNERABLE (SEC-003). Any client on LAN can revert the database
+     to an older state, erasing recent sales.
+3. `POST /api/recalculate-balances`:
+   - Runs full mathematical audit over all customers, re-summing purchases, returns, and payments.
+   - Security Control: None.
+   - Audit Status: Low-risk calculation, but accessible without credentials.
+
+----------------------------------------------------------------------
+4. MULTI-BRANCH / SHOP AUTHORIZATION SEPARATION
+----------------------------------------------------------------------
+- The application supports multiple showroom branches (`shop-1` and `shop-2`).
+- In the UI, cashiers can select between "Shop 1", "Shop 2", or "All Shops".
+- In the Backend API:
+  * Endpoints like `GET /api/products` return products across all shops.
+  * Filtering by `shopId` occurs client-side in the React application bundle.
+  * A terminal at Shop 1 has unrestricted read and write visibility into Shop 2 inventory.
+- Implication:
+  Multi-branch separation is a UI filter convenience, NOT an authorization security boundary.
+
+----------------------------------------------------------------------
+5. REMEDIATION ROADMAP FOR RBAC ENFORCEMENT
+----------------------------------------------------------------------
+1. Define Role Hierarchy:
+   - `CASHIER`, `SUPERVISOR`, `MANAGER`, `ADMIN`.
+2. Implement Authorization Middleware:
+   ```javascript
+   const requireRole = (allowedRoles) => (req, res, next) => {
+       if (!req.user || !allowedRoles.includes(req.user.role)) {
+           return res.status(403).json({ error: 'Access denied: Insufficient privileges.' });
+       }
+       next();
+   };
+   
+   // Apply to destructive routes:
+   app.delete('/api/customers/:id', requireRole(['ADMIN', 'MANAGER']), ...);
+   app.delete('/api/products/:id', requireRole(['ADMIN']), ...);
+   app.post('/api/backups/*', requireRole(['ADMIN']), ...);
+   ```
+======================================================================

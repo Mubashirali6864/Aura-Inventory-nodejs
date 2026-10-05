@@ -1,0 +1,139 @@
+======================================================================
+                 AURA FURNITURE POS - SECURITY TEST CASES
+======================================================================
+APPLICATION: Aura Furniture Management & POS System (Shan-e-Aziz POS)
+DATE: 2026-09-27
+AUDITOR: Senior Application Security Engineer & Penetration Tester
+
+----------------------------------------------------------------------
+1. AUTHENTICATION & ACCESS CONTROL (TC-SEC-AUTH)
+----------------------------------------------------------------------
+- TC-SEC-AUTH-01: Anonymous Access to Transactional Endpoints
+  * Method: GET /api/sales, GET /api/customers, GET /api/products
+  * Expectation: Should require valid session / API bearer token.
+  * Actual: Returns HTTP 200 with complete entity data. VULNERABLE.
+- TC-SEC-AUTH-02: Anonymous Access to Administrative Backup Download
+  * Method: GET /api/backups/download/:filename
+  * Expectation: Should require Admin role authorization.
+  * Actual: Returns HTTP 200 SQLite binary stream. VULNERABLE.
+- TC-SEC-AUTH-03: Anonymous Database Rollback Trigger
+  * Method: POST /api/backups/restore
+  * Expectation: Should require Admin role authorization.
+  * Actual: Unauthenticated request accepted. VULNERABLE.
+- TC-SEC-AUTH-04: Database Reset Endpoint Token Verification
+  * Method: POST /api/reset with X-Admin-Token: invalid-token
+  * Expectation: Rejects request with HTTP 403 Forbidden.
+  * Actual: Correctly rejected with HTTP 403. PASS.
+- TC-SEC-AUTH-05: Factory Reset under Disabled Environment Flag
+  * Method: POST /api/reset when ALLOW_DB_RESET=false
+  * Expectation: Rejects request with HTTP 403 Forbidden.
+  * Actual: Correctly rejected with HTTP 403. PASS.
+
+----------------------------------------------------------------------
+2. AUTHORIZATION & TENANT ISOLATION (TC-SEC-RBAC)
+----------------------------------------------------------------------
+- TC-SEC-RBAC-01: Cashier Attempting System Backup Creation
+  * Method: POST /api/backups/create from standard client
+  * Expectation: Deny access based on Cashier role.
+  * Actual: Role check absent; executes and creates snapshot. VULNERABLE.
+- TC-SEC-RBAC-02: Multi-Shop Branch Data Query Isolation
+  * Method: GET /api/products with Shop 1 identity
+  * Expectation: Should strictly return Shop 1 products.
+  * Actual: Returns combined dataset across Shop 1 and Shop 2. DESIGN LIMITATION.
+- TC-SEC-RBAC-03: Cross-Branch Stock Transfer Without Clearance
+  * Method: POST /api/products/transfer
+  * Expectation: Should require supervisor authorization.
+  * Actual: Any client can trigger physical inventory transfer. VULNERABLE.
+- TC-SEC-RBAC-04: Broken Object Level Authorization on Customer Deletion
+  * Method: DELETE /api/customers/:id
+  * Expectation: Should require supervisor credential.
+  * Actual: Any client can delete customer profiles and debt tracking. VULNERABLE.
+
+----------------------------------------------------------------------
+3. API SECURITY & INPUT VALIDATION (TC-SEC-API)
+----------------------------------------------------------------------
+- TC-SEC-API-01: Massive JSON Body Injection (DoS)
+  * Method: POST /api/sales with > 10MB payload
+  * Expectation: Handled gracefully via body-parser limit.
+  * Actual: Body-parser enforces 10MB limit (HTTP 413 Payload Too Large). PASS.
+- TC-SEC-API-02: Parameter Tampering on Product Update
+  * Method: PUT /api/products/:id with { stock: -500, retailPrice: -1000 }
+  * Expectation: Rejects negative stock and negative prices with HTTP 400.
+  * Actual: Accepted and saved to SQLite. VULNERABLE.
+- TC-SEC-API-03: Boundary Violation on Expense Amount
+  * Method: POST /api/expenses with { amount: -99999 }
+  * Expectation: Rejects non-positive or negative amounts.
+  * Actual: Accepted and saved to SQLite. VULNERABLE.
+- TC-SEC-API-04: Non-Numeric Expense Amount Injection
+  * Method: POST /api/expenses with { amount: "NaN" }
+  * Expectation: Rejects string amounts.
+  * Actual: Stored as string, corrupts subsequent financial math. VULNERABLE.
+- TC-SEC-API-05: Missing Required Fields in Supplier Creation
+  * Method: POST /api/suppliers with { name: "" }
+  * Expectation: Rejects with HTTP 400 Bad Request.
+  * Actual: Correctly rejected (HTTP 400: Supplier name is required). PASS.
+
+----------------------------------------------------------------------
+4. FINANCIAL DATA & BUSINESS LOGIC SECURITY (TC-SEC-FIN)
+----------------------------------------------------------------------
+- TC-SEC-FIN-01: Discrepancy Between Line Items Total and Invoice Total
+  * Method: POST /api/sales with items total = 50,000 PKR, but client total = 10 PKR
+  * Expectation: Server recomputes total from items; rejects discrepancy.
+  * Actual: Server accepts client total (10 PKR) and stores it. VULNERABLE.
+- TC-SEC-FIN-02: Customer Debt Overpayment Creation
+  * Method: POST /api/payments with amount = 10,000 on customer balance = 1,000
+  * Expectation: Server rejects payment exceeding outstanding debt.
+  * Actual: Server subtracts amount, driving balance to -9,000 PKR. VULNERABLE.
+- TC-SEC-FIN-03: Supplier Zero-Balance Payment Lock
+  * Method: POST /api/supplier-payments with amount = 2,500 on supplier balance = 0
+  * Expectation: Server rejects payment to zero-balance supplier with HTTP 400.
+  * Actual: Correctly rejected with HTTP 400 Bad Request. PASS.
+- TC-SEC-FIN-04: Supplier Overpayment Guard
+  * Method: POST /api/supplier-payments with amount = 5,000 on supplier balance = 4,000
+  * Expectation: Server rejects overpayment with HTTP 400.
+  * Actual: Correctly rejected with HTTP 400 Bad Request. PASS.
+- TC-SEC-FIN-05: Immediate Procurement Overpayment Guard
+  * Method: POST /api/purchases with paidAmount = 5,000 on purchase total = 2,000
+  * Expectation: Server rejects upfront cash exceeding purchase total.
+  * Actual: Correctly rejected with HTTP 400 Bad Request. PASS.
+- TC-SEC-FIN-06: Direct Ledger Balance Overwrite via Profile PUT
+  * Method: PUT /api/suppliers/:id with { balance: -50000 }
+  * Expectation: Financial ledger fields stripped; balance remains untouched.
+  * Actual: Protected fields stripped; balance remains 0. PASS.
+
+----------------------------------------------------------------------
+5. DATABASE PERSISTENCE & INJECTION SECURITY (TC-SEC-DB)
+----------------------------------------------------------------------
+- TC-SEC-DB-01: SQL Injection via Product ID Parameter
+  * Method: GET /api/products/' OR '1'='1
+  * Expectation: Parameterized query executes safely without SQL syntax error.
+  * Actual: SQLite executes `SELECT data FROM products WHERE id = ?` parameterized; returns null. PASS.
+- TC-SEC-DB-02: SQL Injection via Customer Search Query
+  * Method: GET /api/customers?search='; DROP TABLE customers;--
+  * Expectation: Query safely handled.
+  * Actual: Filtering occurs in Node memory; table remains intact. PASS.
+- TC-SEC-DB-03: Database Backup Integrity
+  * Method: Inspect SQLite file integrity via PRAGMA integrity_check
+  * Expectation: Result = "ok".
+  * Actual: Returned "ok". PASS.
+
+----------------------------------------------------------------------
+6. CONFIGURATION, CORS & TRANSPORT SECURITY (TC-SEC-CONF)
+----------------------------------------------------------------------
+- TC-SEC-CONF-01: Arbitrary Origin Reflection in CORS
+  * Method: Send Origin: http://attacker.com when ALLOWED_ORIGINS is unset
+  * Expectation: Rejects or restricts origin to localhost/trusted domains.
+  * Actual: Reflects http://attacker.com in Access-Control-Allow-Origin. VULNERABLE.
+- TC-SEC-CONF-02: MIME Sniffing Prevention Header
+  * Method: Inspect HTTP response headers
+  * Expectation: X-Content-Type-Options: nosniff present.
+  * Actual: Present in all Express responses. PASS.
+- TC-SEC-CONF-03: Clickjacking Frame Protection
+  * Method: Inspect HTTP response headers
+  * Expectation: X-Frame-Options: SAMEORIGIN or DENY.
+  * Actual: X-Frame-Options: SAMEORIGIN present. PASS.
+- TC-SEC-CONF-04: Production Information Disclosure in Stack Traces
+  * Method: Trigger unhandled runtime exception in Express
+  * Expectation: Generic error response without stack trace.
+  * Actual: Returns `{ error: error.message }` without call stack. PASS.
+======================================================================

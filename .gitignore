@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+.venv/
+
+# Environment variables & secrets
+.env
+serviceAccountKey.json
+
+# Database backups & local logs
+backend/backups/
+*.log
+console.log
+stderr.log
+
+# Temporary build & editor artifacts
+*.vsix
+dist/assets/*.bak*
+dist/assets/*.pre-backup-feature
+dist/assets/*.tdd_backup
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

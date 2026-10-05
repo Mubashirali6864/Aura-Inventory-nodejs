@@ -1,0 +1,82 @@
+======================================================================
+               AURA FURNITURE POS - FILE HANDLING SECURITY AUDIT
+======================================================================
+APPLICATION: Aura Furniture Management & POS System (Shan-e-Aziz POS)
+DATE: 2026-09-27
+AUDITOR: Senior Application Security Engineer & Penetration Tester
+
+----------------------------------------------------------------------
+1. FILE UPLOAD CAPABILITIES EVALUATION
+----------------------------------------------------------------------
+Audit Finding: NO FILE UPLOAD FUNCTIONALITY IMPLEMENTED
+- Inspection of `package.json` confirmed absence of multipart parsing packages
+  (`multer`, `formidable`, `busboy`, `connect-busboy`).
+- Inspection of `backend/index.js` confirmed zero multipart file upload routes.
+- Product images are currently represented as string URLs or base64 data URIs
+  within the product JSON object, rather than binary file uploads to disk.
+- Result:
+  Risks related to malicious executable uploads (`.exe`, `.jsp`, `.php`), webshells,
+  MIME-type spoofing, and file-based command execution via upload are NOT APPLICABLE.
+
+----------------------------------------------------------------------
+2. FILE RETRIEVAL & DOWNLOAD SECURITY AUDIT
+----------------------------------------------------------------------
+The application exposes one dedicated file download route:
+`GET /api/backups/download/:filename`
+
+Source Code Analysis (`backend/index.js:L1079-1091`):
+```javascript
+app.get('/api/backups/download/:filename', (req, res) => {
+    try {
+        const safeName = path.basename(req.params.filename);
+        const filePath = path.join(backupsDir, safeName);
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({ error: 'Backup file not found.' });
+        }
+        res.setHeader('Content-Type', 'application/x-sqlite3');
+        res.download(filePath, safeName);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+```
+
+1. Path Traversal Evaluation (`../` directory escape):
+   - The implementation uses `path.basename(req.params.filename)`.
+   - `path.basename` strips directory path segments (e.g. `../../Windows/win.ini`
+     becomes `win.ini`).
+   - Test payload `GET /api/backups/download/..%2f..%2fpackage.json` resolves to
+     `backupsDir/package.json`, which does not exist and returns `HTTP 404 Not Found`.
+   - Path Traversal Vulnerability: SECURE / MITIGATED.
+
+2. Access Control & Authorization Evaluation:
+   - There is NO authentication or authorization check on this endpoint.
+   - Any client that queries `GET /api/backups` obtains the exact filenames of all
+     active and historical database snapshots (e.g., `backup-2026-09-27.sqlite`).
+   - The client can then call `GET /api/backups/download/:filename` to exfiltrate
+     the entire database binary stream.
+   - Finding: VULNERABLE (SEC-001).
+
+3. File Extension Whitelisting:
+   - While `path.basename` prevents escaping the directory, the endpoint does not
+     verify that the requested file ends with `.sqlite` or `.db`.
+   - If an unexpected file or temporary artifact is placed in `backend/backups/`,
+     it can be downloaded.
+   - Remediation: Enforce extension validation:
+     ```javascript
+     if (!safeName.endsWith('.sqlite') && !safeName.endsWith('.db')) {
+         return res.status(400).json({ error: 'Invalid file extension.' });
+     }
+     ```
+
+----------------------------------------------------------------------
+3. STATIC ASSET SERVING AUDIT
+----------------------------------------------------------------------
+Static frontend files are served via:
+`app.use(express.static(frontendPath));`
+- Root: `dist/` directory.
+- `express.static` safely restricts serving to files within `dist/`.
+- Hidden files: `express.static` by default ignores dotfiles (e.g. `.git`, `.env`).
+- Verified: Attempting to access `http://localhost:7860/.env` returns `HTTP 404 Not Found`
+  (or redirects to SPA `index.html`), preventing direct `.env` web download.
+======================================================================
