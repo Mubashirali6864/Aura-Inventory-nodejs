@@ -14,6 +14,7 @@ stderr.log
 
 # Temporary build & editor artifacts
 *.vsix
+*.zip
 dist/assets/*.bak*
 dist/assets/*.pre-backup-feature
 dist/assets/*.tdd_backup
