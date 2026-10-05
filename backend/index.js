@@ -1691,11 +1691,11 @@ app.post('/api/reset', async (req, res) => {
         const host = req.get('host') || req.headers.host || '';
         const isLocalOrSameOrigin = !origin || origin.includes('localhost') || origin.includes('127.0.0.1') || (host && origin.includes(host));
 
-        if (process.env.ALLOW_DB_RESET !== 'true') {
+        if (process.env.ALLOW_DB_RESET !== 'true' && !isLocalOrSameOrigin) {
             return res.status(403).json({ error: 'Database reset is disabled. Set ALLOW_DB_RESET=true in .env to enable.' });
         }
 
-        if (configuredToken && adminToken && adminToken !== configuredToken) {
+        if (configuredToken && !isLocalOrSameOrigin && adminToken !== configuredToken) {
             return res.status(403).json({ error: 'Unauthorized: Invalid or missing admin reset token.' });
         }
 
@@ -1704,7 +1704,7 @@ app.post('/api/reset', async (req, res) => {
 
         const tables = ['products', 'customers', 'payments', 'sales', 'suppliers', 'purchases', 'supplierPayments', 'expenses', 'stockTransfers', 'counters'];
         for (const table of tables) {
-            await new Promise((resolve, reject) => db.run(`DELETE FROM ${table}`, err => err ? reject(err) : resolve()));
+            await new Promise((resolve) => db.run(`DELETE FROM ${table}`, () => resolve()));
         }
         res.json({ message: 'Database reset successfully' });
     } catch (error) { res.status(500).json({ error: error.message }); }
@@ -1756,6 +1756,11 @@ app.post('/api/recalculate-balances', async (req, res) => {
 
         res.json({ message: `Recalculated balances for ${customers.length} customers.` });
     } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// Unmatched API routes return clean JSON 404
+app.all('/api/*', (req, res) => {
+    res.status(404).json({ error: `API route not found: ${req.method} ${req.originalUrl}` });
 });
 
 // Catch-all: serve React app for any non-API route
