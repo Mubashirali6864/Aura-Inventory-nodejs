@@ -22,3 +22,7 @@ dist/assets/*.tdd_backup
 Thumbs.db
 .idea/
 .vscode/
+
+# Graphify AST extraction cache & backups
+graphify-out/cache/
+graphify-out/20*/
