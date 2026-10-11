@@ -702,8 +702,29 @@ app.put('/api/products/:id', async (req, res) => {
 
 app.delete('/api/products/:id', async (req, res) => {
     try {
-        await remove('products', req.params.id);
-        res.json({ message: 'Product deleted' });
+        const { id } = req.params;
+        const product = await getById('products', id);
+        if (!product) {
+            return res.status(404).json({ error: 'Product not found.' });
+        }
+        const [allPurchases, allSales, allTransfers] = await Promise.all([
+            getAll('purchases'),
+            getAll('sales'),
+            getAll('stockTransfers')
+        ]);
+        const prodName = (product.name || '').trim().toLowerCase();
+        const hasHistory = allPurchases.some(p => (p.items || []).some(it => (it.productId || it.id) === id || (it.name && prodName && it.name.trim().toLowerCase() === prodName)))
+            || allSales.some(s => (s.items || []).some(it => (it.productId || it.id) === id || (it.name && prodName && it.name.trim().toLowerCase() === prodName)))
+            || allTransfers.some(t => t.sourceProductId === id || t.targetProductId === id || (t.productName && prodName && t.productName.trim().toLowerCase() === prodName));
+
+        if (hasHistory) {
+            return res.status(400).json({
+                error: 'Cannot delete product: This product has associated purchase, sales, or transfer history. Deletion is blocked to preserve historical audit records.'
+            });
+        }
+
+        await remove('products', id);
+        res.json({ message: 'Product deleted successfully.' });
     } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
@@ -724,7 +745,7 @@ app.post('/api/products/transfer', async (req, res) => {
                 throw err;
             }
             if ((sourceProduct.stock || 0) < parsedQty) {
-                const err = new Error('Insufficient stock for transfer');
+                const err = new Error(`Insufficient stock for transfer. Only ${sourceProduct.stock || 0} in stock.`);
                 err.status = 400;
                 throw err;
             }
@@ -840,7 +861,11 @@ app.delete('/api/customers/:id', async (req, res) => {
 // ============================================================================================
 
 app.get('/api/payments', async (req, res) => {
-    try { res.json(await getAll('payments')); } catch (error) { res.status(500).json({ error: error.message }); }
+    try {
+        const payments = await getAll('payments');
+        const filtered = req.query.includeVoided === 'true' ? payments : payments.filter(p => !p.isVoided);
+        res.json(filtered);
+    } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
 app.post('/api/payments', async (req, res) => {
@@ -856,6 +881,56 @@ app.post('/api/payments', async (req, res) => {
         const newPayment = { ...data, amount, date: now, createdAt: now };
 
         const result = await executeTransaction(async () => {
+            if (data.saleId) {
+                const sale = await getById('sales', data.saleId);
+                if (!sale) {
+                    const err = new Error('Sale invoice not found.');
+                    err.status = 404;
+                    throw err;
+                }
+                if (sale.isVoided) {
+                    const err = new Error('Cannot record payment for a voided invoice.');
+                    err.status = 400;
+                    throw err;
+                }
+                const currentRemaining = roundMoney(sale.remainingBalance ?? sale.customerDetails?.remainingBalance ?? 0);
+                if (currentRemaining <= 0) {
+                    const err = new Error('Cannot record payment: Invoice has no pending balance (balance is Rs. 0).');
+                    err.status = 400;
+                    throw err;
+                }
+                if (amount > currentRemaining) {
+                    const err = new Error(`Payment amount (Rs. ${amount.toLocaleString()}) cannot exceed outstanding invoice balance (Rs. ${currentRemaining.toLocaleString()}).`);
+                    err.status = 400;
+                    throw err;
+                }
+            } else {
+                // If no specific saleId passed, validate against customer overall debt
+                const allSales = await getAll('sales');
+                let targetBalance = 0;
+                let foundCustomer = null;
+                if (data.customerId && data.customerId !== 'walk-in') {
+                    foundCustomer = await getById('customers', data.customerId);
+                }
+                if (foundCustomer) {
+                    targetBalance = roundMoney(Number(foundCustomer.balance) || 0);
+                } else if (data.customerId) {
+                    const cSales = allSales.filter(s => (s.customerId === data.customerId || (data.customerName && s.customerName === data.customerName)) && !s.isVoided && s.type !== 'Quotation');
+                    targetBalance = roundMoney(cSales.reduce((sum, s) => sum + (s.remainingBalance ?? s.customerDetails?.remainingBalance ?? 0), 0));
+                }
+
+                if (targetBalance <= 0) {
+                    const err = new Error('Cannot record payment: Customer has no pending dues (balance is Rs. 0).');
+                    err.status = 400;
+                    throw err;
+                }
+                if (amount > targetBalance) {
+                    const err = new Error(`Payment amount (Rs. ${amount.toLocaleString()}) cannot exceed customer's outstanding balance (Rs. ${targetBalance.toLocaleString()}).`);
+                    err.status = 400;
+                    throw err;
+                }
+            }
+
             await insert('payments', id, newPayment);
 
             if (data.customerId && data.customerId !== 'walk-in') {
@@ -864,14 +939,14 @@ app.post('/api/payments', async (req, res) => {
                     // Re-calculate totalPaid from all settlement payments + initial checkout payments on sales
                     const allPayments = await getAll('payments');
                     const settlementPaymentsTotal = allPayments
-                        .filter(p => p.customerId === data.customerId)
+                        .filter(p => p.customerId === data.customerId && !p.isVoided)
                         .reduce((sum, p) => sum + (p.amount || 0), 0);
 
                     const allSales = await getAll('sales');
                     const initialPaymentsTotal = allSales
-                        .filter(s => s.customerId === data.customerId && s.type !== 'Quotation')
+                        .filter(s => s.customerId === data.customerId && s.type !== 'Quotation' && !s.isVoided)
                         .reduce((sum, s) => {
-                            const saleSettlements = allPayments.filter(p => p.saleId === s.id).reduce((sSum, p) => sSum + (p.amount || 0), 0);
+                            const saleSettlements = allPayments.filter(p => p.saleId === s.id && !p.isVoided).reduce((sSum, p) => sSum + (p.amount || 0), 0);
                             const init = s.initialPaid != null ? s.initialPaid : Math.max(0, (Number(s.customerDetails?.amountPaid ?? s.amountPaid ?? (s.paymentType === 'Full' ? s.total : 0)) || 0) - saleSettlements);
                             return sum + (s.type === 'Return' ? -init : init);
                         }, 0);
@@ -887,7 +962,7 @@ app.post('/api/payments', async (req, res) => {
                     if (!data.saleId) {
                         let unallocated = amount;
                         const openSales = allSales
-                            .filter(s => s.customerId === data.customerId && (s.type === 'Sale' || !s.type))
+                            .filter(s => s.customerId === data.customerId && (s.type === 'Sale' || !s.type) && !s.isVoided)
                             .filter(s => {
                                 const rem = s.remainingBalance ?? s.customerDetails?.remainingBalance ?? 0;
                                 return rem > 0;
@@ -950,6 +1025,11 @@ app.delete('/api/payments/:id', async (req, res) => {
                 err.status = 404;
                 throw err;
             }
+            if (payment.isVoided) {
+                const err = new Error('Payment is already voided');
+                err.status = 400;
+                throw err;
+            }
             const payAmount = Number(payment.amount) || 0;
             if (payment.customerId && payment.customerId !== 'walk-in') {
                 const customer = await getById('customers', payment.customerId);
@@ -974,8 +1054,8 @@ app.delete('/api/payments/:id', async (req, res) => {
                     });
                 }
             }
-            await remove('payments', paymentId);
-            return { message: 'Customer payment deleted successfully' };
+            await update('payments', paymentId, { isVoided: true, status: 'Voided', voidedAt: Date.now() });
+            return { message: 'Customer payment voided successfully', isVoided: true };
         });
         res.json(result);
     } catch (err) { res.status(err.status || 500).json({ error: err.message }); }
@@ -986,7 +1066,11 @@ app.delete('/api/payments/:id', async (req, res) => {
 // ============================================================================================
 
 app.get('/api/sales', async (req, res) => {
-    try { res.json(await getAll('sales')); } catch (error) { res.status(500).json({ error: error.message }); }
+    try {
+        const sales = await getAll('sales');
+        const filtered = req.query.includeVoided === 'true' ? sales : sales.filter(s => !s.isVoided);
+        res.json(filtered);
+    } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
 app.get('/api/sales/next-invoice', async (req, res) => {
@@ -1072,8 +1156,53 @@ app.post('/api/sales', async (req, res) => {
         const isReturn = normalizedType === 'return';
         const effectiveType = isQuotation ? 'Quotation' : (isReturn ? 'Return' : 'Sale');
 
+        let originalSale = null;
+        if (isReturn) {
+            const targetSaleId = req.body.originalSaleId || req.body.saleId;
+            const targetInvoiceNum = req.body.originalInvoiceNumber || req.body.invoiceNumber || customerDetails.originalInvoiceNumber || customerDetails.invoiceNumber;
+            if (targetSaleId) {
+                originalSale = await getById('sales', targetSaleId);
+            }
+            if (!originalSale && targetInvoiceNum) {
+                const allSales = await getAll('sales');
+                const numOnly = String(targetInvoiceNum).replace(/[^0-9]/g, '');
+                originalSale = allSales.find(s => 
+                    s.invoiceNumber === Number(targetInvoiceNum) || 
+                    String(s.invoiceNumber) === String(targetInvoiceNum) || 
+                    (numOnly && String(s.invoiceNumber) === numOnly) ||
+                    (String(targetInvoiceNum).length >= 8 && s.id && s.id.toLowerCase().startsWith(String(targetInvoiceNum).toLowerCase()))
+                );
+            }
+            if (!originalSale) {
+                return res.status(400).json({ error: 'Sales returns must reference a valid original sales invoice.' });
+            }
+            if (originalSale.type === 'Quotation' || originalSale.type === 'Return') {
+                return res.status(400).json({ error: 'Cannot process a return against a quotation or another return.' });
+            }
+            if (originalSale.isVoided) {
+                return res.status(400).json({ error: 'Cannot process a return against a voided invoice.' });
+            }
+
+            for (const item of items) {
+                const pid = item.id || item.productId;
+                const origItem = (originalSale.items || []).find(it => (it.id || it.productId) === pid || (it.name && item.name && it.name.trim().toLowerCase() === item.name.trim().toLowerCase()));
+                if (!origItem) {
+                    return res.status(400).json({ error: `Item "${item.name || pid}" was not part of original invoice #${originalSale.invoiceNumber || originalSale.id.substring(0,8)}.` });
+                }
+                const soldQty = Number(origItem.quantity) || 0;
+                const alreadyReturnedQty = Number(origItem.returnedQuantity) || 0;
+                const maxReturnable = Math.max(0, soldQty - alreadyReturnedQty);
+                const reqQty = Number(item.quantity) || 0;
+                if (reqQty > maxReturnable) {
+                    return res.status(400).json({
+                        error: `Cannot return ${reqQty} units of "${origItem.name}". Only ${maxReturnable} units are eligible for return (${soldQty} originally sold, ${alreadyReturnedQty} already returned).`
+                    });
+                }
+            }
+        }
+
         // Validation: If bill is on partial or pending, customer name and phone are strictly required
-        if (!isQuotation && (paymentType === 'Partial' || paymentType === 'Pending' || remainingBalance > 0)) {
+        if (!isQuotation && !isReturn && (paymentType === 'Partial' || paymentType === 'Pending' || remainingBalance > 0)) {
             let cName = (customerDetails.customerName || customerDetails.name || '').trim();
             let cPhone = (customerDetails.customerPhone || customerDetails.phone || '').trim();
 
@@ -1112,13 +1241,15 @@ app.post('/api/sales', async (req, res) => {
             const initialPaid = roundMoney(Number(customerDetails.amountPaid) || (customerDetails.paymentType === 'Full' ? parsedTotal : 0));
             const sale = stripUndefined({
                 id: saleId, invoiceNumber, type: effectiveType, total: parsedTotal, createdAt: now, date: date,
-                customerName: customerDetails.customerName || customerDetails.name || 'Walk-in Customer',
-                customerPhone: customerDetails.customerPhone || customerDetails.phone || '',
+                customerName: customerDetails.customerName || customerDetails.name || (originalSale?.customerName || 'Walk-in Customer'),
+                customerPhone: customerDetails.customerPhone || customerDetails.phone || (originalSale?.customerPhone || ''),
                 paymentType: customerDetails.paymentType || 'Full', dueDate: customerDetails.dueDate,
                 amountPaid: initialPaid,
                 initialPaid: initialPaid,
-                customerDetails: { ...customerDetails, name: customerDetails.name || customerDetails.customerName || 'Walk-in Customer', customerName: customerDetails.customerName || customerDetails.name || 'Walk-in Customer', amountPaid: initialPaid, initialPaid: initialPaid, remainingBalance, dueDate: customerDetails.dueDate },
-                remainingBalance, shopId: shopIdValue, items
+                customerDetails: { ...customerDetails, name: customerDetails.name || customerDetails.customerName || (originalSale?.customerName || 'Walk-in Customer'), customerName: customerDetails.customerName || customerDetails.name || (originalSale?.customerName || 'Walk-in Customer'), amountPaid: initialPaid, initialPaid: initialPaid, remainingBalance, dueDate: customerDetails.dueDate },
+                remainingBalance, shopId: shopIdValue, items,
+                originalSaleId: originalSale ? originalSale.id : null,
+                originalInvoiceNumber: originalSale ? originalSale.invoiceNumber : null
             });
 
             await insert('sales', saleId, sale);
@@ -1131,15 +1262,37 @@ app.post('/api/sales', async (req, res) => {
                     const product = await getById('products', pid);
                     if (product) {
                         const stockChange = isReturn ? item.quantity : -item.quantity;
-                        await update('products', pid, { stock: (product.stock || 0) + stockChange });
+                        await update('products', pid, { stock: Math.max(0, (product.stock || 0) + stockChange) });
                     }
                 }
             }
 
-            const cName = customerDetails.name || customerDetails.customerName;
+            // If return, update original sale's returnedQuantity on line items and register returnId
+            if (isReturn && originalSale) {
+                const updatedOrigItems = (originalSale.items || []).map(origItem => {
+                    const pid = origItem.id || origItem.productId;
+                    const matched = items.find(it => (it.id || it.productId) === pid || (it.name && origItem.name && it.name.trim().toLowerCase() === origItem.name.trim().toLowerCase()));
+                    if (matched) {
+                        const addQty = Number(matched.quantity) || 0;
+                        return {
+                            ...origItem,
+                            returnedQuantity: roundMoney((origItem.returnedQuantity || 0) + addQty)
+                        };
+                    }
+                    return origItem;
+                });
+                const updatedReturnIds = [...(originalSale.returnIds || []), saleId];
+                await update('sales', originalSale.id, {
+                    items: updatedOrigItems,
+                    returnIds: updatedReturnIds
+                });
+            }
+
+            const cName = customerDetails.name || customerDetails.customerName || originalSale?.customerName;
+            const targetCustomerId = customerDetails.customerId || originalSale?.customerId;
             // Only update EXISTING customers for confirmed Sales and Returns (never for Quotations).
-            if (!isQuotation && cName && cName !== 'Walk-in Customer' && cName !== 'Walk-in' && customerDetails.customerId) {
-                const customerId = customerDetails.customerId;
+            if (!isQuotation && cName && cName !== 'Walk-in Customer' && cName !== 'Walk-in' && targetCustomerId) {
+                const customerId = targetCustomerId;
                 const existingCustomer = await getById('customers', customerId);
                 if (existingCustomer) {
                     const existingBalance = existingCustomer.balance || 0;
@@ -1150,8 +1303,8 @@ app.post('/api/sales', async (req, res) => {
                     const paidAdjustment = isReturn ? -(customerDetails.amountPaid || 0) : (customerDetails.amountPaid || 0);
 
                     const customerData = stripUndefined({
-                        name: cName || 'Unknown', phone: customerDetails.phone || customerDetails.customerPhone || '',
-                        address: customerDetails.address || customerDetails.customerAddress || '',
+                        name: cName || 'Unknown', phone: customerDetails.phone || customerDetails.customerPhone || existingCustomer.phone || '',
+                        address: customerDetails.address || customerDetails.customerAddress || existingCustomer.address || '',
                         balance: roundMoney(existingBalance + balanceAdjustment),
                         totalPurchased: roundMoney(existingTotalPurchased + (isReturn ? -parsedTotal : parsedTotal)),
                         totalPaid: roundMoney(existingTotalPaid + paidAdjustment),
@@ -1180,6 +1333,11 @@ app.delete('/api/sales/:id', async (req, res) => {
                 err.status = 404;
                 throw err;
             }
+            if (sale.isVoided) {
+                const err = new Error('Transaction is already voided');
+                err.status = 400;
+                throw err;
+            }
             // 1. Revert product stock (if Sale, restore stock; if Return, deduct stock)
             if (sale.type !== 'Quotation' && sale.items && Array.isArray(sale.items)) {
                 for (const item of sale.items) {
@@ -1190,6 +1348,23 @@ app.delete('/api/sales/:id', async (req, res) => {
                         const stockChange = sale.type === 'Return' ? -(Number(item.quantity) || 0) : (Number(item.quantity) || 0);
                         await update('products', pid, { stock: Math.max(0, (product.stock || 0) + stockChange) });
                     }
+                }
+            }
+            // If Return, decrement returnedQuantity on original sale line items
+            if (sale.type === 'Return' && sale.originalSaleId) {
+                const origSale = await getById('sales', sale.originalSaleId);
+                if (origSale && Array.isArray(origSale.items)) {
+                    const revertedOrigItems = origSale.items.map(origItem => {
+                        const pid = origItem.id || origItem.productId;
+                        const match = (sale.items || []).find(it => (it.id || it.productId) === pid || it.name === origItem.name);
+                        if (match) {
+                            const newReturned = Math.max(0, (origItem.returnedQuantity || 0) - (Number(match.quantity) || 0));
+                            return { ...origItem, returnedQuantity: newReturned };
+                        }
+                        return origItem;
+                    });
+                    const revertedReturnIds = (origSale.returnIds || []).filter(rid => rid !== saleId);
+                    await update('sales', sale.originalSaleId, { items: revertedOrigItems, returnIds: revertedReturnIds });
                 }
             }
             // 2. Revert customer balance if applicable
@@ -1207,11 +1382,11 @@ app.delete('/api/sales/:id', async (req, res) => {
                     });
                 }
             }
-            // 3. Cleanly remove linked customer settlement payments
+            // 3. Cleanly void linked customer settlement payments
             const allPayments = await getAll('payments');
             for (const p of allPayments) {
-                if (p.saleId === saleId) {
-                    await remove('payments', p.id);
+                if (p.saleId === saleId && !p.isVoided) {
+                    await update('payments', p.id, { isVoided: true, status: 'Voided', voidedAt: Date.now() });
                     if (sale.customerId && sale.customerId !== 'walk-in') {
                         const customer = await getById('customers', sale.customerId);
                         if (customer) {
@@ -1223,9 +1398,9 @@ app.delete('/api/sales/:id', async (req, res) => {
                     }
                 }
             }
-            // 4. Remove sale record
-            await remove('sales', saleId);
-            return { message: 'Sale voided successfully' };
+            // 4. Soft-delete / retain row marked voided
+            await update('sales', saleId, { isVoided: true, status: 'Voided', voidedAt: Date.now() });
+            return { message: 'Transaction voided successfully', isVoided: true };
         });
         res.json(result);
     } catch (err) { res.status(err.status || 500).json({ error: err.message }); }
@@ -1279,7 +1454,11 @@ app.delete('/api/suppliers/:id', async (req, res) => {
 // ============================================================================================
 
 app.get('/api/purchases', async (req, res) => {
-    try { res.json(await getAll('purchases')); } catch (error) { res.status(500).json({ error: error.message }); }
+    try {
+        const purchases = await getAll('purchases');
+        const filtered = req.query.includeVoided === 'true' ? purchases : purchases.filter(p => !p.isVoided);
+        res.json(filtered);
+    } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
 app.post('/api/purchases', async (req, res) => {
@@ -1327,21 +1506,28 @@ app.post('/api/purchases', async (req, res) => {
         const supplierName = supplier?.name || 'Unknown';
         const remainingAmount = roundMoney(totalAmount - parsedPaid);
 
+        const isAdjustment = req.body.isAdjustment === true || items.some(i => i.productId === 'adjustment' || i.name === 'Pending Balance Adjustment');
+        const effectiveType = isAdjustment ? 'Opening Balance' : 'Purchase';
+
         await executeTransaction(async () => {
             const purchase = {
-                id: purchaseId, supplierId, supplierName, totalAmount, paidAmount: parsedPaid, initialPaid: parsedPaid, remainingAmount, createdAt: now, date: date, shopId: shopId || 'shop-1', items
+                id: purchaseId, supplierId, supplierName, totalAmount, paidAmount: parsedPaid, initialPaid: parsedPaid, remainingAmount, createdAt: now, date: date, shopId: shopId || 'shop-1', items,
+                type: effectiveType, isAdjustment: !!isAdjustment
             };
             await insert('purchases', purchaseId, purchase);
 
-            for (const item of items) {
-                const pid = item.productId || item.id;
-                const product = await getById('products', pid);
-                if (product) {
-                    await update('products', pid, {
-                        stock: (product.stock || 0) + (Number(item.quantity) || 0),
-                        purchasePrice: Number(item.costPrice) || product.purchasePrice,
-                        supplierId, supplierName
-                    });
+            if (!isAdjustment) {
+                for (const item of items) {
+                    const pid = item.productId || item.id;
+                    if (pid === 'adjustment') continue;
+                    const product = await getById('products', pid);
+                    if (product) {
+                        await update('products', pid, {
+                            stock: (product.stock || 0) + (Number(item.quantity) || 0),
+                            purchasePrice: Number(item.costPrice) || product.purchasePrice,
+                            supplierId, supplierName
+                        });
+                    }
                 }
             }
 
@@ -1383,10 +1569,16 @@ app.delete('/api/purchases/:id', async (req, res) => {
                 err.status = 404;
                 throw err;
             }
+            if (purchase.isVoided) {
+                const err = new Error('Purchase is already voided');
+                err.status = 400;
+                throw err;
+            }
             // 1. Revert product stock
-            if (purchase.items && Array.isArray(purchase.items)) {
+            if (!purchase.isAdjustment && purchase.items && Array.isArray(purchase.items)) {
                 for (const item of purchase.items) {
                     const pid = item.productId || item.id;
+                    if (!pid || pid === 'adjustment') continue;
                     const product = await getById('products', pid);
                     if (product) {
                         const newStock = Math.max(0, (product.stock || 0) - (Number(item.quantity) || 0));
@@ -1408,20 +1600,20 @@ app.delete('/api/purchases/:id', async (req, res) => {
                     });
                 }
             }
-            // 3. Remove linked immediate payments, unlink later payments
+            // 3. Void linked immediate payments, unlink later payments
             const allSupPayments = await getAll('supplierPayments');
             for (const sp of allSupPayments) {
-                if (sp.purchaseId === purchaseId) {
+                if (sp.purchaseId === purchaseId && !sp.isVoided) {
                     if (sp.isImmediate) {
-                        await remove('supplierPayments', sp.id);
+                        await update('supplierPayments', sp.id, { isVoided: true, status: 'Voided', voidedAt: Date.now() });
                     } else {
                         await update('supplierPayments', sp.id, { purchaseId: null });
                     }
                 }
             }
-            // 4. Remove purchase record
-            await remove('purchases', purchaseId);
-            return { message: 'Purchase voided successfully' };
+            // 4. Soft-delete / retain row marked voided
+            await update('purchases', purchaseId, { isVoided: true, status: 'Voided', voidedAt: Date.now() });
+            return { message: 'Purchase voided successfully', isVoided: true };
         });
         res.json(result);
     } catch (err) { res.status(err.status || 500).json({ error: err.message }); }
@@ -1432,7 +1624,11 @@ app.delete('/api/purchases/:id', async (req, res) => {
 // ============================================================================================
 
 app.get('/api/supplier-payments', async (req, res) => {
-    try { res.json(await getAll('supplierPayments')); } catch (error) { res.status(500).json({ error: error.message }); }
+    try {
+        const supPayments = await getAll('supplierPayments');
+        const filtered = req.query.includeVoided === 'true' ? supPayments : supPayments.filter(sp => !sp.isVoided);
+        res.json(filtered);
+    } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
 app.post('/api/supplier-payments', async (req, res) => {
@@ -1525,6 +1721,11 @@ app.delete('/api/supplier-payments/:id', async (req, res) => {
                 err.status = 404;
                 throw err;
             }
+            if (payment.isVoided) {
+                const err = new Error('Supplier payment is already voided');
+                err.status = 400;
+                throw err;
+            }
             const payAmount = Number(payment.amount) || 0;
             if (payment.supplierId) {
                 const supplier = await getById('suppliers', payment.supplierId);
@@ -1546,8 +1747,8 @@ app.delete('/api/supplier-payments/:id', async (req, res) => {
                     });
                 }
             }
-            await remove('supplierPayments', paymentId);
-            return { message: 'Supplier payment deleted successfully' };
+            await update('supplierPayments', paymentId, { isVoided: true, status: 'Voided', voidedAt: Date.now() });
+            return { message: 'Supplier payment voided successfully', isVoided: true };
         });
         res.json(result);
     } catch (err) { res.status(err.status || 500).json({ error: err.message }); }
