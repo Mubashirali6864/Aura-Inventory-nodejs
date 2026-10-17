@@ -26,6 +26,7 @@ fs.mkdirSync(testDataDir, { recursive: true });
 process.env.APP_DATA_PATH = testDataDir;
 process.env.ADMIN_RESET_TOKEN = 'test-admin-token-123';
 process.env.ALLOW_DB_RESET = 'true';
+process.env.APP_ENV = 'test';
 
 // Load application with isolated dataPath
 const app = require('../backend/index.js');

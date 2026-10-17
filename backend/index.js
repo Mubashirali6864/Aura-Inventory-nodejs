@@ -2327,9 +2327,8 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-let server;
-if (require.main === module || (require.main && require.main.filename === path.resolve(__dirname, '..', 'server.js'))) {
-    server = app.listen(PORT, () => {
+if (process.env.APP_ENV !== 'test') {
+    app.listen(PORT, () => {
         console.log(`Backend server running on port ${PORT}`);
     });
 }
