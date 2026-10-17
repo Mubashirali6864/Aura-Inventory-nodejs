@@ -105,11 +105,11 @@
     {
       "id": "backup_engine",
       "type": "backend",
-      "label": "Backup Scheduler",
-      "sublabel": "6-Hour Snapshot Service",
+      "label": "Backup & Undo Engine",
+      "sublabel": "Hourly Snapshots & Surgical Undo",
       "pos": [850, 380],
       "size": [140, 64],
-      "tag": "Daily Snapshots"
+      "tag": "Quick Recovery"
     }
   ],
   "boundaries": [
@@ -210,7 +210,7 @@
       "title": "Client Edge & Presentation",
       "items": [
         "Single Page Application built with React 18 & Vite, served from dist/",
-        "Multi-shop POS interface (Shop 1 & Shop 2) with real-time balance calculations",
+        "Multi-shop POS interface (Shop 1, Shop 2 & Shop 3) with real-time balance calculations",
         "Reverse-proxied through root server.js entry point on Hostinger Node.js environment"
       ]
     },

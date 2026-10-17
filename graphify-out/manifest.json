@@ -1,8 +1,8 @@
 {
   "backend/index.js": {
-    "mtime": 1791715783.7073512,
-    "seen": 1791715877.260278,
-    "ast_hash": "b923b2124d14738c582475b2b7576222",
+    "mtime": 1792246492.0387962,
+    "seen": 1792246784.9165063,
+    "ast_hash": "10c3853dbe7b989548789d90e064b6d7",
     "semantic_hash": ""
   },
   "package.json": {
@@ -1488,9 +1488,9 @@
     "semantic_hash": ""
   },
   "qa/architecture.json": {
-    "mtime": 1789385866.47182,
-    "seen": 1790593391.1128793,
-    "ast_hash": "e742123c03fc51f60b6b3c497b534409",
+    "mtime": 1792246725.8495052,
+    "seen": 1792246784.91652,
+    "ast_hash": "57ee76ea3f71ece8e15c86997744bf85",
     "semantic_hash": ""
   },
   "qa/reports/comprehensive_prd_qa_results.json": {
@@ -3246,9 +3246,9 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1791214301.9269643,
-    "seen": 1791214610.4143555,
-    "ast_hash": "30c4cea1f11b2dd013630bd43792043f",
+    "mtime": 1792243990.9174752,
+    "seen": 1792244896.1073864,
+    "ast_hash": "3912352f65e3bf36f084dfc547a103d4",
     "semantic_hash": ""
   },
   "API_SECURITY_AUDIT.txt": {
@@ -3324,9 +3324,9 @@
     "semantic_hash": ""
   },
   "PRD.md": {
-    "mtime": 1789987336.4521303,
-    "seen": 1790593391.113347,
-    "ast_hash": "ca3216e74f27b2cde92de365f580c7fd",
+    "mtime": 1792244242.0337229,
+    "seen": 1792244896.107409,
+    "ast_hash": "f5b47395eebe4998d41295ea9a9c442b",
     "semantic_hash": ""
   },
   "README.md": {
@@ -3366,9 +3366,9 @@
     "semantic_hash": ""
   },
   "architecture.html": {
-    "mtime": 1791727634.8166864,
-    "seen": 1791727686.3088574,
-    "ast_hash": "959148f51420c4e6ba86aab1f5ba5a98",
+    "mtime": 1792246740.7016034,
+    "seen": 1792246784.9175215,
+    "ast_hash": "31133fa1a0d973b109a3acc65df741d7",
     "semantic_hash": ""
   },
   "architecture.md": {

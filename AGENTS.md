@@ -1,14 +1,15 @@
-# Project Agent Directives
+# Project Agent Directives & Ponytail AI Operating Charter
 
-## Ponytail Mode: Active by Default
+## 🥋 Ponytail AI: Primary Directive (Active by Default)
 
-Always operate in **Ponytail Mode**:
+All agent actions, architectural planning, code changes, refactoring, and testing in this repository are strictly governed by **Ponytail AI** core laws:
 1. **YAGNI:** Build only what is explicitly needed.
-2. **Reuse:** Reuse existing utilities and functions first.
+2. **Reuse:** Reuse existing utilities, patterns, and functions first.
 3. **Stdlib:** Use standard language features (`Date.now()`, standard JS/Node built-ins) before adding external packages.
 4. **Minimal Diffs:** The cleanest, most surgical working diff wins.
 5. **Root-Cause First:** Fix bugs at their core rather than applying superficial band-aids.
 6. **No Unrequested Boilerplate:** Keep it simple, maintainable, and reliable.
+7. **Multi-Shop Parity:** Maintain absolute symmetry, data integrity, and stock-transfer parity across all 3 retail branches (`shop-1`, `shop-2`, `shop-3`).
 
 ---
 
@@ -64,6 +65,7 @@ To guarantee complete recall without forgetting system invariants, rules, or arc
 ### 🏛️ Locus 3: The Sales Counter (POS & Billing Station)
 * **Spatial Anchor:** `POST /api/sales` and Checkout UI in `dist/assets/index-BQlSbgAO.js`.
 * **Invariants:**
+  * Multi-Shop Switching: Cashier can toggle between **Shop 1**, **Shop 2**, and **Shop 3** contexts with isolated cart and stock states.
   * Invoice numbering increments atomically via the `counters` table row `invoiceNumber`.
   * Credit sales (`Partial`, `Pending`, or `due > 0`) **strictly forbid** "Walk-in Customer" and require valid customer name and phone number.
   * Preserves exact `Date.now()` timestamps for same-day checkout submissions (never default to UTC midnight `05:00 AM`).
@@ -73,6 +75,8 @@ To guarantee complete recall without forgetting system invariants, rules, or arc
 ### 🏛️ Locus 4: The Loading Dock (Procurement & Supplier Inflow)
 * **Spatial Anchor:** `POST /api/purchases` and Supplier Management.
 * **Invariants:**
+  * Multi-Shop Receiving: Stock procurement can be directed into **Shop 1**, **Shop 2**, or **Shop 3**.
+  * Multi-Shop Transfers: Inter-shop transfers execute seamlessly across all permutations of `shop-1`, `shop-2`, and `shop-3`.
   * Supplier procurement adds to item inventory (reverted if purchase deleted).
   * Preserves exact `Date.now()` timestamps for purchases.
   * On purchase completion, preserves `initialPaid = paidAmount` so Cashbook reflects initial checkout cash without inflating when subsequent dues are paid.
@@ -84,6 +88,7 @@ To guarantee complete recall without forgetting system invariants, rules, or arc
 ### 🏛️ Locus 5: The Ledger Room (Cashbook & Reconciliation)
 * **Spatial Anchor:** Cashbook journal rendering in `dist/assets/index-BQlSbgAO.js`.
 * **Invariants:**
+  * Multi-Shop Filtering: Cashbook and expense journal can be filtered by `All Shops`, `Shop 1`, `Shop 2`, or `Shop 3`.
   * Chronological sorting breaks same-day timestamp ties using `createdAt` (newest transactions at the top).
   * Cashbook `Sale` row shows `initialPaid` (cash collected at checkout).
   * Cashbook `Purchase` row shows `initialPaid` (cash paid at procurement).

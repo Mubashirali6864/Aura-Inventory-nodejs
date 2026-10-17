@@ -15,7 +15,7 @@ The **Aura Furniture Management System** (operating commercially as **Shan-e-Azi
 
 ### 1.2 Problem Statement
 Traditional retail management software suffers from critical friction points in furniture and physical retail environments:
-1. **Multi-Location Stock Fragmentation:** Disconnected tracking between multiple showrooms/warehouses (Shop 1 vs. Shop 2) leads to duplicate product entries, stock miscounts, and accidental overselling.
+1. **Multi-Location Stock Fragmentation:** Disconnected tracking between multiple showrooms/warehouses (Shop 1, Shop 2, and Shop 3) leads to duplicate product entries, stock miscounts, and accidental overselling.
 2. **Complex Credit & Ledger Accounting:** High-ticket furniture items frequently involve upfront down payments, partial bill settlements, and extended customer debt ledgers. Manual book entries create severe cash discrepancies.
 3. **Vendor Procurement Dues:** Retailers procure items on credit from multiple suppliers. Without real-time debt tracking and payment guardrails, overpayments and untracked liabilities occur.
 4. **Data Loss & Operational Downtime:** Single-workstation setups risk catastrophic data loss without automated, scheduled, self-healing database backup mechanisms.
@@ -32,8 +32,8 @@ Provide an ultra-responsive, lightweight, zero-latency desktop and cloud-hosted 
 | Persona | Role | Key Needs & Pain Points | Primary Modules Used |
 |---|---|---|---|
 | **Store Owner / Executive** | Business Principal | Wants consolidated daily sales totals, real-time cash balance, debtor receivables, supplier liabilities, and zero risk of data loss. | Dashboard, Cashbook, Settings (Backups), Reports |
-| **Cashier / Sales Clerk** | Front-Desk Checkout | Requires rapid product search, fast cart additions, flexible down-payment handling, instant invoice generation, and customer phone lookups. | Point of Sale (POS), Invoices, Customers |
-| **Warehouse / Inventory Manager** | Stock Controller | Needs clear visibility of stock by branch (Shop 1 vs Shop 2), effortless inter-shop transfers, and duplicate product consolidation. | Products, Stock Transfers, Purchases |
+| **Cashier / Sales Clerk** | Front-Desk Checkout | Requires rapid product search, fast cart additions, flexible down-payment handling, instant invoice generation, and customer phone lookups across any of the 3 shop branches. | Point of Sale (POS), Invoices, Customers |
+| **Warehouse / Inventory Manager** | Stock Controller | Needs clear visibility of stock by branch (Shop 1, Shop 2, and Shop 3), effortless inter-shop transfers, and duplicate product consolidation. | Products, Stock Transfers, Purchases |
 | **Accountant / Bookkeeper** | Financial Auditor | Audits daily cash registers, reconciles supplier payments with vendor bills, logs operational expenses, and tracks customer credit balances. | Cashbook, Ledger, Expenses, Supplier Payments |
 
 ### 2.2 Key User Journeys
@@ -89,7 +89,7 @@ Provide an ultra-responsive, lightweight, zero-latency desktop and cloud-hosted 
 ## 3. Product Scope & Functional Requirements
 
 ### 3.1 Point of Sale (POS) & Checkout Engine (FR-POS)
-* **FR-POS-01: Multi-Shop Context Switching:** Cashier can toggle between **Shop 1** and **Shop 2** contexts. Product availability, invoice series, and cashbooks adapt to the selected store location.
+* **FR-POS-01: Multi-Shop Context Switching:** Cashier can toggle between **Shop 1**, **Shop 2**, and **Shop 3** contexts. Product availability, invoice series, and cashbooks adapt to the selected store location.
 * **FR-POS-02: Fast Item Search & Cart:** Search items by name, category, SKU, size, or unit. Support dynamic quantity adjustments, inline discounts, and custom pricing overrides.
 * **FR-POS-03: Payment Status Modes:**
   * **Paid:** Full invoice total paid immediately.
@@ -101,9 +101,9 @@ Provide an ultra-responsive, lightweight, zero-latency desktop and cloud-hosted 
 * **FR-POS-06: Sales Returns:** Support item returns with negative stock adjustment inversions, refund calculations, and ledger reversals.
 
 ### 3.2 Inventory & Multi-Branch Stock Control (FR-INV)
-* **FR-INV-01: Product Catalog Management:** Maintain product records with fields: `name`, `category`, `size`, `unit` (Piece, Set, Meter, Box, etc.), `purchasePrice` (Cost Price), `salePrice` (defaulting to 0/open), `stock`, and `shopId`.
+* **FR-INV-01: Product Catalog Management:** Maintain product records with fields: `name`, `category`, `size`, `unit` (Piece, Set, Meter, Box, etc.), `purchasePrice` (Cost Price), `salePrice` (defaulting to 0/open), `stock`, and `shopId` (`shop-1`, `shop-2`, `shop-3`).
 * **FR-INV-02: Streamlined Product Creation:** Creation interface captures Cost Price and Initial Quantity, removing redundant pre-set retail prices to accommodate flexible furniture pricing.
-* **FR-INV-03: Inter-Shop Stock Transfers:** Transfer inventory from Shop 1 to Shop 2 (or vice versa). Automatically decreases source branch stock, increments target branch stock, and generates an auditable `stockTransfers` record.
+* **FR-INV-03: Inter-Shop Stock Transfers:** Transfer inventory between any permutation of branches (Shop 1, Shop 2, and Shop 3). Automatically decreases source branch stock, increments target branch stock, and generates an auditable `stockTransfers` record.
 * **FR-INV-04: Automated Startup Duplicate Reconciliation:** On server boot, `mergeDuplicateProducts()` detects matching entities (`${shopId}::${name}::${size}::${unit}`), combines their stock balances into the primary SKU, and purges duplicate records.
 
 ### 3.3 Customer Debt & Credit Ledger (FR-CUST)
@@ -115,14 +115,14 @@ Provide an ultra-responsive, lightweight, zero-latency desktop and cloud-hosted 
 
 ### 3.4 Supplier Procurement & Accounts Payable (FR-SUP)
 * **FR-SUP-01: Supplier Directory:** Maintain vendor profiles with `name`, `contactPerson`, `phone`, `email`, `address`, and running accounts payable `balance`.
-* **FR-SUP-02: Purchase Invoicing:** Record vendor supply shipments with line items, cost prices, upfront cash disbursements, and remaining vendor liabilities.
+* **FR-SUP-02: Purchase Invoicing:** Record vendor supply shipments with line items, cost prices, upfront cash disbursements, receiving store (`Shop 1`, `Shop 2`, `Shop 3`), and remaining vendor liabilities.
 * **FR-SUP-03: Zero-Balance Payment Lock:** If a supplier's balance is $\le 0$, the "Pay Supplier" action is hard-disabled across both UI and API to prevent accidental negative debt balances and phantom cash disbursements.
 
 ### 3.5 Cashbook & Cash-Flow Auditing (FR-CASH)
 * **FR-CASH-01: Unified Financial Journal:** A single chronological ledger aggregating all business cash inflows and outflows:
   * **Inflows (+):** Cash Sales, Down Payments, Subsequent Customer Debt Settlements.
   * **Outflows (-):** Operating Expenses, Procurement Upfront Payments, Supplier Debt Settlements, Sales Returns Refunds.
-* **FR-CASH-02: Multi-Dimension Filtering:** Filter journal transactions by Store Location (`Shop 1`, `Shop 2`), Date Range (Today, Week, Month, Custom), and Transaction Type (`Sale`, `Payment`, `Expense`, `Purchase`, `Supplier Payment`, `Return`, `Transfer`).
+* **FR-CASH-02: Multi-Dimension Filtering:** Filter journal transactions by Store Location (`All Shops`, `Shop 1`, `Shop 2`, `Shop 3`), Date Range (Today, Week, Month, Custom), and Transaction Type (`Sale`, `Payment`, `Expense`, `Purchase`, `Supplier Payment`, `Return`, `Transfer`).
 * **FR-CASH-03: Receivables & Payables Badging:** Visual indicators distinguish settled transactions from sales/purchases with outstanding debtor or creditor balances.
 
 ### 3.6 Backup, Disaster Recovery & Administration (FR-ADMIN)
