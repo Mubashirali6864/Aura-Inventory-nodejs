@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node --test qa/test_purchase_timestamp_and_ordering.test.js"
+    "test": "node qa/master_cross_angle_suite.test.cjs"
   },
   "engines": {
     "node": ">=20.0.0"
