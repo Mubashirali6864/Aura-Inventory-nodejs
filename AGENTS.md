@@ -15,10 +15,26 @@ All agent actions, architectural planning, code changes, refactoring, and testin
 
 ## Continuous Architecture & Graph Synchronization (Archify & Graphify)
 
-**Rule:** Always update both **Archify** and **Graphify** immediately after any code update, new feature, or bug fix so that neither you nor any future agent needs to scan and re-analyze the entire codebase.
+**Strict Lifecycle Mandate:** Every task, bug investigation, and feature analysis MUST follow the two-point Graphify & Archify lifecycle:
+1. **BEFORE Analysis (Zero-Scan Rule):** Never perform raw codebase searches, brute-force scans, or ad-hoc file exploration from scratch. Always consult Graphify and Archify FIRST to locate affected spatial loci, entities, routes, and data flows.
+2. **AFTER Fix (Immediate Sync Rule):** Always update both Archify and Graphify immediately after applying code changes or bug fixes so the knowledge models remain permanently synchronized.
 
+### Phase 1: BEFORE Analysis (Query Knowledge Graph First)
+Before inspecting or reading raw code files:
+1. **Query Graphify Knowledge Graph:**
+   ```powershell
+   & .\.venv\Scripts\graphify.exe query "<question, feature, or component>"
+   ```
+   * Use `& .\.venv\Scripts\graphify.exe explain "<concept>"` for focused concepts.
+   * Use `& .\.venv\Scripts\graphify.exe path "<A>" "<B>"` to trace dependencies and relationships.
+2. **Inspect Archify Architecture Model:**
+   * Review `qa/architecture.json` and `architecture.html` to understand system component boundaries, state lifecycles, and transaction flows.
+   * Map the findings directly to the **Method of Loci (Loci 1-9)** before opening source files.
+
+### Phase 2: AFTER Fix (Synchronize Models Immediately)
+Immediately upon completing any bug fix, code change, or feature:
 1. **Archify Update:**
-   - Update `qa/architecture.json` if architectural components, flows, or state behaviors changed.
+   - Update `qa/architecture.json` if components, API endpoints, flows, or invariants were modified.
    - Re-render the interactive visual architecture diagram:
      ```powershell
      node .agents/skills/archify/bin/archify.mjs render architecture qa/architecture.json architecture.html
@@ -113,8 +129,8 @@ To guarantee complete recall without forgetting system invariants, rules, or arc
 ### 🏛️ Locus 8: The Observatory (Living Archify & Graphify Models)
 * **Spatial Anchor:** `qa/architecture.json` -> `architecture.html`, and `graphify-out/`.
 * **Invariants:**
-  * Living architectural map and AST knowledge graph are kept synchronized after any code change.
-  * Consult `graphify query` / `architecture.html` first instead of running full codebase scans.
+  * **Before Analysis:** Always consult `graphify query` / `graphify explain` and `qa/architecture.json` / `architecture.html` first. Never do raw codebase scans.
+  * **After Fix:** Always update `qa/architecture.json` (and re-render `architecture.html`) and run `graphify update .` immediately to keep knowledge models synchronized.
 
 ### 🏛️ Locus 9: The Clean Sweep (Workspace Sanitation)
 * **Spatial Anchor:** `qa/` directory and test runners.

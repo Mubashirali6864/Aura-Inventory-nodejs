@@ -245,6 +245,60 @@ async function runMasterSuite() {
     const custAfterReturn = await getCustomer(cust.id);
     assert(custAfterReturn.balance === 25000, `Customer balance credited by 75,000 PKR (100,000 -> 25,000, Actual: ${custAfterReturn.balance})`, 'Angle 3');
 
+    // 3.4 [BUG 1 & F6 Verification]: Partial Sale with auto-created customer and partial-return debt/cash accounting
+    const hajiSaleRes = await req('/api/sales', 'POST', {
+        customerDetails: {
+            name: 'Haji Abdul Rasheed',
+            phone: '03009876543',
+            paymentType: 'Partial',
+            amountPaid: 20000
+        },
+        shopId: 'shop-1',
+        items: [{ id: p1.id, name: p1.name, quantity: 1, price: 55000 }],
+        total: 55000
+    });
+    assert(hajiSaleRes.status === 201, 'Haji Abdul Rasheed partial sale created (55k total, 20k paid, 35k due)', 'Angle 3');
+    const hajiSale = hajiSaleRes.data;
+
+    // F6 verification: Verify customer profile was auto-created in customers table
+    const allCustomers = (await req('/api/customers')).data;
+    const hajiProfile = allCustomers.find(c => c.name === 'Haji Abdul Rasheed');
+    assert(hajiProfile && hajiProfile.balance === 35000, `[F6 Fix] Customer profile auto-created with 35,000 balance (Actual: ${hajiProfile?.balance})`, 'Angle 3');
+
+    // Process Return against this invoice (1 unit @ 55,000)
+    const hajiReturnRes = await req('/api/sales', 'POST', {
+        type: 'Return',
+        originalSaleId: hajiSale.id,
+        originalInvoiceNumber: hajiSale.invoiceNumber,
+        customerDetails: {
+            customerId: hajiProfile.id,
+            name: 'Haji Abdul Rasheed',
+            phone: '03009876543',
+            paymentType: 'Full',
+            amountPaid: 55000 // POS may pass full total, but backend must cap cash refund to actual paid
+        },
+        shopId: 'shop-1',
+        items: [{ id: p1.id, name: p1.name, quantity: 1, price: 55000 }],
+        total: 55000
+    });
+    assert(hajiReturnRes.status === 201, 'Return processed for Haji Abdul Rasheed', 'Angle 3');
+    const hajiReturn = hajiReturnRes.data;
+
+    // Assert cash refund is capped to 20,000 (actual collected), NOT 55,000
+    assert(hajiReturn.initialPaid === 20000, `[BUG 1 Fix] Return cash outflow capped to collected cash: 20,000 (Actual: ${hajiReturn.initialPaid})`, 'Angle 3');
+    assert(hajiReturn.debtCredited === 35000, `[BUG 1 Fix] Debt credited matches pending dues: 35,000 (Actual: ${hajiReturn.debtCredited})`, 'Angle 3');
+
+    // Assert original sale remainingBalance is cleared from 35,000 to 0
+    const salesListAfterReturn = (await req('/api/sales')).data;
+    const hajiSaleUpdated = salesListAfterReturn.find(s => s.id === hajiSale.id);
+    assert(hajiSaleUpdated.remainingBalance === 0, `[BUG 1 Fix] Original sale remaining balance reduced to 0 (Actual: ${hajiSaleUpdated.remainingBalance})`, 'Angle 3');
+
+    // Assert customer balance is credited by 35,000 (35,000 -> 0)
+    const hajiProfileAfterReturn = await getCustomer(hajiProfile.id);
+    assert(hajiProfileAfterReturn.balance === 0, `[BUG 1 Fix] Customer balance credited to 0 (Actual: ${hajiProfileAfterReturn.balance})`, 'Angle 3');
+    assert(hajiProfileAfterReturn.totalPurchased === 0, `Customer totalPurchased updated to 0 (Actual: ${hajiProfileAfterReturn.totalPurchased})`, 'Angle 3');
+    assert(hajiProfileAfterReturn.totalPaid === 0, `Customer totalPaid updated to 0 (Actual: ${hajiProfileAfterReturn.totalPaid})`, 'Angle 3');
+
     // ----------------------------------------------------------------------------------------
     // ANGLE 4: Supplier Procurement & FIFO Debt Settlement
     // ----------------------------------------------------------------------------------------
@@ -357,6 +411,41 @@ async function runMasterSuite() {
 
     const custAfterUndo = await getCustomer(cust.id);
     assert(custAfterUndo.balance === 100000, `Customer balance seamlessly restored to 100,000 PKR (Actual: ${custAfterUndo.balance})`, 'Angle 7');
+
+    // [BUG 2 Verification]: Undo payment linked to specific sale restores sale remainingBalance
+    const inv3Sale = (await req('/api/sales', 'POST', {
+        customerDetails: {
+            customerId: cust.id,
+            name: cust.name,
+            phone: cust.phone,
+            paymentType: 'Partial',
+            amountPaid: 25000
+        },
+        shopId: 'shop-1',
+        items: [{ id: p1.id, name: p1.name, quantity: 1, price: 55000 }],
+        total: 55000
+    })).data;
+    assert(inv3Sale.remainingBalance === 30000, 'Invoice #3 created with 30,000 pending', 'Angle 7');
+
+    const settlePay = (await req('/api/payments', 'POST', {
+        customerId: cust.id,
+        saleId: inv3Sale.id,
+        amount: 20000,
+        type: 'Cash'
+    })).data;
+    const inv3AfterSettle = (await req('/api/sales')).data.find(s => s.id === inv3Sale.id);
+    assert(inv3AfterSettle.remainingBalance === 10000, 'Invoice #3 remaining balance dropped to 10,000 after settlement', 'Angle 7');
+
+    // Undo the settlement payment
+    const undoSettleRes = await req('/api/undo/last-transaction', 'POST', {
+        id: settlePay.id,
+        entityType: 'customer-payment'
+    });
+    assert(undoSettleRes.status === 200, 'Surgical Undo of settlement executed successfully', 'Angle 7');
+
+    const inv3AfterUndo = (await req('/api/sales')).data.find(s => s.id === inv3Sale.id);
+    assert(inv3AfterUndo.remainingBalance === 30000, `[BUG 2 Fix] Invoice #3 remaining balance restored from 10,000 back to 30,000 (Actual: ${inv3AfterUndo.remainingBalance})`, 'Angle 7');
+    assert(inv3AfterUndo.paymentType === 'Partial', `Invoice #3 paymentType restored to Partial (Actual: ${inv3AfterUndo.paymentType})`, 'Angle 7');
 
     // 7.3 Test Rolling Hourly Snapshot Generation & Pre-Undo Safety
     const backupList = (await req('/api/backups')).data;

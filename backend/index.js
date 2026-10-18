@@ -1073,28 +1073,45 @@ app.delete('/api/payments/:id', async (req, res) => {
                 throw err;
             }
             const payAmount = Number(payment.amount) || 0;
-            if (payment.customerId && payment.customerId !== 'walk-in') {
-                const customer = await getById('customers', payment.customerId);
-                if (customer) {
-                    await update('customers', payment.customerId, {
-                        balance: roundMoney((Number(customer.balance) || 0) + payAmount),
-                        totalPaid: roundMoney(Math.max(0, (Number(customer.totalPaid) || 0) - payAmount))
-                    });
-                }
-            }
+            let sale = null;
             if (payment.saleId) {
-                const sale = await getById('sales', payment.saleId);
+                sale = await getById('sales', payment.saleId);
                 if (sale) {
-                    const currentRemaining = sale.remainingBalance ?? sale.customerDetails?.remainingBalance ?? 0;
-                    const currentPaid = sale.amountPaid ?? sale.customerDetails?.amountPaid ?? 0;
-                    const newRemaining = roundMoney(currentRemaining + payAmount);
+                    const currentRemaining = roundMoney(Number(sale.remainingBalance ?? sale.customerDetails?.remainingBalance ?? 0));
+                    const currentPaid = roundMoney(Number(sale.amountPaid ?? sale.customerDetails?.amountPaid ?? 0));
+                    const saleTotal = roundMoney(Number(sale.total) || (currentRemaining + payAmount));
+                    const newRemaining = roundMoney(Math.min(saleTotal, currentRemaining + payAmount));
                     const newPaid = roundMoney(Math.max(0, currentPaid - payAmount));
                     const newStatus = newPaid <= 0 ? 'Pending' : 'Partial';
                     await update('sales', payment.saleId, {
-                        remainingBalance: newRemaining, amountPaid: newPaid, paymentType: newStatus,
-                        customerDetails: { ...sale.customerDetails, remainingBalance: newRemaining, amountPaid: newPaid, paymentType: newStatus }
+                        remainingBalance: newRemaining,
+                        amountPaid: newPaid,
+                        paymentType: newStatus,
+                        customerDetails: {
+                            ...sale.customerDetails,
+                            remainingBalance: newRemaining,
+                            amountPaid: newPaid,
+                            paymentType: newStatus
+                        }
                     });
                 }
+            }
+
+            let targetCustId = payment.customerId && payment.customerId !== 'walk-in' ? payment.customerId : (sale?.customerId);
+            let customer = targetCustId ? await getById('customers', targetCustId) : null;
+            if (!customer) {
+                const allCusts = await getAll('customers');
+                const searchName = payment.customerName || sale?.customerName || (sale?.customerDetails?.name);
+                if (searchName) {
+                    customer = allCusts.find(c => c.name && c.name.trim().toLowerCase() === searchName.trim().toLowerCase());
+                    if (customer) targetCustId = customer.id;
+                }
+            }
+            if (customer && targetCustId) {
+                await update('customers', targetCustId, {
+                    balance: roundMoney((Number(customer.balance) || 0) + payAmount),
+                    totalPaid: roundMoney(Math.max(0, (Number(customer.totalPaid) || 0) - payAmount))
+                });
             }
             await update('payments', paymentId, { isVoided: true, status: 'Voided', voidedAt: Date.now() });
             return { message: 'Customer payment voided successfully', isVoided: true };
@@ -1280,16 +1297,68 @@ app.post('/api/sales', async (req, res) => {
 
             const invoiceNumber = await getNextInvoiceNumber();
 
-            const initialPaid = roundMoney(Number(customerDetails.amountPaid) || (customerDetails.paymentType === 'Full' ? parsedTotal : 0));
+            let initialPaid = 0;
+            let debtCredited = 0;
+            let effectiveRemainingBalance = 0;
+
+            if (isReturn && originalSale) {
+                const origRemaining = roundMoney(Math.max(0, Number(originalSale.remainingBalance ?? originalSale.customerDetails?.remainingBalance ?? 0)));
+                const origPaid = roundMoney(Math.max(0, Number(originalSale.amountPaid ?? originalSale.initialPaid ?? originalSale.customerDetails?.amountPaid ?? 0)));
+                const returnAmount = parsedTotal;
+
+                // 1. First credit/cancel any outstanding debt on this invoice
+                debtCredited = roundMoney(Math.min(returnAmount, origRemaining));
+
+                // 2. The remaining portion of the return is cash refunded to the customer, capped by what was actually collected
+                initialPaid = roundMoney(Math.min(Math.max(0, returnAmount - debtCredited), origPaid));
+                effectiveRemainingBalance = 0;
+
+                // 3. Update originalSale remaining balance and payment status
+                const newOrigRemaining = roundMoney(Math.max(0, origRemaining - debtCredited));
+                const newOrigPaid = roundMoney(Math.max(0, origPaid - initialPaid));
+                const newOrigStatus = newOrigRemaining <= 0 ? 'Full' : (newOrigPaid <= 0 ? 'Pending' : 'Partial');
+                await update('sales', originalSale.id, {
+                    remainingBalance: newOrigRemaining,
+                    amountPaid: newOrigPaid,
+                    paymentType: newOrigStatus,
+                    customerDetails: {
+                        ...originalSale.customerDetails,
+                        remainingBalance: newOrigRemaining,
+                        amountPaid: newOrigPaid,
+                        paymentType: newOrigStatus
+                    }
+                });
+            } else {
+                initialPaid = roundMoney(Number(customerDetails.amountPaid) || (customerDetails.paymentType === 'Full' ? parsedTotal : 0));
+                effectiveRemainingBalance = roundMoney(parsedTotal - initialPaid);
+            }
+
+            const cName = (customerDetails.name || customerDetails.customerName || originalSale?.customerName || '').trim();
+            const cPhone = (customerDetails.phone || customerDetails.customerPhone || originalSale?.customerPhone || '').trim();
+            const cAddress = (customerDetails.address || customerDetails.customerAddress || originalSale?.customerAddress || '').trim();
+
             const sale = stripUndefined({
                 id: saleId, invoiceNumber, type: effectiveType, total: parsedTotal, createdAt: now, date: date,
-                customerName: customerDetails.customerName || customerDetails.name || (originalSale?.customerName || 'Walk-in Customer'),
-                customerPhone: customerDetails.customerPhone || customerDetails.phone || (originalSale?.customerPhone || ''),
-                paymentType: customerDetails.paymentType || 'Full', dueDate: customerDetails.dueDate,
+                customerName: cName || 'Walk-in Customer',
+                customerPhone: cPhone || '',
+                paymentType: isReturn ? (debtCredited > 0 ? (initialPaid > 0 ? 'Partial' : 'Pending') : 'Full') : (customerDetails.paymentType || 'Full'),
+                dueDate: customerDetails.dueDate,
                 amountPaid: initialPaid,
                 initialPaid: initialPaid,
-                customerDetails: { ...customerDetails, name: customerDetails.name || customerDetails.customerName || (originalSale?.customerName || 'Walk-in Customer'), customerName: customerDetails.customerName || customerDetails.name || (originalSale?.customerName || 'Walk-in Customer'), amountPaid: initialPaid, initialPaid: initialPaid, remainingBalance, dueDate: customerDetails.dueDate },
-                remainingBalance, shopId: shopIdValue, items,
+                customerDetails: {
+                    ...customerDetails,
+                    name: cName || 'Walk-in Customer',
+                    customerName: cName || 'Walk-in Customer',
+                    amountPaid: initialPaid,
+                    initialPaid: initialPaid,
+                    remainingBalance: effectiveRemainingBalance,
+                    debtCredited: isReturn ? debtCredited : undefined,
+                    dueDate: customerDetails.dueDate
+                },
+                remainingBalance: effectiveRemainingBalance,
+                debtCredited: isReturn ? debtCredited : undefined,
+                shopId: shopIdValue,
+                items,
                 originalSaleId: originalSale ? originalSale.id : null,
                 originalInvoiceNumber: originalSale ? originalSale.invoiceNumber : null
             });
@@ -1330,26 +1399,60 @@ app.post('/api/sales', async (req, res) => {
                 });
             }
 
-            const cName = customerDetails.name || customerDetails.customerName || originalSale?.customerName;
-            const targetCustomerId = customerDetails.customerId || originalSale?.customerId;
-            // Only update EXISTING customers for confirmed Sales and Returns (never for Quotations).
-            if (!isQuotation && cName && cName !== 'Walk-in Customer' && cName !== 'Walk-in' && targetCustomerId) {
-                const customerId = targetCustomerId;
-                const existingCustomer = await getById('customers', customerId);
-                if (existingCustomer) {
-                    const existingBalance = existingCustomer.balance || 0;
-                    const existingTotalPurchased = existingCustomer.totalPurchased || 0;
-                    const existingTotalPaid = existingCustomer.totalPaid || 0;
+            // Customer ledger synchronization & auto-profile creation
+            if (!isQuotation && cName && cName.toLowerCase() !== 'walk-in customer' && cName.toLowerCase() !== 'walk-in') {
+                let customerId = customerDetails.customerId || originalSale?.customerId;
+                let existingCustomer = customerId ? await getById('customers', customerId) : null;
+                if (!existingCustomer) {
+                    const allCusts = await getAll('customers');
+                    existingCustomer = allCusts.find(c =>
+                        (c.name && c.name.trim().toLowerCase() === cName.toLowerCase()) &&
+                        (!cPhone || !c.phone || c.phone.trim() === cPhone)
+                    );
+                    if (existingCustomer) {
+                        customerId = existingCustomer.id;
+                    }
+                }
 
-                    const balanceAdjustment = isReturn ? -remainingBalance : remainingBalance;
-                    const paidAdjustment = isReturn ? -(customerDetails.amountPaid || 0) : (customerDetails.amountPaid || 0);
+                if (!existingCustomer && !isReturn) {
+                    // Auto-create customer profile on first credit/named billing
+                    customerId = generateId();
+                    existingCustomer = {
+                        id: customerId,
+                        name: cName,
+                        phone: cPhone,
+                        address: cAddress,
+                        balance: 0,
+                        totalPurchased: 0,
+                        totalPaid: 0,
+                        createdAt: date
+                    };
+                    await insert('customers', customerId, existingCustomer);
+                }
+
+                if (existingCustomer && customerId) {
+                    const existingBalance = Number(existingCustomer.balance) || 0;
+                    const existingTotalPurchased = Number(existingCustomer.totalPurchased) || 0;
+                    const existingTotalPaid = Number(existingCustomer.totalPaid) || 0;
+
+                    let newBal, newPurchased, newPaid;
+                    if (isReturn) {
+                        newBal = roundMoney(existingBalance - debtCredited);
+                        newPurchased = roundMoney(Math.max(0, existingTotalPurchased - parsedTotal));
+                        newPaid = roundMoney(Math.max(0, existingTotalPaid - initialPaid));
+                    } else {
+                        newBal = roundMoney(existingBalance + effectiveRemainingBalance);
+                        newPurchased = roundMoney(existingTotalPurchased + parsedTotal);
+                        newPaid = roundMoney(existingTotalPaid + initialPaid);
+                    }
 
                     const customerData = stripUndefined({
-                        name: cName || 'Unknown', phone: customerDetails.phone || customerDetails.customerPhone || existingCustomer.phone || '',
-                        address: customerDetails.address || customerDetails.customerAddress || existingCustomer.address || '',
-                        balance: roundMoney(existingBalance + balanceAdjustment),
-                        totalPurchased: roundMoney(existingTotalPurchased + (isReturn ? -parsedTotal : parsedTotal)),
-                        totalPaid: roundMoney(existingTotalPaid + paidAdjustment),
+                        name: cName || existingCustomer.name || 'Unknown',
+                        phone: cPhone || existingCustomer.phone || '',
+                        address: cAddress || existingCustomer.address || '',
+                        balance: newBal,
+                        totalPurchased: newPurchased,
+                        totalPaid: newPaid,
                         updatedAt: date
                     });
 
@@ -1392,35 +1495,57 @@ app.delete('/api/sales/:id', async (req, res) => {
                     }
                 }
             }
-            // If Return, decrement returnedQuantity on original sale line items
+            // If Return, decrement returnedQuantity on original sale line items AND restore originalSale remaining balance/payment status
             if (sale.type === 'Return' && sale.originalSaleId) {
                 const origSale = await getById('sales', sale.originalSaleId);
-                if (origSale && Array.isArray(origSale.items)) {
-                    const revertedOrigItems = origSale.items.map(origItem => {
-                        const pid = origItem.id || origItem.productId;
-                        const match = (sale.items || []).find(it => (it.id || it.productId) === pid || it.name === origItem.name);
-                        if (match) {
-                            const newReturned = Math.max(0, (origItem.returnedQuantity || 0) - (Number(match.quantity) || 0));
-                            return { ...origItem, returnedQuantity: newReturned };
-                        }
-                        return origItem;
-                    });
+                if (origSale) {
+                    let revertedOrigItems = origSale.items;
+                    if (Array.isArray(origSale.items)) {
+                        revertedOrigItems = origSale.items.map(origItem => {
+                            const pid = origItem.id || origItem.productId;
+                            const match = (sale.items || []).find(it => (it.id || it.productId) === pid || it.name === origItem.name);
+                            if (match) {
+                                const newReturned = Math.max(0, (origItem.returnedQuantity || 0) - (Number(match.quantity) || 0));
+                                return { ...origItem, returnedQuantity: newReturned };
+                            }
+                            return origItem;
+                        });
+                    }
                     const revertedReturnIds = (origSale.returnIds || []).filter(rid => rid !== saleId);
-                    await update('sales', sale.originalSaleId, { items: revertedOrigItems, returnIds: revertedReturnIds });
+                    const debtCredited = Number(sale.debtCredited ?? sale.customerDetails?.debtCredited ?? (sale.total || 0));
+                    const cashRefunded = Number(sale.initialPaid ?? sale.amountPaid) || 0;
+                    const restoredRemaining = roundMoney((Number(origSale.remainingBalance) || 0) + debtCredited);
+                    const restoredPaid = roundMoney((Number(origSale.amountPaid) || 0) + cashRefunded);
+                    const restoredStatus = restoredRemaining <= 0 ? 'Full' : (restoredPaid <= 0 ? 'Pending' : 'Partial');
+
+                    await update('sales', sale.originalSaleId, {
+                        items: revertedOrigItems,
+                        returnIds: revertedReturnIds,
+                        remainingBalance: restoredRemaining,
+                        amountPaid: restoredPaid,
+                        paymentType: restoredStatus,
+                        customerDetails: {
+                            ...(origSale.customerDetails || {}),
+                            remainingBalance: restoredRemaining,
+                            amountPaid: restoredPaid,
+                            paymentType: restoredStatus
+                        }
+                    });
                 }
             }
             // 2. Revert customer balance if applicable
             if (sale.customerId && sale.type !== 'Quotation') {
                 const customer = await getById('customers', sale.customerId);
                 if (customer) {
-                    const saleTotal = Number(sale.total) || 0;
-                    const saleRem = Number(sale.remainingBalance) || 0;
-                    const salePaid = Number(sale.initialPaid ?? sale.amountPaid) || 0;
                     const isReturn = sale.type === 'Return';
+                    const saleTotal = Number(sale.total) || 0;
+                    const debtCredited = Number(sale.debtCredited ?? sale.customerDetails?.debtCredited ?? (isReturn ? (sale.total || 0) : 0));
+                    const saleRem = isReturn ? debtCredited : (Number(sale.remainingBalance) || 0);
+                    const salePaid = Number(sale.initialPaid ?? sale.amountPaid) || 0;
                     await update('customers', sale.customerId, {
-                        balance: roundMoney((customer.balance || 0) - (isReturn ? -saleRem : saleRem)),
-                        totalPurchased: roundMoney((customer.totalPurchased || 0) - (isReturn ? -saleTotal : saleTotal)),
-                        totalPaid: roundMoney((customer.totalPaid || 0) - (isReturn ? -salePaid : salePaid))
+                        balance: roundMoney((customer.balance || 0) + (isReturn ? debtCredited : -saleRem)),
+                        totalPurchased: roundMoney((customer.totalPurchased || 0) + (isReturn ? saleTotal : -saleTotal)),
+                        totalPaid: roundMoney((customer.totalPaid || 0) + (isReturn ? salePaid : -salePaid))
                     });
                 }
             }
@@ -1823,6 +1948,7 @@ app.get('/api/backups', (req, res) => {
         if (!fs.existsSync(backupsDir)) {
             return res.json([]);
         }
+        ensureHourlyBackup();
         const files = fs.readdirSync(backupsDir)
             .filter(f => f.endsWith('.sqlite') || f.endsWith('.db'))
             .map(filename => {
@@ -1984,6 +2110,7 @@ app.get('/api/undo/status', async (req, res) => {
         // 2. Identify candidate hourly / prior snapshot for 1-hour rollback
         let candidateSnapshot = null;
         if (fs.existsSync(backupsDir)) {
+            ensureHourlyBackup();
             const now = Date.now();
             const backups = fs.readdirSync(backupsDir)
                 .filter(f => (f.endsWith('.sqlite') || f.endsWith('.db')) && !f.startsWith('pre-undo-safety'))
@@ -2141,23 +2268,45 @@ app.post('/api/undo/last-transaction', async (req, res) => {
             if (payment.isVoided) return res.status(400).json({ error: 'Payment is already voided' });
             result = await executeTransaction(async () => {
                 const payAmount = Number(payment.amount) || 0;
-                if (payment.customerId) {
-                    const customer = await getById('customers', payment.customerId);
-                    if (customer) {
-                        await update('customers', payment.customerId, {
-                            balance: roundMoney((Number(customer.balance) || 0) + payAmount),
-                            totalPaid: roundMoney(Math.max(0, (Number(customer.totalPaid) || 0) - payAmount))
+                let sale = null;
+                if (payment.saleId) {
+                    sale = await getById('sales', payment.saleId);
+                    if (sale) {
+                        const currentRemaining = roundMoney(Number(sale.remainingBalance ?? sale.customerDetails?.remainingBalance ?? 0));
+                        const currentPaid = roundMoney(Number(sale.amountPaid ?? sale.customerDetails?.amountPaid ?? 0));
+                        const saleTotal = roundMoney(Number(sale.total) || (currentRemaining + payAmount));
+                        const newRemaining = roundMoney(Math.min(saleTotal, currentRemaining + payAmount));
+                        const newPaid = roundMoney(Math.max(0, currentPaid - payAmount));
+                        const newStatus = newPaid <= 0 ? 'Pending' : 'Partial';
+                        await update('sales', payment.saleId, {
+                            remainingBalance: newRemaining,
+                            amountPaid: newPaid,
+                            paymentType: newStatus,
+                            customerDetails: {
+                                ...sale.customerDetails,
+                                remainingBalance: newRemaining,
+                                amountPaid: newPaid,
+                                paymentType: newStatus
+                            }
                         });
                     }
                 }
-                if (payment.saleId) {
-                    const sale = await getById('sales', payment.saleId);
-                    if (sale) {
-                        await update('sales', payment.saleId, {
-                            amountPaid: Math.max(0, (Number(sale.amountPaid) || 0) - payAmount),
-                            remainingAmount: Math.min(Number(sale.total) || 0, (Number(sale.remainingAmount) || 0) + payAmount)
-                        });
+
+                let targetCustId = payment.customerId && payment.customerId !== 'walk-in' ? payment.customerId : (sale?.customerId);
+                let customer = targetCustId ? await getById('customers', targetCustId) : null;
+                if (!customer) {
+                    const allCusts = await getAll('customers');
+                    const searchName = payment.customerName || sale?.customerName || (sale?.customerDetails?.name);
+                    if (searchName) {
+                        customer = allCusts.find(c => c.name && c.name.trim().toLowerCase() === searchName.trim().toLowerCase());
+                        if (customer) targetCustId = customer.id;
                     }
+                }
+                if (customer && targetCustId) {
+                    await update('customers', targetCustId, {
+                        balance: roundMoney((Number(customer.balance) || 0) + payAmount),
+                        totalPaid: roundMoney(Math.max(0, (Number(customer.totalPaid) || 0) - payAmount))
+                    });
                 }
                 await update('payments', targetId, { isVoided: true, status: 'Voided', voidedAt: Date.now() });
                 return { message: `Customer payment undone successfully! Customer balance reverted.` };

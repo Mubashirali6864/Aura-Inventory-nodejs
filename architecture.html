@@ -5571,6 +5571,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <li>&bull; Express REST controllers managing Sales, Stock, Customers, Suppliers, and Cashbook</li>
           <li>&bull; Atomic down-payment and invoice balance tracking preventing ledger discrepancies</li>
           <li>&bull; Document-store DAO layer wrapping SQLite3 tables with JSON data payloads</li>
+          <li>&bull; Surgical debt-crediting &amp; capped cash refund accounting on sales returns with auto-customer creation</li>
         </ul>
       </div>
 
@@ -5580,9 +5581,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <h3>Reliability &amp; Integrity</h3>
         </div>
         <ul>
-          <li>&bull; Automated backup engine capturing full database snapshots every 6 hours</li>
-          <li>&bull; Input validation guards blocking negative stock exploitation and invalid prices</li>
-          <li>&bull; CORS configurable middleware and HTTP security headers enforced at gateway</li>
+          <li>&bull; Automated backup engine capturing hourly rolling snapshots and 6-hour daily backups</li>
+          <li>&bull; 1-Click Surgical Undo &amp; Time Machine rollbacks with full remainingBalance and customer ledger restoration</li>
+          <li>&bull; Input validation guards blocking negative stock exploitation, zero-balance overpays, and invalid prices</li>
         </ul>
       </div>
     </div>

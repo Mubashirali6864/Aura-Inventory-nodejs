@@ -220,16 +220,17 @@
       "items": [
         "Express REST controllers managing Sales, Stock, Customers, Suppliers, and Cashbook",
         "Atomic down-payment and invoice balance tracking preventing ledger discrepancies",
-        "Document-store DAO layer wrapping SQLite3 tables with JSON data payloads"
+        "Document-store DAO layer wrapping SQLite3 tables with JSON data payloads",
+        "Surgical debt-crediting & capped cash refund accounting on sales returns with auto-customer creation"
       ]
     },
     {
       "dot": "rose",
       "title": "Reliability & Integrity",
       "items": [
-        "Automated backup engine capturing full database snapshots every 6 hours",
-        "Input validation guards blocking negative stock exploitation and invalid prices",
-        "CORS configurable middleware and HTTP security headers enforced at gateway"
+        "Automated backup engine capturing hourly rolling snapshots and 6-hour daily backups",
+        "1-Click Surgical Undo & Time Machine rollbacks with full remainingBalance and customer ledger restoration",
+        "Input validation guards blocking negative stock exploitation, zero-balance overpays, and invalid prices"
       ]
     }
   ]
