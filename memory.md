@@ -233,6 +233,14 @@ To prevent cognitive drift and guarantee immediate, structured recall without re
   2. Implemented atomic deletion endpoints: `DELETE /api/sales/:id`, `DELETE /api/purchases/:id`, `DELETE /api/supplier-payments/:id`, and `DELETE /api/payments/:id`.
   3. All operations run within the serialized `executeTransaction` queue to guarantee consistent stock restoration and balance reversals without race conditions.
 
+### ADR-015: Inventory Company Name, Shop In-Row Indicator, and All Shops Aggregation Tab
+* **Date:** 2026-10-25
+* **Context:** Showroom operators require vendor company branding rather than personal supplier names in catalog tables and product setup. Furthermore, selling prices are dynamic at POS counter checkout, rendering a static "Sale Price" column redundant in inventory. Cashiers and managers also needed a global view across all branches to see total stock of an item (e.g., "abc") and which branch currently holds the items.
+* **Decision:**
+  1. **Company Name Standardization:** Replaced "Supplier" terminology in the Inventory table header and dropdown filters with "Company" / "All Companies", displaying `supplier.shopName` (Company Name) across product rows and modals.
+  2. **Shop In-Row Column:** Replaced the static "Sale Price" column in the inventory table with a color-coded "Shop" branch badge (`Shop 1`, `Shop 2`, `Shop 3`).
+  3. **"All Shops" Global Aggregation Tab:** Introduced an **All Shops** tab (`i === "all"`) in Inventory that displays catalog items across all three branches simultaneously. Cashiers can search any item or SKU (e.g. "abc") and instantly see its distribution and quantities across all shops.
+
 ---
 
 ## 4. Environment Variables Reference

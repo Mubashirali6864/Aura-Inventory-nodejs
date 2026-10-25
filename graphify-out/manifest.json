@@ -1,14 +1,14 @@
 {
   "backend/index.js": {
-    "mtime": 1792324900.308901,
-    "seen": 1792325213.127148,
-    "ast_hash": "bc8c4b3f9f810bd33d62d1b542705edd",
+    "mtime": 1792950668.0037918,
+    "seen": 1792950974.3193514,
+    "ast_hash": "45699fb48e8e5c026793ff1df30c8112",
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1792247711.642573,
-    "seen": 1792324350.2132554,
-    "ast_hash": "6e3e82631b114ef8e1ba088db3441903",
+    "mtime": 1792945063.2043047,
+    "seen": 1792945252.522727,
+    "ast_hash": "a7544e6da38918f5dcda0217eadf41db",
     "semantic_hash": ""
   },
   "server.js": {
@@ -1488,9 +1488,9 @@
     "semantic_hash": ""
   },
   "qa/architecture.json": {
-    "mtime": 1792324941.1477668,
-    "seen": 1792325213.1271913,
-    "ast_hash": "0fd727127be46213611a4119eed70c55",
+    "mtime": 1792950180.9595368,
+    "seen": 1792950229.1823442,
+    "ast_hash": "30886c5292855dfdb8862247d1083224",
     "semantic_hash": ""
   },
   "qa/reports/comprehensive_prd_qa_results.json": {
@@ -1506,9 +1506,9 @@
     "semantic_hash": ""
   },
   "scripts/create_deploy_archive.ps1": {
-    "mtime": 1791732069.3498683,
-    "seen": 1791732292.4771433,
-    "ast_hash": "74fe944611c593c27f9daf030f05802e",
+    "mtime": 1792950923.6393833,
+    "seen": 1792950974.3194067,
+    "ast_hash": "19e72c2aa6585746416a1cb3631e6007",
     "semantic_hash": ""
   },
   "scripts/make_zip.ps1": {
@@ -3366,9 +3366,9 @@
     "semantic_hash": ""
   },
   "architecture.html": {
-    "mtime": 1792324961.9128692,
-    "seen": 1792325213.130509,
-    "ast_hash": "2943d0a8470be118f65a51f0a75425c0",
+    "mtime": 1792950942.579482,
+    "seen": 1792950974.3205302,
+    "ast_hash": "d800490ccdee653212c104def57eb8a8",
     "semantic_hash": ""
   },
   "architecture.md": {
@@ -3378,9 +3378,9 @@
     "semantic_hash": ""
   },
   "memory.md": {
-    "mtime": 1791214346.955137,
-    "seen": 1791214610.4143946,
-    "ast_hash": "948f7d682c8b198e20cfd31a1f453b01",
+    "mtime": 1792946081.378405,
+    "seen": 1792946153.943724,
+    "ast_hash": "afe6e84981dba4ad68f0beda5ebf74d3",
     "semantic_hash": ""
   },
   "qa/reports/PRD_EXECUTIVE_SUMMARY_QA_REPORT.md": {
@@ -5037,6 +5037,90 @@
     "mtime": 1792247885.3796256,
     "seen": 1792324350.2161095,
     "ast_hash": "9c3ea7645697626cb98614f9c16861bb",
+    "semantic_hash": ""
+  },
+  "backend/utils.js": {
+    "mtime": 1792944318.2882626,
+    "seen": 1792945252.5227244,
+    "ast_hash": "2f8967c633e61d98ebe25adf238efac7",
+    "semantic_hash": ""
+  },
+  "qa/integration/acid_void_and_undo.test.cjs": {
+    "mtime": 1792945018.0869994,
+    "seen": 1792945252.5227396,
+    "ast_hash": "775fa6158ef5fd0d345ad35729c8bdfb",
+    "semantic_hash": ""
+  },
+  "qa/integration/cashbook_and_expenses.test.cjs": {
+    "mtime": 1792944812.1266248,
+    "seen": 1792945252.5227413,
+    "ast_hash": "34cc1917d4630be3f7e9c1cb9bf3d749",
+    "semantic_hash": ""
+  },
+  "qa/integration/inventory_and_transfers.test.cjs": {
+    "mtime": 1792944655.4667025,
+    "seen": 1792945252.5227425,
+    "ast_hash": "1bb75847dc189b357aab281808213cea",
+    "semantic_hash": ""
+  },
+  "qa/integration/procurement_and_suppliers.test.cjs": {
+    "mtime": 1792944787.6502979,
+    "seen": 1792945252.5227437,
+    "ast_hash": "c23ef64f541116ff7de693ccfe69b8e4",
+    "semantic_hash": ""
+  },
+  "qa/integration/sales_and_credit.test.cjs": {
+    "mtime": 1792944757.591683,
+    "seen": 1792945252.5227451,
+    "ast_hash": "4a4b49449f46afdc852cd7e162e95865",
+    "semantic_hash": ""
+  },
+  "qa/integration/test_helper.cjs": {
+    "mtime": 1792944637.7447884,
+    "seen": 1792945252.5227463,
+    "ast_hash": "1ef4689b2ebca0ca1fe5afb6936ed5ed",
+    "semantic_hash": ""
+  },
+  "qa/run_all_tests.cjs": {
+    "mtime": 1792945047.620586,
+    "seen": 1792945252.5227554,
+    "ast_hash": "02ec70abef2c115552530684d02749aa",
+    "semantic_hash": ""
+  },
+  "qa/unit/fifo_allocation.test.cjs": {
+    "mtime": 1792944375.6537971,
+    "seen": 1792945252.5227587,
+    "ast_hash": "579039ae107002ae08fc81f34caed708",
+    "semantic_hash": ""
+  },
+  "qa/unit/return_financials.test.cjs": {
+    "mtime": 1792944366.4437957,
+    "seen": 1792945252.52276,
+    "ast_hash": "012a324832ed988181c3556c4fa98c00",
+    "semantic_hash": ""
+  },
+  "qa/unit/roundMoney.test.cjs": {
+    "mtime": 1792944390.4755838,
+    "seen": 1792945252.5227616,
+    "ast_hash": "538943c58d334a3999628015da78cbed",
+    "semantic_hash": ""
+  },
+  "qa/unit/stripUndefined.test.cjs": {
+    "mtime": 1792944349.7559862,
+    "seen": 1792945252.522763,
+    "ast_hash": "4e146fd7086a6893d85b2d8974203322",
+    "semantic_hash": ""
+  },
+  "qa/unit/timezone_formatters.test.cjs": {
+    "mtime": 1792944239.1480045,
+    "seen": 1792945252.5227644,
+    "ast_hash": "fa34a3b005f4394b1bda062e46da9dcd",
+    "semantic_hash": ""
+  },
+  "qa/unit/validation_guards.test.cjs": {
+    "mtime": 1792944254.4445808,
+    "seen": 1792945252.5227659,
+    "ast_hash": "7dd666c0ea7a2cb1e0de7ce0309b4c01",
     "semantic_hash": ""
   }
 }

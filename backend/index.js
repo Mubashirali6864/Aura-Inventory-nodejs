@@ -61,23 +61,8 @@ app.use((req, res, next) => {
     next();
 });
 
-// Helper function to generate unique IDs
-const generateId = () => {
-    return crypto.randomUUID();
-};
-
-// Helper to remove undefined fields recursively for JSON compatibility
-const stripUndefined = (obj) => {
-    if (!obj || typeof obj !== 'object') return obj;
-    Object.keys(obj).forEach(key => {
-        if (obj[key] === undefined) {
-            delete obj[key];
-        } else if (obj[key] !== null && typeof obj[key] === 'object') {
-            stripUndefined(obj[key]);
-        }
-    });
-    return obj;
-};
+// Pure utility functions
+const { generateId, stripUndefined, roundMoney } = require('./utils.js');
 
 // Database and Backups Connection
 const dataPath = process.env.APP_DATA_PATH || __dirname;
@@ -91,34 +76,43 @@ console.log(`[Backend] Backups directory at: ${backupsDir}`);
 
 let db;
 
+let dbReadyPromise = null;
+
 const initDb = (callback) => {
-    db = new sqlite3.Database(dbPath, (err) => {
-        if (err) {
-            console.error('Error opening database', err.message);
-            if (callback) callback(err);
-        } else {
-            console.log('Connected to the SQLite database.');
-            db.serialize(() => {
-                const tables = ['products', 'customers', 'payments', 'sales', 'suppliers', 'purchases', 'supplierPayments', 'expenses', 'stockTransfers'];
-                for (const table of tables) {
-                    db.run(`CREATE TABLE IF NOT EXISTS ${table} (id TEXT PRIMARY KEY, data TEXT)`);
+    if (!dbReadyPromise || !db) {
+        dbReadyPromise = new Promise((resolve, reject) => {
+            db = new sqlite3.Database(dbPath, (err) => {
+                if (err) {
+                    console.error('Error opening database', err.message);
+                    if (callback) callback(err);
+                    return reject(err);
                 }
-                db.run(`CREATE TABLE IF NOT EXISTS counters (id TEXT PRIMARY KEY, value INTEGER)`, () => {
-                    mergeDuplicateProducts();
-                    syncProductNamesWithHistoricalRecords();
-                    reconcileInvoiceCounter();
-                    ensurePurchaseInitialPaid();
-                    if (callback) callback(null);
+                console.log('Connected to the SQLite database.');
+                db.serialize(() => {
+                    const tables = ['products', 'customers', 'payments', 'sales', 'suppliers', 'purchases', 'supplierPayments', 'expenses', 'stockTransfers'];
+                    for (const table of tables) {
+                        db.run(`CREATE TABLE IF NOT EXISTS ${table} (id TEXT PRIMARY KEY, data TEXT)`);
+                    }
+                    db.run(`CREATE TABLE IF NOT EXISTS counters (id TEXT PRIMARY KEY, value INTEGER)`, () => {
+                        Promise.all([
+                            mergeDuplicateProducts(),
+                            syncProductNamesWithHistoricalRecords(),
+                            reconcileInvoiceCounter(),
+                            ensurePurchaseInitialPaid()
+                        ]).catch(() => {}).then(() => {
+                            if (callback) callback(null);
+                            resolve(db);
+                        });
+                    });
                 });
             });
-        }
-    });
+        });
+    }
+    return dbReadyPromise;
 };
 
 initDb();
 
-// Floating-point precision helper: standardizes financial values to 2 decimal places
-const roundMoney = (val) => Math.round((Number(val) || 0) * 100) / 100;
 
 // SQLite Transaction Serializer: ensures ACID atomicity and prevents multi-terminal race conditions
 let transactionQueue = Promise.resolve();
@@ -216,14 +210,18 @@ ensureDailyBackup();
 ensureHourlyBackup();
 
 // Daily automated backup schedule (every 6 hours checks and saves daily backup)
-setInterval(() => {
-    ensureDailyBackup();
-}, 6 * 60 * 60 * 1000);
+let dailyBackupTimer = null;
+let hourlyBackupTimer = null;
+if (process.env.APP_ENV !== 'test') {
+    dailyBackupTimer = setInterval(() => {
+        ensureDailyBackup();
+    }, 6 * 60 * 60 * 1000);
 
-// Hourly rolling snapshot schedule (every 15 minutes checks/records current hour)
-setInterval(() => {
-    ensureHourlyBackup();
-}, 15 * 60 * 1000);
+    // Hourly rolling snapshot schedule (every 15 minutes checks/records current hour)
+    hourlyBackupTimer = setInterval(() => {
+        ensureHourlyBackup();
+    }, 15 * 60 * 1000);
+}
 
 // Generic DB Operations
 const getAll = (table) => {
@@ -636,7 +634,22 @@ const ensurePurchaseInitialPaid = async () => {
 // ============================================================================================
 
 app.get('/api/products', async (req, res) => {
-    try { res.json(await getAll('products')); } 
+    try {
+        const [products, suppliers] = await Promise.all([getAll('products'), getAll('suppliers')]);
+        const supMap = {};
+        (suppliers || []).forEach(s => { if (s && s.id) supMap[s.id] = s; });
+        const enriched = (products || []).map(p => {
+            const sup = p.supplierId ? supMap[p.supplierId] : null;
+            const company = (sup ? (sup.shopName || sup.name) : '') || p.companyName || p.company || p.supplierName || '';
+            return {
+                ...p,
+                companyName: company,
+                company: company,
+                supplierName: company || p.supplierName || ''
+            };
+        });
+        res.json(enriched);
+    } 
     catch (error) { res.status(500).json({ error: error.message }); }
 });
 
@@ -658,6 +671,8 @@ app.post('/api/products', async (req, res) => {
             return res.status(400).json({ error: 'Prices cannot be negative numbers.' });
         }
 
+        const supplier = productData.supplierId ? await getById('suppliers', productData.supplierId) : null;
+        const comp = (supplier ? (supplier.shopName || supplier.name) : '') || productData.companyName || productData.company || productData.supplierName || '';
         const id = generateId();
         const newProduct = {
             ...productData,
@@ -665,6 +680,9 @@ app.post('/api/products', async (req, res) => {
             stock: parsedStock,
             purchasePrice: parsedPurchasePrice,
             retailPrice: parsedRetailPrice,
+            companyName: comp,
+            company: comp,
+            supplierName: comp || productData.supplierName || '',
             createdAt: Date.now()
         };
         await insert('products', id, newProduct);
@@ -672,7 +690,6 @@ app.post('/api/products', async (req, res) => {
         // Auto-create purchase if initial stock is added and supplier is selected
         if (newProduct.stock > 0 && newProduct.supplierId && newProduct.purchasePrice > 0) {
             const totalAmount = newProduct.stock * newProduct.purchasePrice;
-            const supplier = await getById('suppliers', newProduct.supplierId);
             const actualPaidAmount = Number(paidAmount) || 0;
             
             const purchaseId = generateId();
@@ -680,7 +697,7 @@ app.post('/api/products', async (req, res) => {
             const purchase = {
                 id: purchaseId, 
                 supplierId: newProduct.supplierId, 
-                supplierName: newProduct.supplierName || (supplier ? supplier.name : 'Unknown'), 
+                supplierName: newProduct.companyName || newProduct.supplierName || (supplier ? (supplier.shopName || supplier.name) : 'Unknown'), 
                 totalAmount: totalAmount, 
                 paidAmount: actualPaidAmount, 
                 remainingAmount: totalAmount - actualPaidAmount, 
@@ -729,7 +746,16 @@ app.post('/api/products', async (req, res) => {
 app.put('/api/products/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const data = req.body;
+        const data = req.body || {};
+        if (data.supplierId) {
+            const supplier = await getById('suppliers', data.supplierId);
+            if (supplier) {
+                const comp = supplier.shopName || supplier.name;
+                data.companyName = comp;
+                data.company = comp;
+                data.supplierName = comp;
+            }
+        }
         await update('products', id, data);
         await propagateProductUpdates(id, data);
         res.json({ id, ...data, message: 'Product updated successfully' });
@@ -1177,9 +1203,18 @@ app.post('/api/sales', async (req, res) => {
 
         // Server-side recomputation of invoice total from line items with 2-decimal precision
         const computedItemTotal = roundMoney(items.reduce((sum, item) => {
+            if (item.total !== undefined && item.total !== null && !isNaN(Number(item.total))) {
+                return sum + Number(item.total);
+            }
             const qty = Number(item.quantity) || 0;
-            const price = Number(item.price ?? item.salePrice ?? item.costPrice ?? 0);
-            return sum + (qty * price);
+            const fullSheets = Math.floor(qty);
+            const hasHalfSheet = qty % 1 !== 0;
+            const fullRate = Number(item.customUnitPrice ?? item.price ?? item.salePrice ?? item.costPrice ?? 0);
+            const halfPrice = (item.halfSheetPrice !== undefined && item.halfSheetPrice !== null && item.halfSheetPrice !== '')
+                ? Number(item.halfSheetPrice)
+                : (hasHalfSheet ? fullRate / 2 : 0);
+            const lineTotal = hasHalfSheet ? (fullSheets * fullRate + halfPrice) : (qty * fullRate);
+            return sum + (isNaN(lineTotal) ? 0 : lineTotal);
         }, 0));
 
         const parsedTotal = total !== undefined && !isNaN(Number(total)) ? roundMoney(total) : computedItemTotal;
@@ -1670,7 +1705,7 @@ app.post('/api/purchases', async (req, res) => {
                 date = Number(providedDate) || pDate.getTime() || now;
             }
         }
-        const supplierName = supplier?.name || 'Unknown';
+        const supplierName = (supplier?.shopName || supplier?.name) || 'Unknown';
         const remainingAmount = roundMoney(totalAmount - parsedPaid);
 
         const isAdjustment = req.body.isAdjustment === true || items.some(i => i.productId === 'adjustment' || i.name === 'Pending Balance Adjustment');
@@ -1684,12 +1719,41 @@ app.post('/api/purchases', async (req, res) => {
             await insert('purchases', purchaseId, purchase);
 
             if (!isAdjustment) {
+                const allProducts = await getAll('products');
+                const targetShop = shopId || 'shop-1';
                 for (const item of items) {
                     const pid = item.productId || item.id;
                     if (pid === 'adjustment') continue;
-                    const product = await getById('products', pid);
+                    let product = await getById('products', pid);
                     if (product) {
-                        await update('products', pid, {
+                        // If product belongs to a different shop than the purchase destination,
+                        // locate or create the product instance in targetShop
+                        if (product.shopId && product.shopId !== targetShop) {
+                            const pName = (product.name || '').trim().toLowerCase();
+                            const pSize = (product.size || '').trim().toLowerCase();
+                            const pUnit = (product.unit || '').trim().toLowerCase();
+                            let shopProduct = allProducts.find(p => 
+                                p.shopId === targetShop &&
+                                (p.name || '').trim().toLowerCase() === pName &&
+                                (p.size || '').trim().toLowerCase() === pSize &&
+                                (p.unit || '').trim().toLowerCase() === pUnit
+                            );
+                            if (!shopProduct) {
+                                const newId = generateId();
+                                shopProduct = {
+                                    ...product,
+                                    id: newId,
+                                    shopId: targetShop,
+                                    stock: 0,
+                                    createdAt: Date.now()
+                                };
+                                await insert('products', newId, shopProduct);
+                                allProducts.push(shopProduct);
+                            }
+                            product = shopProduct;
+                            item.productId = shopProduct.id;
+                        }
+                        await update('products', product.id, {
                             stock: (product.stock || 0) + (Number(item.quantity) || 0),
                             purchasePrice: Number(item.costPrice) || product.purchasePrice,
                             supplierId, supplierName
@@ -1931,8 +1995,16 @@ app.get('/api/expenses', async (req, res) => {
 
 app.post('/api/expenses', async (req, res) => {
     try {
+        const { title, amount } = req.body || {};
+        if (!title || typeof title !== 'string' || !title.trim()) {
+            return res.status(400).json({ error: 'Expense title is required.' });
+        }
+        const parsedAmount = roundMoney(Number(amount));
+        if (isNaN(parsedAmount) || parsedAmount <= 0) {
+            return res.status(400).json({ error: 'Expense amount must be a positive number.' });
+        }
         const id = generateId();
-        const newExpense = { ...req.body, createdAt: Date.now() };
+        const newExpense = { ...stripUndefined(req.body), title: title.trim(), amount: parsedAmount, createdAt: Date.now() };
         await insert('expenses', id, newExpense);
         res.status(201).json({ id, ...newExpense });
     } catch (error) { res.status(500).json({ error: error.message }); }
@@ -2027,6 +2099,8 @@ app.post('/api/backups/restore', async (req, res) => {
         // 2. Close active database connections
         if (db) {
             await new Promise((resolve) => db.close(() => resolve()));
+            db = null;
+            dbReadyPromise = null;
         }
 
         // 3. Replace database.sqlite with the selected backup
@@ -2353,6 +2427,8 @@ app.post('/api/undo/rollback-snapshot', async (req, res) => {
         // 2. Close active database connections
         if (db) {
             await new Promise((resolve) => db.close(() => resolve()));
+            db = null;
+            dbReadyPromise = null;
         }
 
         // 3. Replace database.sqlite with chosen snapshot
@@ -2481,5 +2557,24 @@ if (process.env.APP_ENV !== 'test') {
         console.log(`Backend server running on port ${PORT}`);
     });
 }
+
+// Attach utilities for unit testing and test lifecycle management
+app.stripUndefined = stripUndefined;
+app.roundMoney = roundMoney;
+app.generateId = generateId;
+app.ready = () => initDb();
+app.closeDb = () => {
+    return new Promise((resolve) => {
+        dbReadyPromise = null;
+        if (db) {
+            db.close(() => {
+                db = null;
+                resolve();
+            });
+        } else {
+            resolve();
+        }
+    });
+};
 
 module.exports = app;

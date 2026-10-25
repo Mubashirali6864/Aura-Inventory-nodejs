@@ -1,17 +1,17 @@
-# Graph Report - Aura Inventory nodejs  (2026-10-18)
+# Graph Report - Aura Inventory nodejs  (2026-10-25)
 
 ## Corpus Check
-- 807 files · ~1,544,986 words
+- 821 files · ~1,550,088 words
 - Verdict: corpus is large enough that graph structure adds value.
-- Unclassified: 11 file(s) not represented in the graph (top: .sqlite 3, (none) 2, .jsonl 2)
+- Unclassified: 10 file(s) not represented in the graph (top: (none) 2, .jsonl 2, .sqlite 2)
 
 ## Summary
-- 13556 nodes · 17242 edges · 781 communities (739 shown, 42 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 272 edges (avg confidence: 0.89)
+- 13629 nodes · 17369 edges · 792 communities (750 shown, 42 thin omitted)
+- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 278 edges (avg confidence: 0.89)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `c90c3d4d`
+- Built from commit: `23a0996b`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -25,7 +25,7 @@
 - compileWorkflowInternal
 - ATS Validator Architect
 - master_cross_angle_suite.test.cjs
-- vertical-edge.test.mjs
+- generate-viewer.test.mjs
 - brand-marks.test.mjs
 - Q: Why does body-parser connect Package Manifest & External Modules to Backend Server & API Setup?
 - 2. Phase 1: Completed Security & Stability Patches
@@ -43,7 +43,7 @@
 - test_parse_instinct.py
 - docs-lookup.md
 - 📋 Table of Contents
-- load_all_instincts
+- _promote_specific
 - counters (invoiceNumber: 1 live row)
 - customers (3 live rows)
 - payments (4 live rows)
@@ -61,7 +61,7 @@
 - Review Checklist
 - output-path.mjs
 - Supply Chain Strategist Agent
-- ref_node_assert
+- semantic-legend-gateway.test.mjs
 - webm-artifact.smoke.mjs
 - generated-validators.mjs
 - properties
@@ -70,7 +70,7 @@
 - Windows Desktop E2E Testing
 - properties
 - update-notifier.test.mjs
-- cli-output-types.test.mjs
+- test_helper.cjs
 - properties
 - _make_project
 - properties
@@ -95,13 +95,13 @@
 - :arrows_counterclockwise: Your Workflow Process
 - executeTransaction
 - layout-rules.test.mjs
-- workflow-migration.test.mjs
-- _promote_specific
+- workflow-v2.mjs
+- parse_spec
 - runner.py
 - update-contract.mjs
 - Plankton Code Quality Skill
 - Python Code Review
-- parse_spec
+- utils.js
 - properties
 - properties
 - Code Tour
@@ -110,8 +110,8 @@
 - 2. Memory Architecture: The Method of Loci (The Memory Palace)
 - Command File Templates (Minimal Content)
 - System Architecture Document
-- numberAttr
-- Task & Development Roadmap
+- cli-output-types.test.mjs
+- archify/package.json
 - Civil Engineer Agent
 - Agent Self-Evaluation
 - $defs
@@ -191,7 +191,7 @@
 - Review Priorities (Vue-specific only)
 - Security Reviewer
 - tdd-guide.md
-- generate-brand-marks.mjs
+- scripts
 - i18n.test.mjs
 - items
 - repository
@@ -216,10 +216,10 @@
 - planner.md
 - Refactor & Dead Code Cleaner
 - chapter-delta-preview.test.mjs
-- What You Must Do When Invoked
+- /graphify
 - items
 - v1-compatibility.test.mjs
-- ref_node_test
+- ref_node_fs
 - Continuous Learning Skill - DEPRECATED
 - observer-loop.sh
 - observe.sh
@@ -253,7 +253,7 @@
 - Review Priorities
 - Agent Introspection Debugging
 - Evaluation Criteria — Detailed Scoring Guide
-- story-carrier.test.mjs
+- generate-brand-marks.mjs
 - Workflow Renderer
 - items
 - assertSafeDirectory
@@ -314,12 +314,12 @@
 - Instinct Import Command
 - Package Manager Setup
 - Update Documentation
-- Paid Media Auditor Agent
+- workflow-migration.test.mjs
 - ref_node_path
 - Enable HPA if not active
-- story-moment-link.test.mjs
-- reach-share-card.test.mjs
-- 3. Data Access Layer (DAO) & Persistence
+- ref_node_assert
+- Archify JSON IR Schemas
+- Aura Furniture Management & POS System (Shan-e-Aziz POS)
 - Process
 - Code Simplifier Agent
 - Analysis Framework
@@ -335,10 +335,10 @@
 - items
 - Image Prompt Engineer Agent
 - guided-views.test.mjs
-- agency-agents/SKILL.md
+- LinkedIn Content Creator
 - release-identity.test.mjs
 - Persona Walkthrough Specialist
-- story-director-strip.test.mjs
+- relationship-permalink.test.mjs
 - graphify reference: extra exports and benchmark
 - Phases
 - Flutter Test
@@ -348,18 +348,18 @@
 - Update Codemaps
 - 社交媒体 & 社区
 - wraps
-- output-path.test.mjs
+- ref_node_child_process
 - Paid Media PPC Campaign Strategist Agent
-- route-share-card.test.mjs
-- preset-tryon.test.mjs
+- Paid Media Auditor Agent
+- load_all_instincts
 - site-language-continuity.test.mjs
 - 🤝 M&A Integration Manager Agent
 - graphify reference: query, path, explain
 - sequence-column-fit.test.mjs
 - Hook System Overview
-- ref_node_url
+- ref_node_os
 - Threat Detection Engineer Agent
-- animation.test.mjs
+- What You Must Do When Invoked
 - 🔐 Data Privacy Officer Agent
 - Ponytail Help
 - skill-comply: Automated Compliance Measurement
@@ -372,7 +372,7 @@
 - /orch-review
 - 🧠 Organizational Psychologist Agent
 - 🔁 Your Workflow
-- relationship-lens.test.mjs
+- vue-reviewer.md
 - Sovereign Health Systems Agent
 - gan-planner.md
 - common-code-review.md
@@ -385,7 +385,7 @@
 - variant
 - migrate.mjs
 - ⚙️ Operations Manager Agent
-- relationship-direct-explorer.test.mjs
+- preview-contract.test.mjs
 - 🚨 Critical Rules You Must Follow
 - detect-project.sh
 - _validate_import_url
@@ -395,7 +395,7 @@
 - /learn - Extract Reusable Patterns
 - /learn-eval - Extract, Evaluate, then Save
 - Smart Commit
-- apply_root_cause_hardening.js
+- animation.test.mjs
 - Agent Personality
 - Offer & Lead Gen Strategist
 - TDD Evidence Report: Sales & Purchase Timestamp & Cashbook Ordering
@@ -415,7 +415,7 @@
 - point
 - viewBox
 - viewBox
-- cli.test.mjs
+- xml.mjs
 - Third-party notices
 - scan_dir_to_json
 - _redact_home_paths
@@ -492,7 +492,7 @@
 - label
 - title
 - y
-- collectArrows
+- Paid Media Programmatic & Display Buyer Agent
 - label
 - width
 - session-guardian.sh
@@ -661,7 +661,7 @@
 - UI Finish-Gate Reviewer Agent Personality
 - Embedded Firmware Engineer
 - Marketing Reddit Community Builder
-- motion-governor.test.mjs
+- repair-receipt.test.mjs
 - Marketing Instagram Curator
 - 🧭 Product Manager Agent
 - Compliance Auditor Agent
@@ -737,7 +737,7 @@
 - 🌍 Cultural Intelligence Strategist
 - Code Reviewer Agent
 - SRE (Site Reliability Engineer) Agent
-- LinkedIn Content Creator
+- relationship-direct-explorer.test.mjs
 - Report Distribution Agent
 - Sales Data Extraction Agent
 - Review Priorities
@@ -749,21 +749,26 @@
 - Senior SecOps Engineer
 - 📋 Your Technical Deliverables
 - 🚨 Critical Rules You Must Follow
-- route-probe.test.mjs
-- semantic-lens.test.mjs
-- 2.2 Key User Journeys
-- Paid Media Ad Creative Strategist Agent
+- stable-update-manifest.test.mjs
+- vertical-edge.test.mjs
+- run_all_tests.cjs
+- agency-agents/SKILL.md
 - Paid Media Paid Social Strategist Agent
-- Paid Media Search Query Analyst Agent
+- django-reviewer.md
+- story-follow-camera.test.mjs
 - Paid Media Tracking & Measurement Specialist Agent
 - 🔎 SAST & Secrets Detection — Full Pattern Reference
+- story-shelf.test.mjs
 - Refactor Clean
 - .require
 - Architecture Review Checklist
 - Recruitment Specialist Agent
+- chapter-rail.test.mjs
 - 🕸️ Multi-Agent Systems Architect Agent
 - Topology Patterns
 - 🚀 Advanced Capabilities
+- diagram-guide.test.mjs
+- semantic-camera.test.mjs
 - China Labor Law Compliance
 - typescript-reviewer.md
 - Failure Mode Engineering
@@ -790,6 +795,12 @@
 - bias
 - Recruitment Data Analytics
 - XR Interface Architect Agent Personality
+- motion-governor.test.mjs
+- XR Immersive Developer Agent Personality
+- devDependencies
+- document
+- Step 3 - Extract entities and relationships
+- XR Cockpit Interaction Specialist Agent Personality
 
 ## God Nodes (most connected - your core abstractions)
 1. `compileWorkflowInternal()` - 175 edges
@@ -808,33 +819,33 @@
   architecture.md → backend/index.js
 - `3.4 Startup Product Reconciler (`mergeDuplicateProducts`)` --references--> `mergeDuplicateProducts()`  [INFERRED]
   architecture.md → backend/index.js
-- `3.3 The `stripUndefined()` Guard` --references--> `stripUndefined()`  [INFERRED]
-  architecture.md → backend/index.js
-- `📑 Core Documentation Index` --references--> `stripUndefined()`  [INFERRED]
-  README.md → backend/index.js
 - `🏛️ Locus 2: The Vault (Storage & Integrity Core)` --references--> `executeTransaction()`  [INFERRED]
   AGENTS.md → backend/index.js
+- `ADR-014: In-Settings Transaction Manager with Real-Time Search & ACID Reversal Endpoints` --references--> `executeTransaction()`  [INFERRED]
+  memory.md → backend/index.js
+- `🏛️ Locus 2: The Vault (Storage & Integrity Core)` --references--> `executeTransaction()`  [INFERRED]
+  memory.md → backend/index.js
 
 ## Import Cycles
 - None detected.
 
-## Communities (781 total, 42 thin omitted)
+## Communities (792 total, 42 thin omitted)
 
 ### Community 0 - "index.js"
 Cohesion: 0.09
-Nodes (29): HIGH -- Architecture, app, backupsDir, bodyParser, cors, crypto, dbPath, ensurePurchaseInitialPaid() (+21 more)
+Nodes (30): HIGH -- Architecture, app, backupsDir, bodyParser, cors, crypto, dbPath, ensurePurchaseInitialPaid() (+22 more)
 
 ### Community 1 - "package.json"
-Cohesion: 0.08
-Nodes (23): dependencies, body-parser, cors, dotenv, express, sqlite, sqlite3, description (+15 more)
+Cohesion: 0.07
+Nodes (26): dependencies, body-parser, cors, dotenv, express, sqlite, sqlite3, description (+18 more)
 
 ### Community 2 - "MASTER QA & SECURITY AUDIT REPORT — AURA INVENTORY NODEJS"
 Cohesion: 0.07
 Nodes (29): 1. Executive Summary, 2. Architecture Map, 3. Test Environment & Methodology, 4. Test Statistics, 5. Vulnerabilities & Findings by Severity, 6. Backup & Recovery Audit, 7. Test Integrity & Verification Status, 8. Release Gate Decision (+21 more)
 
 ### Community 3 - "3. Architectural Decision Records (ADRs)"
-Cohesion: 0.10
-Nodes (20): 1. System Identity & Mission, 3. Architectural Decision Records (ADRs), 4. Environment Variables Reference, 5.1 Starting the Application Locally, 5.2 Archify & Graphify Sync (Run After Every Code Change), 5.3 Test Sanitation Policy, 5. Operational Runbooks, ADR-002: Root `server.js` Passenger Wrapper for Hostinger Deployment (+12 more)
+Cohesion: 0.09
+Nodes (21): 1. System Identity & Mission, 3. Architectural Decision Records (ADRs), 4. Environment Variables Reference, 5.1 Starting the Application Locally, 5.2 Archify & Graphify Sync (Run After Every Code Change), 5.3 Test Sanitation Policy, 5. Operational Runbooks, ADR-002: Root `server.js` Passenger Wrapper for Hostinger Deployment (+13 more)
 
 ### Community 4 - "archify.mjs"
 Cohesion: 0.17
@@ -853,12 +864,12 @@ Cohesion: 0.04
 Nodes (44): 1. Core Bullet Scoring Equation, 1. EU AI Act (Regulation (EU) 2024/1689), 1. Performance & Privacy Guarantees, 1. The 6 ATS Ingestion Pipeline Stages, 1. The Anti-Fabrication Rule (Zero Hallucination), 2. Hybrid Search & Reciprocal Rank Fusion (RRF), 2. Immediate Algorithmic Disqualification of "ATS Hacks", 2. Multi-Column Failure Modes: Scanline Sorting vs. XY-Cut (+36 more)
 
 ### Community 8 - "master_cross_angle_suite.test.cjs"
-Cohesion: 0.24
-Nodes (12): app, fs, getCustomer(), getProduct(), getSupplier(), http, path, req() (+4 more)
+Cohesion: 0.27
+Nodes (11): app, fs, getCustomer(), getProduct(), getSupplier(), http, path, req() (+3 more)
 
-### Community 9 - "vertical-edge.test.mjs"
-Cohesion: 0.07
-Nodes (22): PipeCdp, Design Rules, Input, Layout budget, Legend, Lifecycle Renderer, Archify JSON IR Schemas, Error format (+14 more)
+### Community 9 - "generate-viewer.test.mjs"
+Cohesion: 0.17
+Nodes (8): PipeCdp, Design Rules, Input, Layout budget, Legend, Lifecycle Renderer, fragments, repoRoot
 
 ### Community 10 - "brand-marks.test.mjs"
 Cohesion: 0.15
@@ -869,20 +880,20 @@ Cohesion: 0.40
 Nodes (4): Answer, Outcome, Q: Why does body-parser connect Package Manifest & External Modules to Backend Server & API Setup?, Source Nodes
 
 ### Community 12 - "2. Phase 1: Completed Security & Stability Patches"
-Cohesion: 0.15
-Nodes (13): 2. Phase 1: Completed Security & Stability Patches, ✅ TASK-ARCH-01: Interactive Visual Architecture Specification, ✅ TASK-FIN-01: Customer Credit Validation on Partial & Pending Invoices, ✅ TASK-FIN-02: Zero-Balance Supplier Payment Lock, ✅ TASK-FIN-03: Cashbook Procurement & Supplier Payment Journal Integration, ✅ TASK-FIN-04: Floating-Point Ledger Precision Hardening, ✅ TASK-FIN-05: Supplier Payment Decoupling & Purchase Initial Paid Isolation, ✅ TASK-INV-01: Product Creation Pricing UX Optimization (+5 more)
+Cohesion: 0.09
+Nodes (22): 1. Task Status Overview, 2. Phase 1: Completed Security & Stability Patches, 3. Phase 2: High-Priority Release Blockers (Immediate Action Required), 4. Phase 3: Backlog & Enhancements, 5. Verification & Testing Matrix, Aura Furniture Management & POS System (Shan-e-Aziz POS), ✅ TASK-ARCH-01: Interactive Visual Architecture Specification, 🔴 TASK-CONC-01: Concurrency Protection on Stock Deductions (+14 more)
 
 ### Community 13 - "ref_fs"
-Cohesion: 0.09
-Nodes (21): resolved, bundlePath, content, fs, path, bundlePath, content, fs (+13 more)
+Cohesion: 0.07
+Nodes (27): resolved, bundlePath, content, fs, path, bundlePath, content, fs (+19 more)
 
 ### Community 14 - "architecture-delta.mjs"
 Cohesion: 0.05
 Nodes (80): addNodeMarker(), addState(), annotateArchitectureSideSvg(), architectureDeltaChangeRows(), ArchitectureDeltaError, BOUNDARY_FIELDS, boundaryChangeMap(), boundaryElements() (+72 more)
 
 ### Community 15 - ".send"
-Cohesion: 0.05
-Nodes (79): click(), key(), load(), record(), run(), skillRoot, key(), click() (+71 more)
+Cohesion: 0.04
+Nodes (97): executable(), findChrome(), findOnPath(), click(), key(), load(), record(), run() (+89 more)
 
 ### Community 16 - "render-lifecycle.mjs"
 Cohesion: 0.05
@@ -905,12 +916,12 @@ Cohesion: 0.11
 Nodes (61): validateArchitecture(), flowLabelSize(), validateDataflow(), validateLifecycle(), validateSequence(), brandTopRailProblem(), recordDiagnostic(), throwDiagnosticProblems() (+53 more)
 
 ### Community 21 - "shared.mjs"
-Cohesion: 0.09
-Nodes (37): resolved, enriched, entries, projects, table, context, existingIdx, gitActivity (+29 more)
+Cohesion: 0.08
+Nodes (40): contextDirPath, projects, resolved, resolved, enriched, entries, projects, table (+32 more)
 
 ### Community 22 - "visual-check.mjs"
 Cohesion: 0.05
-Nodes (55): State Management (CRITICAL), baseReceipt(), CAPTURE_VIEWPORTS, CHROME_NO_SANDBOX_ENV, ChromeVisualBrowser, chromeVisualBrowserArgs(), cleanupCaptureSidecars(), contactSheetHtml() (+47 more)
+Nodes (47): State Management (CRITICAL), baseReceipt(), CAPTURE_VIEWPORTS, CHROME_NO_SANDBOX_ENV, ChromeVisualBrowser, chromeVisualBrowserArgs(), cleanupCaptureSidecars(), contactSheetHtml() (+39 more)
 
 ### Community 23 - "HarmonyOS Application Development Expert"
 Cohesion: 0.13
@@ -928,9 +939,9 @@ Nodes (10): Example: API usage, Example: Middleware setup, Examples, Output Form
 Cohesion: 0.06
 Nodes (34): Goal:, Goal:, Goal:, Goal:, Goal:, Goal:, Goal:, Goal: (+26 more)
 
-### Community 27 - "load_all_instincts"
-Cohesion: 0.10
-Nodes (22): cmd_export(), cmd_import(), load_all_instincts(), load_project_only_instincts(), Export instincts to file., Quote a string for safe YAML frontmatter serialization. Uses double quotes and…, Load all instincts: project-scoped + global. Project-scoped instincts take…, Load only project-scoped instincts (no global). In global fallback mode (no git… (+14 more)
+### Community 27 - "_promote_specific"
+Cohesion: 0.08
+Nodes (26): cmd_promote(), _promote_auto(), _promote_specific(), Promote project-scoped instincts to global scope., Promote a specific instinct by ID from current project to global., Auto-promote instincts found in multiple projects., Validate instinct IDs before using them in filenames., _validate_instinct_id() (+18 more)
 
 ### Community 41 - "Git Workflow Patterns"
 Cohesion: 0.04
@@ -952,9 +963,9 @@ Nodes (16): canonicalFuturePath(), canonicalize(), directoryIdentityKey(), direc
 Cohesion: 0.04
 Nodes (44): Advanced Capabilities, Balance Cost and Quality, Build an Efficient Supplier Management System, Communication Style, Compliance & ESG Management, Compliance & Ethical Procurement, Core Mission, Cost Control Methodology (+36 more)
 
-### Community 46 - "ref_node_assert"
-Cohesion: 0.08
-Nodes (21): CASES, __dirname, skillRoot, tmp, load(), opened(), run(), search() (+13 more)
+### Community 46 - "semantic-legend-gateway.test.mjs"
+Cohesion: 0.25
+Nodes (4): CASES, __dirname, skillRoot, tmp
 
 ### Community 47 - "webm-artifact.smoke.mjs"
 Cohesion: 0.08
@@ -970,11 +981,11 @@ Nodes (44): $ref, type, type, minimum, type, $ref, $ref, $ref (+36 more)
 
 ### Community 50 - "offline-font-browser.test.mjs"
 Cohesion: 0.05
-Nodes (31): checker, cli, skillRoot, tmp, cli, __dirname, example, examplePath (+23 more)
+Nodes (30): checker, cli, skillRoot, tmp, cli, __dirname, skillRoot, tmp (+22 more)
 
 ### Community 51 - "check-render-output.mjs"
-Cohesion: 0.11
-Nodes (14): checks, collectLegendCollisions(), collectRelationshipCrossings(), composition, crossProduct(), htmlPath, onSegment(), orientation() (+6 more)
+Cohesion: 0.09
+Nodes (32): projectedNodeTextPx(), checks, collectArrows(), collectCompositionFrames(), collectDesktopReadability(), collectLegendBoxes(), collectLegendCollisions(), collectRelationshipCrossings() (+24 more)
 
 ### Community 52 - "Windows Desktop E2E Testing"
 Cohesion: 0.05
@@ -988,9 +999,9 @@ Nodes (41): $ref, $ref, $ref, $ref, properties, enum, $ref, type (+33 more)
 Cohesion: 0.07
 Nodes (27): CRITICAL — ORM Correctness, HIGH — Template Security and Correctness, assertUnsafeCacheStateIsIgnored(), baseTime, checkerPath, committedStateFiles(), compactStateSource(), contractPath (+19 more)
 
-### Community 55 - "cli-output-types.test.mjs"
-Cohesion: 0.22
-Nodes (6): architecture, base, cli, head, root, workflow
+### Community 55 - "test_helper.cjs"
+Cohesion: 0.10
+Nodes (25): assert, { createTestEnvironment }, fs, path, test, assert, { createTestEnvironment }, test (+17 more)
 
 ### Community 56 - "properties"
 Cohesion: 0.05
@@ -1081,20 +1092,20 @@ Cohesion: 0.05
 Nodes (43): Agent Collaboration Protocol, :arrows_counterclockwise: Learning & Memory, :arrows_counterclockwise: Your Workflow Process, :brain: Your Identity & Memory, :clipboard: Your Technical Deliverables, Curiosity-Driven Bug Discovery, :dart: Your Core Mission, :dart: Your Success Metrics (+35 more)
 
 ### Community 78 - "executeTransaction"
-Cohesion: 0.08
-Nodes (25): 🏛️ Locus 2: The Vault (Storage & Integrity Core), executeTransaction(), ADR-014: In-Settings Transaction Manager with Real-Time Search & ACID Reversal Endpoints, 🏛️ Locus 2: The Vault (Storage & Integrity Core), 1.1 Executive Summary, 1.2 Problem Statement, 1.3 Vision & Objectives, 1. Executive Summary & Problem Statement (+17 more)
+Cohesion: 0.07
+Nodes (30): 🏛️ Locus 2: The Vault (Storage & Integrity Core), executeTransaction(), ADR-014: In-Settings Transaction Manager with Real-Time Search & ACID Reversal Endpoints, 🏛️ Locus 2: The Vault (Storage & Integrity Core), 1.1 Executive Summary, 1.2 Problem Statement, 1.3 Vision & Objectives, 1. Executive Summary & Problem Statement (+22 more)
 
 ### Community 79 - "layout-rules.test.mjs"
 Cohesion: 0.09
 Nodes (13): assertRelationshipsAvoidAllNodeBorders(), assertWorkflowEdgesAvoidAllNodeBorders(), axisOverlapLength(), CASES, __dirname, EXAMPLES, SHRINK_CASES, skillRoot (+5 more)
 
-### Community 80 - "workflow-migration.test.mjs"
-Cohesion: 0.11
-Nodes (23): clone(), diagnostic(), expandableViewBox(), legacyLayoutProbe(), legacyRequirementProbe(), migrateWorkflowDocument(), requiredViewBoxFrom(), result() (+15 more)
+### Community 80 - "workflow-v2.mjs"
+Cohesion: 0.24
+Nodes (17): clone(), diagnostic(), expandableViewBox(), legacyLayoutProbe(), legacyRequirementProbe(), migrateWorkflowDocument(), requiredViewBoxFrom(), result() (+9 more)
 
-### Community 81 - "_promote_specific"
-Cohesion: 0.08
-Nodes (26): cmd_promote(), _promote_auto(), _promote_specific(), Promote project-scoped instincts to global scope., Promote a specific instinct by ID from current project to global., Auto-promote instincts found in multiple projects., Validate instinct IDs before using them in filenames., _validate_instinct_id() (+18 more)
+### Community 81 - "parse_spec"
+Cohesion: 0.28
+Nodes (6): Detector, parse_spec(), Parse a YAML compliance spec file., Step, Tests for parser module — JSONL trace and YAML spec parsing., TestParseSpec
 
 ### Community 82 - "runner.py"
 Cohesion: 0.09
@@ -1112,9 +1123,9 @@ Nodes (24): Avoiding Hook Conflicts, CI Integration Pattern, Complementary, Not 
 Cohesion: 0.08
 Nodes (24): Add Type Hints, Approval Criteria, Automated Checks Run, Common Fixes, CRITICAL (Must Fix), Django Projects, Example Usage, FastAPI Projects (+16 more)
 
-### Community 86 - "parse_spec"
-Cohesion: 0.28
-Nodes (6): Detector, parse_spec(), Parse a YAML compliance spec file., Step, Tests for parser module — JSONL trace and YAML spec parsing., TestParseSpec
+### Community 86 - "utils.js"
+Cohesion: 0.11
+Nodes (18): 3.3 The `stripUndefined()` Guard, crypto, generateId(), roundMoney(), stripUndefined(), allocateFifo(), assert, { roundMoney } (+10 more)
 
 ### Community 87 - "properties"
 Cohesion: 0.08
@@ -1145,16 +1156,16 @@ Cohesion: 0.09
 Nodes (22): Command File Templates (Minimal Content), ecosystem.config.cjs, Execute, Generated Files, Key Rules, pm2-all.md (Start all + monit), pm2-all-restart.md, pm2-all-stop.md (+14 more)
 
 ### Community 94 - "System Architecture Document"
-Cohesion: 0.13
-Nodes (14): 1. High-Level Architecture Overview, 2.1 Presentation Tier (Frontend React SPA), 2.2 Entry Gateway Tier (`server.js`), 2.3 Express Application Core (`backend/index.js`), 2. System Tiers & Component Details, 5. REST API Catalog, 6.1 Guarded Administrative Database Reset, 6.2 Customer Credit Validation Guard (+6 more)
+Cohesion: 0.10
+Nodes (20): 1. High-Level Architecture Overview, 2.1 Presentation Tier (Frontend React SPA), 2.2 Entry Gateway Tier (`server.js`), 2.3 Express Application Core (`backend/index.js`), 2. System Tiers & Component Details, 3.1 Document Store Pattern over SQLite3, 3.2 DAO Primitives, 3.4 Startup Product Reconciler (`mergeDuplicateProducts`) (+12 more)
 
-### Community 95 - "numberAttr"
-Cohesion: 0.27
-Nodes (11): projectedNodeTextPx(), collectCompositionFrames(), collectDesktopReadability(), collectLegendBoxes(), collectRelationshipLabelMasks(), estimatedTextWidth(), lineSegments(), numberAttr() (+3 more)
+### Community 95 - "cli-output-types.test.mjs"
+Cohesion: 0.22
+Nodes (6): architecture, base, cli, head, root, workflow
 
-### Community 96 - "Task & Development Roadmap"
-Cohesion: 0.20
-Nodes (9): 1. Task Status Overview, 3. Phase 2: High-Priority Release Blockers (Immediate Action Required), 4. Phase 3: Backlog & Enhancements, 5. Verification & Testing Matrix, Aura Furniture Management & POS System (Shan-e-Aziz POS), 🔴 TASK-CONC-01: Concurrency Protection on Stock Deductions, 🟡 TASK-DEP-01: Platform-Agnostic Dependency Hygiene, Task & Development Roadmap (+1 more)
+### Community 96 - "archify/package.json"
+Cohesion: 0.14
+Nodes (13): bin, archify, description, engines, node, license, name, overrides (+5 more)
 
 ### Community 97 - "Civil Engineer Agent"
 Cohesion: 0.05
@@ -1337,8 +1348,8 @@ Cohesion: 0.09
 Nodes (25): items, type, items, type, $ref, items, minItems, type (+17 more)
 
 ### Community 142 - "review-with-codex.js"
-Cohesion: 0.18
-Nodes (16): buildCodexArgs(), buildEnvironment(), fs, HOST_PROVIDERS, main(), os, parseArgs(), path (+8 more)
+Cohesion: 0.16
+Nodes (17): buildCodexArgs(), buildEnvironment(), fs, HOST_PROVIDERS, main(), os, parseArgs(), path (+9 more)
 
 ### Community 143 - "Council"
 Cohesion: 0.12
@@ -1461,8 +1472,8 @@ Cohesion: 0.13
 Nodes (14): Approval Criteria, CRITICAL — Error Handling, CRITICAL — Security, Diagnostic Commands, Framework Checks, HIGH — Code Quality, HIGH — Concurrency, HIGH — Pythonic Patterns (+6 more)
 
 ### Community 173 - "Review Priorities (Vue-specific only)"
-Cohesion: 0.11
-Nodes (18): Approval Criteria, CRITICAL — Reactivity, CRITICAL — Vue Security, Diagnostic Commands, HIGH — Component Architecture, HIGH — Composables, HIGH — State Management (Pinia), HIGH — Vue Router (+10 more)
+Cohesion: 0.20
+Nodes (10): CRITICAL — Reactivity, CRITICAL — Vue Security, HIGH — Component Architecture, HIGH — Composables, HIGH — State Management (Pinia), HIGH — Vue Router, MEDIUM — Composition, MEDIUM — Forms (+2 more)
 
 ### Community 174 - "Security Reviewer"
 Cohesion: 0.13
@@ -1472,9 +1483,9 @@ Nodes (14): 1. Initial Scan, 2. OWASP Top 10 Check, 3. Code Pattern Review, Anal
 Cohesion: 0.13
 Nodes (14): 1. Write Test First (RED), 2. Run Test -- Verify it FAILS, 3. Write Minimal Implementation (GREEN), 4. Run Test -- Verify it PASSES, 5. Refactor (IMPROVE), 6. Verify Coverage, Edge Cases You MUST Test, Prompt Defense Baseline (+6 more)
 
-### Community 176 - "generate-brand-marks.mjs"
-Cohesion: 0.04
-Nodes (46): bin, archify, description, devDependencies, ajv, parse5, saxes, simple-icons (+38 more)
+### Community 176 - "scripts"
+Cohesion: 0.13
+Nodes (15): scripts, build:gallery, build:guide, build:readme-showcase, build:start, check:brand-marks, check:release-identity, check:validators (+7 more)
 
 ### Community 177 - "i18n.test.mjs"
 Cohesion: 0.15
@@ -1493,8 +1504,8 @@ Cohesion: 0.13
 Nodes (15): $ref, const, additionalProperties, required, type, properties, cards, diagram_type (+7 more)
 
 ### Community 181 - "session-start.mjs"
-Cohesion: 0.19
-Nodes (14): CK_HOME, CURRENT_SESSION, daysAgo(), extractClaudeMdGoal(), gitLogSince(), main(), parts, PROJECTS_FILE (+6 more)
+Cohesion: 0.23
+Nodes (12): CK_HOME, CURRENT_SESSION, daysAgo(), extractClaudeMdGoal(), gitLogSince(), main(), parts, PROJECTS_FILE (+4 more)
 
 ### Community 182 - "quality-gate.py"
 Cohesion: 0.16
@@ -1572,9 +1583,9 @@ Nodes (13): 1. Analyze, 2. Verify, 3. Remove Safely, 4. Consolidate Duplicates, 
 Cohesion: 0.22
 Nodes (5): CASES, __dirname, PROOF_CASES, skillRoot, tmp
 
-### Community 201 - "What You Must Do When Invoked"
-Cohesion: 0.08
-Nodes (23): For /graphify add and --watch, For /graphify query, For the commit hook and native AGENTS.md integration, For --update and --cluster-only, /graphify, Honesty Rules, Interpreter guard for subcommands, Part A - Structural extraction for code files (+15 more)
+### Community 201 - "/graphify"
+Cohesion: 0.20
+Nodes (9): For /graphify add and --watch, For /graphify query, For the commit hook and native AGENTS.md integration, For --update and --cluster-only, /graphify, Honesty Rules, Interpreter guard for subcommands, Usage (+1 more)
 
 ### Community 202 - "items"
 Cohesion: 0.23
@@ -1584,9 +1595,9 @@ Nodes (14): items, type, items, type, additionalProperties, required, type, item
 Cohesion: 0.22
 Nodes (4): __dirname, OFFICIAL_V1_EXAMPLES, skillRoot, tmp
 
-### Community 204 - "ref_node_test"
-Cohesion: 0.05
-Nodes (30): here, repoRoot, CASES, __dirname, skillRoot, tmp, __dirname, docsRoot (+22 more)
+### Community 204 - "ref_node_fs"
+Cohesion: 0.03
+Nodes (54): authoringContract, __dirname, schemaReadme, skill, skillRoot, __dirname, skillRoot, here (+46 more)
 
 ### Community 205 - "Continuous Learning Skill - DEPRECATED"
 Cohesion: 0.14
@@ -1720,9 +1731,9 @@ Nodes (11): Agent Introspection Debugging, Four-Phase Loop, Integration with ECC
 Cohesion: 0.17
 Nodes (11): Accuracy, Actionability, Clarity, Completeness, Conciseness, Edge Cases, Evaluation Criteria — Detailed Scoring Guide, When the task is inherently simple (+3 more)
 
-### Community 238 - "story-carrier.test.mjs"
-Cohesion: 0.25
-Nodes (5): CASES, __dirname, skillRoot, template, tmp
+### Community 238 - "generate-brand-marks.mjs"
+Cohesion: 0.18
+Nodes (13): catalog, catalogPath, domains, fail(), generated, here, ids, lookupForms() (+5 more)
 
 ### Community 239 - "Workflow Renderer"
 Cohesion: 0.17
@@ -1777,8 +1788,8 @@ Cohesion: 0.18
 Nodes (10): Approval Criteria, CRITICAL -- Memory Safety, CRITICAL -- Security, Diagnostic Commands, HIGH -- Code Quality, HIGH -- Concurrency, MEDIUM -- Best Practices, MEDIUM -- Performance (+2 more)
 
 ### Community 252 - "Review Priorities"
-Cohesion: 0.12
-Nodes (17): Approval Criteria, CRITICAL — Migration Safety, CRITICAL — Security, Diagnostic Commands, Framework-Specific Checks, HIGH — Code Quality, HIGH — DRF Patterns, HIGH — Performance (+9 more)
+Cohesion: 0.15
+Nodes (14): CRITICAL — Migration Safety, CRITICAL — Security, HIGH — Code Quality, HIGH — DRF Patterns, HIGH — Performance, MEDIUM — Best Practices, MEDIUM — Testing Gaps, Review Priorities (+6 more)
 
 ### Community 253 - "Go Build Error Resolver"
 Cohesion: 0.18
@@ -1801,8 +1812,8 @@ Cohesion: 0.18
 Nodes (10): DNS, Guardrails, Layer 1 and 2, Layer 3, Layer Checks, Output Format, Policy And Firewall, Prompt Defense Baseline (+2 more)
 
 ### Community 258 - "Common Failure Patterns"
-Cohesion: 0.12
-Nodes (15): Bundler-Independent Runtime Failures, Bundler-Specific, Common Failure Patterns, CRA (Create React App), Dependency Issues, Hydration Mismatches, JSX / TSX Compile, Next.js (App Router) (+7 more)
+Cohesion: 0.18
+Nodes (11): Bundler-Independent Runtime Failures, Bundler-Specific, Common Failure Patterns, CRA (Create React App), Dependency Issues, JSX / TSX Compile, Next.js (App Router), Tailwind / PostCSS (+3 more)
 
 ### Community 259 - "TypeScript/JavaScript Patterns"
 Cohesion: 0.18
@@ -1964,29 +1975,29 @@ Nodes (9): Configuration Files, Detection Priority, Environment Variable, Global
 Cohesion: 0.20
 Nodes (9): Rules, Step 1: Identify Sources of Truth, Step 2: Generate Script Reference, Step 3: Generate Environment Documentation, Step 4: Update Contributing Guide, Step 5: Update Runbook, Step 6: Staleness Check, Step 7: Show Summary (+1 more)
 
-### Community 299 - "Paid Media Auditor Agent"
-Cohesion: 0.25
-Nodes (7): Core Capabilities, Decision Framework, Identity & Role Definition, Paid Media Auditor Agent, Specialized Skills, Success Metrics, Tooling & Automation
+### Community 299 - "workflow-migration.test.mjs"
+Cohesion: 0.14
+Nodes (5): cli, __dirname, fixture, skillRoot, tmp
 
 ### Community 300 - "ref_node_path"
-Cohesion: 0.03
-Nodes (57): launchTarget(), openArtifact(), OPENERS, openLoopbackUrl(), workflow, authoringContract, __dirname, schemaReadme (+49 more)
+Cohesion: 0.06
+Nodes (28): launchTarget(), openArtifact(), OPENERS, openLoopbackUrl(), workflow, __dirname, outputRoot, skillRoot (+20 more)
 
 ### Community 301 - "Enable HPA if not active"
 Cohesion: 0.05
 Nodes (38): 🚀 Advanced Capabilities, Blameless Culture, Build Incident Readiness, Chaos Engineering & Game Days, 🚨 Critical Rules You Must Follow, Cross-Organizational Incident Coordination, Drive Continuous Improvement Through Post-Mortems, During Active Incidents (+30 more)
 
-### Community 302 - "story-moment-link.test.mjs"
-Cohesion: 0.25
-Nodes (5): CASES, __dirname, skillRoot, template, tmp
+### Community 302 - "ref_node_assert"
+Cohesion: 0.03
+Nodes (50): here, skillRoot, tmp, delivery, here, skill, CASES, __dirname (+42 more)
 
-### Community 303 - "reach-share-card.test.mjs"
-Cohesion: 0.25
-Nodes (5): CASES, __dirname, repoRoot, skillRoot, tmp
+### Community 303 - "Archify JSON IR Schemas"
+Cohesion: 0.20
+Nodes (9): Archify JSON IR Schemas, Error format, Files, Legend presentation contract, Runtime validation, schema_version policy, Shared definitions (common.schema.json), Visual quality and engineering truth (+1 more)
 
-### Community 304 - "3. Data Access Layer (DAO) & Persistence"
-Cohesion: 0.11
-Nodes (17): 3.1 Document Store Pattern over SQLite3, 3.2 DAO Primitives, 3.3 The `stripUndefined()` Guard, 3.4 Startup Product Reconciler (`mergeDuplicateProducts`), 3.5 Serialized ACID Transactions (`executeTransaction`) & Financial Precision, 3. Data Access Layer (DAO) & Persistence, Schema Definition, stripUndefined() (+9 more)
+### Community 304 - "Aura Furniture Management & POS System (Shan-e-Aziz POS)"
+Cohesion: 0.22
+Nodes (8): 1. Installation, 2. Environment Configuration, 3. Launching Application, Aura Furniture Management & POS System (Shan-e-Aziz POS), 🚀 Key Features, 🛠️ Quick Start, 📁 Repository Directory Structure, 🧪 Verification & Quality Assurance
 
 ### Community 305 - "Process"
 Cohesion: 0.22
@@ -2029,8 +2040,8 @@ Cohesion: 0.22
 Nodes (7): Auto-Accept Permissions, Hook Types, Hooks System, TodoWrite Best Practices, PostToolUse Hooks, Stop Hooks, TypeScript/JavaScript Hooks
 
 ### Community 315 - "Authoring contract"
-Cohesion: 0.11
-Nodes (18): Architecture, Authoring contract, Dataflow, Engineering profile default, Executable geometry rules, Hand-placed fallback, Language consistency, Legend contract (+10 more)
+Cohesion: 0.13
+Nodes (15): Architecture, Authoring contract, Dataflow, Engineering profile default, Hand-placed fallback, Language consistency, Legend contract, Lifecycle (+7 more)
 
 ### Community 316 - "Delivery contract"
 Cohesion: 0.22
@@ -2048,9 +2059,9 @@ Nodes (36): Advanced Capabilities, Advanced Prompt Patterns, Cinematic Portrait,
 Cohesion: 0.25
 Nodes (4): CASES, __dirname, skillRoot, tmp
 
-### Community 320 - "agency-agents/SKILL.md"
-Cohesion: 0.06
-Nodes (28): Communication Style, Core Mission, Critical Rules, 🗄️ Database Optimizer, Identity & Memory, Core Capabilities, Decision Framework, Identity & Role Definition (+20 more)
+### Community 320 - "LinkedIn Content Creator"
+Cohesion: 0.18
+Nodes (10): 🚀 Advanced Capabilities, 🚨 Critical Rules You Must Follow, 🔄 Learning & Memory, LinkedIn Content Creator, 💭 Your Communication Style, 🎯 Your Core Mission, 🧠 Your Identity & Memory, 🎯 Your Success Metrics (+2 more)
 
 ### Community 321 - "release-identity.test.mjs"
 Cohesion: 0.33
@@ -2060,9 +2071,9 @@ Nodes (7): checker, here, repoRoot, stableUpdateManifest(), writeFile(), writeVa
 Cohesion: 0.06
 Nodes (35): 🚀 Advanced Capabilities, Analyst Assessment Template (per fold), Cialdini's 7 Principles, 💭 Communication Style, Competitive Walkthrough, 🎯 Core Mission, 🚨 Critical Rules, Cross-Cultural Adaptation (+27 more)
 
-### Community 323 - "story-director-strip.test.mjs"
-Cohesion: 0.25
-Nodes (5): CASES, __dirname, skillRoot, template, tmp
+### Community 323 - "relationship-permalink.test.mjs"
+Cohesion: 0.22
+Nodes (4): CASES, __dirname, skillRoot, tmp
 
 ### Community 324 - "graphify reference: extra exports and benchmark"
 Cohesion: 0.22
@@ -2100,21 +2111,21 @@ Nodes (8): B站 / Bilibili, Facebook（OpenCLI，必须登录态）, Instagram�
 Cohesion: 0.25
 Nodes (8): $ref, via, wraps, items, type, items, minItems, type
 
-### Community 333 - "output-path.test.mjs"
-Cohesion: 0.20
-Nodes (6): baseFixture, cli, headFixture, here, skillRoot, workflowFixture
+### Community 333 - "ref_node_child_process"
+Cohesion: 0.04
+Nodes (30): CASES, __dirname, skillRoot, tmp, artifactRoots, __dirname, repoRoot, skillRoot (+22 more)
 
 ### Community 334 - "Paid Media PPC Campaign Strategist Agent"
 Cohesion: 0.25
 Nodes (7): Core Capabilities, Decision Framework, Identity & Role Definition, Paid Media PPC Campaign Strategist Agent, Specialized Skills, Success Metrics, Tooling & Automation
 
-### Community 335 - "route-share-card.test.mjs"
+### Community 335 - "Paid Media Auditor Agent"
 Cohesion: 0.25
-Nodes (5): CASES, __dirname, repoRoot, skillRoot, tmp
+Nodes (7): Core Capabilities, Decision Framework, Identity & Role Definition, Paid Media Auditor Agent, Specialized Skills, Success Metrics, Tooling & Automation
 
-### Community 336 - "preset-tryon.test.mjs"
-Cohesion: 0.25
-Nodes (4): CASES, __dirname, skillRoot, tmp
+### Community 336 - "load_all_instincts"
+Cohesion: 0.10
+Nodes (22): cmd_export(), cmd_import(), load_all_instincts(), load_project_only_instincts(), Export instincts to file., Quote a string for safe YAML frontmatter serialization. Uses double quotes and…, Load all instincts: project-scoped + global. Project-scoped instincts take…, Load only project-scoped instincts (no global). In global fallback mode (no git… (+14 more)
 
 ### Community 337 - "site-language-continuity.test.mjs"
 Cohesion: 0.06
@@ -2136,17 +2147,17 @@ Nodes (6): __dirname, labelledSequence(), render(), renderOutcome(), skillRoot, 
 Cohesion: 0.33
 Nodes (5): Commands, Event Types, Hook System Overview, Pattern Tips, Rule File Format
 
-### Community 342 - "ref_node_url"
-Cohesion: 0.02
-Nodes (77): __dirname, outputRoot, skillRoot, TARGETS, __dirname, skillRoot, CASES, __dirname (+69 more)
+### Community 342 - "ref_node_os"
+Cohesion: 0.04
+Nodes (28): repoRoot, __dirname, repoRoot, skillRoot, CASES, __dirname, skillRoot, tmp (+20 more)
 
 ### Community 343 - "Threat Detection Engineer Agent"
 Cohesion: 0.06
 Nodes (34): 🚀 Advanced Capabilities, Adversary-Informed Design, Build and Maintain High-Fidelity Detections, Compiled to Microsoft Sentinel KQL, Compiled to Splunk SPL, 🚨 Critical Rules You Must Follow, Detection-as-Code CI/CD Pipeline, Detection at Scale (+26 more)
 
-### Community 344 - "animation.test.mjs"
-Cohesion: 0.25
-Nodes (5): CASES, __dirname, NODE_COLLECTION, skillRoot, tmp
+### Community 344 - "What You Must Do When Invoked"
+Cohesion: 0.20
+Nodes (10): Step 0 - GitHub repos and multi-path merge (only if a URL or several paths), Step 1 - Ensure graphify is installed, Step 2.5 - Video and audio (only if video files detected), Step 4.5 - Graph health check (read-only integrity gate), Step 4 - Build graph, cluster, analyze, generate outputs, Step 5 - Label communities, Step 6 - Generate Obsidian vault (opt-in) + HTML, Step 9 - Save manifest, update cost tracker, clean up, and report (+2 more)
 
 ### Community 345 - "🔐 Data Privacy Officer Agent"
 Cohesion: 0.06
@@ -2196,9 +2207,9 @@ Nodes (34): Burnout Diagnosis & Prevention, Burnout Prevention Interventions, Bu
 Cohesion: 0.06
 Nodes (34): 🚀 Advanced Capabilities, Agent Collaboration Protocol, Codebase Archaeologist Agent Personality, 💬 Communication Style, Confirm Shared Purpose Before Flagging Duplication, 🚨 Critical Rules You Must Follow, Discover Drift That Nobody Flagged, Distinguish Real Bugs From Cosmetic Drift (+26 more)
 
-### Community 357 - "relationship-lens.test.mjs"
-Cohesion: 0.25
-Nodes (4): CASES, __dirname, skillRoot, tmp
+### Community 357 - "vue-reviewer.md"
+Cohesion: 0.22
+Nodes (8): Approval Criteria, Diagnostic Commands, Output Format, Prompt Defense Baseline, Related, Scope vs typescript-reviewer, Summary Format, When invoked
 
 ### Community 358 - "Sovereign Health Systems Agent"
 Cohesion: 0.06
@@ -2241,16 +2252,16 @@ Cohesion: 0.67
 Nodes (3): variant, enum, $ref
 
 ### Community 368 - "migrate.mjs"
-Cohesion: 0.17
-Nodes (9): contextDirPath, projects, resolved, isDryRun, parseBullets(), parseLeftOff(), projects, CONTEXTS_DIR (+1 more)
+Cohesion: 0.29
+Nodes (5): isDryRun, parseBullets(), parseLeftOff(), projects, shortId()
 
 ### Community 369 - "⚙️ Operations Manager Agent"
 Cohesion: 0.06
 Nodes (33): Analyze, Balanced Scorecard Approach, BCP Framework — Key Components, Bottleneck Analysis (Theory of Constraints), Business Continuity Planning, Capacity Planning Model, Continuous Improvement Cadence, Control (+25 more)
 
-### Community 370 - "relationship-direct-explorer.test.mjs"
-Cohesion: 0.25
-Nodes (5): CASES, __dirname, skillRoot, template, tmp
+### Community 370 - "preview-contract.test.mjs"
+Cohesion: 0.22
+Nodes (8): chinese, delivery, english, here, readme, repoRoot, skill, skillRoot
 
 ### Community 371 - "🚨 Critical Rules You Must Follow"
 Cohesion: 0.06
@@ -2288,9 +2299,9 @@ Nodes (6): Design Rationale, /learn-eval - Extract, Evaluate, then Save, Notes, 
 Cohesion: 0.29
 Nodes (6): Examples, Phase 1 — ASSESS, Phase 2 — INTERPRET & STAGE, Phase 3 — COMMIT, Phase 4 — OUTPUT, Smart Commit
 
-### Community 380 - "apply_root_cause_hardening.js"
+### Community 380 - "animation.test.mjs"
 Cohesion: 0.25
-Nodes (6): backendContent, backendPath, distContent, distPath, fs, path
+Nodes (5): CASES, __dirname, NODE_COLLECTION, skillRoot, tmp
 
 ### Community 381 - "Agent Personality"
 Cohesion: 0.06
@@ -2368,9 +2379,9 @@ Nodes (6): viewBox, items, maxItems, minItems, prefixItems, type
 Cohesion: 0.33
 Nodes (6): viewBox, items, maxItems, minItems, prefixItems, type
 
-### Community 400 - "cli.test.mjs"
-Cohesion: 0.12
-Nodes (13): cli, __dirname, skillRoot, tmp, artifactRoots, __dirname, repoRoot, skillRoot (+5 more)
+### Community 400 - "xml.mjs"
+Cohesion: 0.40
+Nodes (5): extractSvgs(), parseXml(), visit(), parse5, saxes
 
 ### Community 401 - "Third-party notices"
 Cohesion: 0.33
@@ -2672,9 +2683,9 @@ Nodes (3): title, minLength, type
 Cohesion: 0.67
 Nodes (3): y, minimum, type
 
-### Community 477 - "collectArrows"
-Cohesion: 0.43
-Nodes (7): collectArrows(), isCommand(), isPoint(), parseRoutePoints(), pathSegments(), pointsFromPath(), straightPathSegments()
+### Community 477 - "Paid Media Programmatic & Display Buyer Agent"
+Cohesion: 0.25
+Nodes (7): Core Capabilities, Decision Framework, Identity & Role Definition, Paid Media Programmatic & Display Buyer Agent, Specialized Skills, Success Metrics, Tooling & Automation
 
 ### Community 478 - "label"
 Cohesion: 0.67
@@ -3098,7 +3109,7 @@ Nodes (25): Communication Style, Core Mission, Critical Rules, Data Source Trans
 
 ### Community 611 - "workflow-compiler.test.mjs"
 Cohesion: 0.12
-Nodes (15): asciiGroupLabelTextRect(), assertReadableAdjacentResult(), assertRectInsideViewBox(), attribute(), attributeOrUndefined(), cli, __dirname, edgeLabelRect() (+7 more)
+Nodes (16): asciiGroupLabelTextRect(), assertReadableAdjacentResult(), assertRectInsideViewBox(), attribute(), attributeOrUndefined(), cli, compileSuccessfully(), __dirname (+8 more)
 
 ### Community 612 - "Visual Storyteller Agent"
 Cohesion: 0.08
@@ -3260,9 +3271,9 @@ Nodes (21): 🚀 Advanced Capabilities, 🚨 Critical Rules You Must Follow, Deb
 Cohesion: 0.09
 Nodes (21): Advanced Capabilities, Advanced Community Navigation, AMA (Ask Me Anything) Excellence, Communication Style, Community Strategy Documents, Core Mission, Crisis Management & Reputation Protection, Critical Rules (+13 more)
 
-### Community 652 - "motion-governor.test.mjs"
-Cohesion: 0.29
-Nodes (4): CASES, __dirname, skillRoot, tmp
+### Community 652 - "repair-receipt.test.mjs"
+Cohesion: 0.25
+Nodes (5): cli, here, receipt(), skillRoot, tmp
 
 ### Community 653 - "Marketing Instagram Curator"
 Cohesion: 0.10
@@ -3564,9 +3575,9 @@ Nodes (10): 🔴 Blockers (Must Fix), Code Reviewer Agent, 💬 Communication St
 Cohesion: 0.18
 Nodes (10): 💬 Communication Style, 🔧 Critical Rules, Golden Signals, 🔥 Incident Response Integration, 🔭 Observability Stack, 📋 SLO Framework, SRE (Site Reliability Engineer) Agent, The Three Pillars (+2 more)
 
-### Community 728 - "LinkedIn Content Creator"
-Cohesion: 0.18
-Nodes (10): 🚀 Advanced Capabilities, 🚨 Critical Rules You Must Follow, 🔄 Learning & Memory, LinkedIn Content Creator, 💭 Your Communication Style, 🎯 Your Core Mission, 🧠 Your Identity & Memory, 🎯 Your Success Metrics (+2 more)
+### Community 728 - "relationship-direct-explorer.test.mjs"
+Cohesion: 0.25
+Nodes (5): CASES, __dirname, skillRoot, template, tmp
 
 ### Community 729 - "Report Distribution Agent"
 Cohesion: 0.18
@@ -3612,29 +3623,33 @@ Nodes (9): CORS — Restricted Configuration, Fail-Fast Secret Bootstrap, HTTP S
 Cohesion: 0.22
 Nodes (9): 🚨 Critical Rules You Must Follow, RULE 1 — Secrets are never in code, RULE 2 — Tokens live in HttpOnly cookies, RULE 3 — JWT algorithm is fixed and verified, RULE 4 — Roles come from the IdP, always, RULE 5 — Sensitive data is never logged, RULE 6 — CORS is an allowlist, not a wildcard, RULE 7 — Every auth route has rate limiting (+1 more)
 
-### Community 740 - "route-probe.test.mjs"
+### Community 740 - "stable-update-manifest.test.mjs"
 Cohesion: 0.29
-Nodes (4): CASES, __dirname, skillRoot, tmp
+Nodes (5): annotatedTaggerTime(), checker, git(), here, repoRoot
 
-### Community 741 - "semantic-lens.test.mjs"
-Cohesion: 0.29
-Nodes (4): CASES, __dirname, skillRoot, tmp
-
-### Community 742 - "2.2 Key User Journeys"
-Cohesion: 0.40
-Nodes (5): 2.1 User Personas, 2.2 Key User Journeys, 2. User Personas & Use Cases, Customer Credit Sale Workflow, Supplier Procurement & Payment Workflow
-
-### Community 743 - "Paid Media Ad Creative Strategist Agent"
+### Community 741 - "vertical-edge.test.mjs"
 Cohesion: 0.25
-Nodes (7): Core Capabilities, Decision Framework, Identity & Role Definition, Paid Media Ad Creative Strategist Agent, Specialized Skills, Success Metrics, Tooling & Automation
+Nodes (5): bin, __dirname, REPRO, skillRoot, tmp
+
+### Community 742 - "run_all_tests.cjs"
+Cohesion: 0.29
+Nodes (7): fs, main(), path, runTest(), { spawn }, testSuites, ref_child_process
+
+### Community 743 - "agency-agents/SKILL.md"
+Cohesion: 0.06
+Nodes (25): Communication Style, Core Mission, Critical Rules, 🗄️ Database Optimizer, Identity & Memory, Core Capabilities, Decision Framework, Identity & Role Definition (+17 more)
 
 ### Community 744 - "Paid Media Paid Social Strategist Agent"
 Cohesion: 0.25
 Nodes (7): Core Capabilities, Decision Framework, Identity & Role Definition, Paid Media Paid Social Strategist Agent, Specialized Skills, Success Metrics, Tooling & Automation
 
-### Community 746 - "Paid Media Search Query Analyst Agent"
+### Community 745 - "django-reviewer.md"
+Cohesion: 0.29
+Nodes (6): Approval Criteria, Diagnostic Commands, Framework-Specific Checks, Prompt Defense Baseline, Reference, Review Output Format
+
+### Community 746 - "story-follow-camera.test.mjs"
 Cohesion: 0.25
-Nodes (7): Core Capabilities, Decision Framework, Identity & Role Definition, Paid Media Search Query Analyst Agent, Specialized Skills, Success Metrics, Tooling & Automation
+Nodes (5): CASES, __dirname, skillRoot, template, tmp
 
 ### Community 747 - "Paid Media Tracking & Measurement Specialist Agent"
 Cohesion: 0.25
@@ -3643,6 +3658,10 @@ Nodes (7): Core Capabilities, Decision Framework, Identity & Role Definition, Pa
 ### Community 748 - "🔎 SAST & Secrets Detection — Full Pattern Reference"
 Cohesion: 0.25
 Nodes (8): API Security, Authentication & JWT, CORS & Headers, Database & Injection, Logging, 🔎 SAST & Secrets Detection — Full Pattern Reference, Secrets & Environment, Storage & Cookies
+
+### Community 749 - "story-shelf.test.mjs"
+Cohesion: 0.25
+Nodes (5): CASES, __dirname, skillRoot, template, tmp
 
 ### Community 750 - "Refactor Clean"
 Cohesion: 0.25
@@ -3660,6 +3679,10 @@ Nodes (7): Architecture Review Checklist, Design, Evaluation, Failure Resilience
 Cohesion: 0.29
 Nodes (6): Communication Style, Learning & Accumulation, Pattern Recognition, Recruitment Specialist Agent, Success Metrics, Your Identity & Memory
 
+### Community 754 - "chapter-rail.test.mjs"
+Cohesion: 0.29
+Nodes (4): CASES, __dirname, skillRoot, tmp
+
 ### Community 755 - "🕸️ Multi-Agent Systems Architect Agent"
 Cohesion: 0.33
 Nodes (5): Core Competencies, 🚨 Critical Rules You Must Follow, 🕸️ Multi-Agent Systems Architect Agent, 💭 Your Communication Style, 🧠 Your Identity & Memory
@@ -3671,6 +3694,14 @@ Nodes (6): Pattern 1 — Sequential Chain, Pattern 2 — Parallel Fan-Out / Fan-
 ### Community 757 - "🚀 Advanced Capabilities"
 Cohesion: 0.33
 Nodes (6): 🚀 Advanced Capabilities, CI/CD Security Pipeline Design, Dependency & SCA Analysis, Feature Threat Modeling, Multi-File Codebase Scan, Security Regression Testing
+
+### Community 758 - "diagram-guide.test.mjs"
+Cohesion: 0.29
+Nodes (4): CASES, __dirname, skillRoot, tmp
+
+### Community 759 - "semantic-camera.test.mjs"
+Cohesion: 0.29
+Nodes (4): CASES, __dirname, skillRoot, tmp
 
 ### Community 760 - "China Labor Law Compliance"
 Cohesion: 0.33
@@ -3776,25 +3807,49 @@ Nodes (3): Recruitment Data Analytics, Recruitment Funnel Analysis, Recruitment 
 Cohesion: 0.33
 Nodes (5): Design spatially intuitive user experiences for XR platforms, 🛠️ What You Can Do, XR Interface Architect Agent Personality, 🎯 Your Core Mission, 🧠 Your Identity & Memory
 
+### Community 786 - "motion-governor.test.mjs"
+Cohesion: 0.29
+Nodes (4): CASES, __dirname, skillRoot, tmp
+
+### Community 787 - "XR Immersive Developer Agent Personality"
+Cohesion: 0.33
+Nodes (5): Build immersive XR experiences across browsers and headsets, 🛠️ What You Can Do, XR Immersive Developer Agent Personality, 🎯 Your Core Mission, 🧠 Your Identity & Memory
+
+### Community 788 - "devDependencies"
+Cohesion: 0.40
+Nodes (5): devDependencies, ajv, parse5, saxes, simple-icons
+
+### Community 789 - "document"
+Cohesion: 0.50
+Nodes (4): Hydration Mismatches, HIGH — SSR (Nuxt-specific), document(), Step 2 - Detect files
+
+### Community 790 - "Step 3 - Extract entities and relationships"
+Cohesion: 0.50
+Nodes (4): Part A - Structural extraction for code files, Part B - Semantic extraction (parallel subagents), Part C - Merge AST + semantic into final extraction, Step 3 - Extract entities and relationships
+
+### Community 791 - "XR Cockpit Interaction Specialist Agent Personality"
+Cohesion: 0.33
+Nodes (5): Build cockpit-based immersive interfaces for XR users, 🛠️ What You Can Do, XR Cockpit Interaction Specialist Agent Personality, 🎯 Your Core Mission, 🧠 Your Identity & Memory
+
 ## Knowledge Gaps
-- **8682 isolated node(s):** `fs`, `path`, `catalogPath`, `catalog`, `isGlobal` (+8677 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 9320 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **8729 isolated node(s):** `fs`, `path`, `catalogPath`, `catalog`, `isGlobal` (+8724 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 9369 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **42 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `write()` connect `🎯 Your Core Mission` to `release-package-gates.test.mjs`?**
-  _High betweenness centrality (0.084) - this node is a cross-community bridge._
+  _High betweenness centrality (0.087) - this node is a cross-community bridge._
 - **What connects `fs`, `path`, `catalogPath` to the rest of the system?**
-  _8682 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _8729 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `index.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.08739495798319327 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.09090909090909091 - nodes in this community are weakly interconnected._
 - **Should `package.json` be split into smaller, more focused modules?**
-  _Cohesion score 0.08333333333333333 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07407407407407407 - nodes in this community are weakly interconnected._
 - **Should `MASTER QA & SECURITY AUDIT REPORT — AURA INVENTORY NODEJS` be split into smaller, more focused modules?**
   _Cohesion score 0.06666666666666667 - nodes in this community are weakly interconnected._
 - **Should `3. Architectural Decision Records (ADRs)` be split into smaller, more focused modules?**
-  _Cohesion score 0.09523809523809523 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.09090909090909091 - nodes in this community are weakly interconnected._
 - **Should `compileWorkflowInternal` be split into smaller, more focused modules?**
   _Cohesion score 0.06885964912280702 - nodes in this community are weakly interconnected._

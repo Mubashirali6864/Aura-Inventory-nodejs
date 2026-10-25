@@ -6,7 +6,10 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node qa/master_cross_angle_suite.test.cjs"
+    "test": "node qa/run_all_tests.cjs",
+    "test:unit": "node --test qa/unit/*.test.cjs",
+    "test:integration": "node qa/run_all_tests.cjs",
+    "test:master": "node qa/master_cross_angle_suite.test.cjs"
   },
   "engines": {
     "node": ">=20.0.0"

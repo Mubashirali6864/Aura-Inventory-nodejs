@@ -22,7 +22,7 @@ Write-Host "Copying deployment files..."
 Copy-Item (Join-Path $rootDir ".env") -Destination $stagingDir
 Copy-Item (Join-Path $rootDir "package.json") -Destination $stagingDir
 Copy-Item (Join-Path $rootDir "server.js") -Destination $stagingDir
-Copy-Item (Join-Path $rootDir "backend\index.js") -Destination (Join-Path $stagingDir "backend")
+Copy-Item (Join-Path $rootDir "backend\*.js") -Destination (Join-Path $stagingDir "backend")
 Copy-Item (Join-Path $rootDir "dist\index.html") -Destination (Join-Path $stagingDir "dist")
 Get-ChildItem (Join-Path $rootDir "dist\assets\*") -Exclude "*.bak*", "*_backup", "*.pre-backup-feature" | Copy-Item -Destination (Join-Path $stagingDir "dist\assets")
 

@@ -210,7 +210,12 @@
       "title": "Client Edge & Presentation",
       "items": [
         "Single Page Application built with React 18 & Vite, served from dist/",
-        "Multi-shop POS interface (Shop 1, Shop 2 & Shop 3) with real-time balance calculations",
+        "Multi-shop POS & Inventory interface with All Shops as default tab (cross-shop distribution across Shop 1, Shop 2 & Shop 3)",
+        "Company name branding across catalog & color-coded Shop indicators replacing redundant sale price columns",
+        "POS billing stock cards display company name (supplier.shopName) under product titles",
+        "Fractional item quantities (e.g. 1.5 sheets) feature customizable half-sheet pricing without forcing half-of-sheet rates",
+        "Purchase invoice modal synchronizes all catalog items across shops into the Add Existing Item dropdown without supplier-lock",
+        "Purchase invoice modal features bottom read-only Total Bill display and defaults cash out to 0 (pay later via supplier dues)",
         "Reverse-proxied through root server.js entry point on Hostinger Node.js environment"
       ]
     },
@@ -231,6 +236,15 @@
         "Automated backup engine capturing hourly rolling snapshots and 6-hour daily backups",
         "1-Click Surgical Undo & Time Machine rollbacks with full remainingBalance and customer ledger restoration",
         "Input validation guards blocking negative stock exploitation, zero-balance overpays, and invalid prices"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Testing & Quality Assurance",
+      "items": [
+        "Modular Unit testing suite: stripUndefined DAO cleaner, roundMoney precision, Asia/Karachi timezone, and FIFO algorithms",
+        "Multi-shop Integration testing: inventory parity, sales credit limits, returns cash capping, and ACID rollback voids",
+        "Master 12-suite automated test runner (113 assertions) with zero external test dependencies via Node.js native engine"
       ]
     }
   ]

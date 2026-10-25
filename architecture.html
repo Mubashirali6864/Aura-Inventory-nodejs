@@ -5557,7 +5557,12 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         </div>
         <ul>
           <li>&bull; Single Page Application built with React 18 &amp; Vite, served from dist/</li>
-          <li>&bull; Multi-shop POS interface (Shop 1, Shop 2 &amp; Shop 3) with real-time balance calculations</li>
+          <li>&bull; Multi-shop POS &amp; Inventory interface with All Shops as default tab (cross-shop distribution across Shop 1, Shop 2 &amp; Shop 3)</li>
+          <li>&bull; Company name branding across catalog &amp; color-coded Shop indicators replacing redundant sale price columns</li>
+          <li>&bull; POS billing stock cards display company name (supplier.shopName) under product titles</li>
+          <li>&bull; Fractional item quantities (e.g. 1.5 sheets) feature customizable half-sheet pricing without forcing half-of-sheet rates</li>
+          <li>&bull; Purchase invoice modal synchronizes all catalog items across shops into the Add Existing Item dropdown without supplier-lock</li>
+          <li>&bull; Purchase invoice modal features bottom read-only Total Bill display and defaults cash out to 0 (pay later via supplier dues)</li>
           <li>&bull; Reverse-proxied through root server.js entry point on Hostinger Node.js environment</li>
         </ul>
       </div>
@@ -5584,6 +5589,18 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <li>&bull; Automated backup engine capturing hourly rolling snapshots and 6-hour daily backups</li>
           <li>&bull; 1-Click Surgical Undo &amp; Time Machine rollbacks with full remainingBalance and customer ledger restoration</li>
           <li>&bull; Input validation guards blocking negative stock exploitation, zero-balance overpays, and invalid prices</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot violet"></div>
+          <h3>Testing &amp; Quality Assurance</h3>
+        </div>
+        <ul>
+          <li>&bull; Modular Unit testing suite: stripUndefined DAO cleaner, roundMoney precision, Asia/Karachi timezone, and FIFO algorithms</li>
+          <li>&bull; Multi-shop Integration testing: inventory parity, sales credit limits, returns cash capping, and ACID rollback voids</li>
+          <li>&bull; Master 12-suite automated test runner (113 assertions) with zero external test dependencies via Node.js native engine</li>
         </ul>
       </div>
     </div>
