@@ -1341,11 +1341,22 @@ app.post('/api/sales', async (req, res) => {
                 const origPaid = roundMoney(Math.max(0, Number(originalSale.amountPaid ?? originalSale.initialPaid ?? originalSale.customerDetails?.amountPaid ?? 0)));
                 const returnAmount = parsedTotal;
 
-                // 1. First credit/cancel any outstanding debt on this invoice
-                debtCredited = roundMoney(Math.min(returnAmount, origRemaining));
+                // Support explicit ledger balance return (revert from customer credit debt rather than drawer cash)
+                const isRevertToCredit = customerDetails.paymentType === 'Pending' ||
+                                         customerDetails.refundMethod === 'credit' ||
+                                         customerDetails.revertToBalance === true ||
+                                         (customerDetails.amountPaid !== undefined && customerDetails.amountPaid !== null && Number(customerDetails.amountPaid) === 0);
 
-                // 2. The remaining portion of the return is cash refunded to the customer, capped by what was actually collected
-                initialPaid = roundMoney(Math.min(Math.max(0, returnAmount - debtCredited), origPaid));
+                if (isRevertToCredit) {
+                    debtCredited = returnAmount;
+                    initialPaid = 0;
+                } else {
+                    // 1. First credit/cancel any outstanding debt on this invoice
+                    debtCredited = roundMoney(Math.min(returnAmount, origRemaining));
+
+                    // 2. The remaining portion of the return is cash refunded to the customer, capped by what was actually collected
+                    initialPaid = roundMoney(Math.min(Math.max(0, returnAmount - debtCredited), origPaid));
+                }
                 effectiveRemainingBalance = 0;
 
                 // 3. Update originalSale remaining balance and payment status
@@ -1995,8 +2006,9 @@ app.get('/api/expenses', async (req, res) => {
 
 app.post('/api/expenses', async (req, res) => {
     try {
-        const { title, amount } = req.body || {};
-        if (!title || typeof title !== 'string' || !title.trim()) {
+        const { title, description, category, amount } = req.body || {};
+        const effectiveTitle = (title || description || category || '').trim();
+        if (!effectiveTitle) {
             return res.status(400).json({ error: 'Expense title is required.' });
         }
         const parsedAmount = roundMoney(Number(amount));
@@ -2004,7 +2016,17 @@ app.post('/api/expenses', async (req, res) => {
             return res.status(400).json({ error: 'Expense amount must be a positive number.' });
         }
         const id = generateId();
-        const newExpense = { ...stripUndefined(req.body), title: title.trim(), amount: parsedAmount, createdAt: Date.now() };
+        const effectiveDesc = (description || effectiveTitle).trim();
+        const reqShopId = req.body.shopId ? String(req.body.shopId).trim().toLowerCase().replace(' ', '-') : 'shop-1';
+        const finalShopId = reqShopId === 'all' ? 'shop-1' : reqShopId;
+        const newExpense = { 
+            ...stripUndefined(req.body), 
+            title: effectiveTitle, 
+            description: effectiveDesc, 
+            amount: parsedAmount, 
+            shopId: finalShopId,
+            createdAt: Date.now() 
+        };
         await insert('expenses', id, newExpense);
         res.status(201).json({ id, ...newExpense });
     } catch (error) { res.status(500).json({ error: error.message }); }

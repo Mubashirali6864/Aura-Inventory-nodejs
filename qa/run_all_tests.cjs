@@ -26,6 +26,7 @@ const testSuites = [
     { name: 'Integration: Supplier Procurement & FIFO Payments', file: 'qa/integration/procurement_and_suppliers.test.cjs', type: 'Integration' },
     { name: 'Integration: Cashbook Reconciliation & Expenses', file: 'qa/integration/cashbook_and_expenses.test.cjs', type: 'Integration' },
     { name: 'Integration: ACID Multi-Table Void & 1-Click Undo', file: 'qa/integration/acid_void_and_undo.test.cjs', type: 'Integration' },
+    { name: 'Integration: 3-Page Operational Workflow & Shared Drawer Suite', file: 'qa/integration/system_test_plan_workflow.test.cjs', type: 'Integration' },
 
     // Layer 3: End-to-End Master All-Angles System Suite
     { name: 'E2E Master: 7-Angle Operational Verification Suite', file: 'qa/master_cross_angle_suite.test.cjs', type: 'E2E' }
