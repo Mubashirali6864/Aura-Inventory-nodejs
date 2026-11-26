@@ -1,17 +1,17 @@
 # Graph Report - Aura Inventory nodejs  (2026-11-26)
 
 ## Corpus Check
-- 822 files · ~1,554,408 words
+- 822 files · ~1,554,836 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 10 file(s) not represented in the graph (top: (none) 2, .jsonl 2, .sqlite 2)
 
 ## Summary
-- 13645 nodes · 17410 edges · 783 communities (741 shown, 42 thin omitted)
+- 13646 nodes · 17411 edges · 787 communities (745 shown, 42 thin omitted)
 - Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 278 edges (avg confidence: 0.89)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `2b4eee90`
+- Built from commit: `380e72d6`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -20,18 +20,18 @@
 - package.json
 - MASTER QA & SECURITY AUDIT REPORT — AURA INVENTORY NODEJS
 - 3. Architectural Decision Records (ADRs)
-- commandDeliver
+- offline-font-browser.test.mjs
 - semantic-radar.test.mjs
 - compileWorkflowInternal
 - ATS Validator Architect
 - real-repository-proof.test.mjs
 - generate-viewer.test.mjs
-- ref_node_child_process
+- guided-views-browser.test.mjs
 - Q: Why does body-parser connect Package Manifest & External Modules to Backend Server & API Setup?
 - 2. Phase 1: Completed Security & Stability Patches
 - ref_fs
 - architecture-delta.mjs
-- .send
+- ref_node_child_process
 - render-lifecycle.mjs
 - archify.mjs
 - instinct-cli.py
@@ -65,7 +65,7 @@
 - webm-artifact.smoke.mjs
 - generated-validators.mjs
 - properties
-- offline-font-browser.test.mjs
+- cli.test.mjs
 - check-render-output.mjs
 - Windows Desktop E2E Testing
 - properties
@@ -77,7 +77,7 @@
 - properties
 - PRP Plan
 - Review Priorities
-- run.py
+- runner.py
 - preview.mjs
 - viewer-chrome-layout.test.mjs
 - brand-marks.mjs
@@ -96,8 +96,8 @@
 - executeTransaction
 - layout-rules.test.mjs
 - workflow-migration.test.mjs
-- parse_spec
-- runner.py
+- _promote_auto
+- test_runner.py
 - update-contract.mjs
 - Plankton Code Quality Skill
 - Python Code Review
@@ -135,7 +135,7 @@
 - properties
 - properties
 - golden.mjs
-- readme-showcase.test.mjs
+- output-path.test.mjs
 - Writing Hookify Rules
 - Santa Method
 - Execute - Multi-Model Collaborative Execution
@@ -219,7 +219,7 @@
 - What You Must Do When Invoked
 - items
 - Paid Media Ad Creative Strategist Agent
-- ref_node_assert
+- ref_node_path
 - Continuous Learning Skill - DEPRECATED
 - observer-loop.sh
 - observe.sh
@@ -315,9 +315,9 @@
 - Package Manager Setup
 - Update Documentation
 - Paid Media Search Query Analyst Agent
-- ref_node_os
+- ref_node_assert
 - Enable HPA if not active
-- ref_node_path
+- ref_node_os
 - Archify JSON IR Schemas
 - Aura Furniture Management & POS System (Shan-e-Aziz POS)
 - Process
@@ -350,14 +350,14 @@
 - wraps
 - guided-views.test.mjs
 - Paid Media PPC Campaign Strategist Agent
-- story-moment-link.test.mjs
+- _update_registry
 - load_all_instincts
 - site-language-continuity.test.mjs
 - 🤝 M&A Integration Manager Agent
 - graphify reference: query, path, explain
 - sequence-column-fit.test.mjs
 - Hook System Overview
-- relationship-direct-explorer.test.mjs
+- Paid Media Programmatic & Display Buyer Agent
 - Threat Detection Engineer Agent
 - share-card-export.test.mjs
 - 🔐 Data Privacy Officer Agent
@@ -372,7 +372,7 @@
 - /orch-review
 - 🧠 Organizational Psychologist Agent
 - 🔁 Your Workflow
-- story-carrier.test.mjs
+- Paid Media Tracking & Measurement Specialist Agent
 - Sovereign Health Systems Agent
 - gan-planner.md
 - common-code-review.md
@@ -385,7 +385,7 @@
 - variant
 - story-director-strip.test.mjs
 - ⚙️ Operations Manager Agent
-- story-shelf.test.mjs
+- animation.test.mjs
 - 🚨 Critical Rules You Must Follow
 - detect-project.sh
 - _validate_import_url
@@ -395,7 +395,7 @@
 - /learn - Extract Reusable Patterns
 - /learn-eval - Extract, Evaluate, then Save
 - Smart Commit
-- vertical-edge.test.mjs
+- ref_node_fs
 - Agent Personality
 - Offer & Lead Gen Strategist
 - TDD Evidence Report: Sales & Purchase Timestamp & Cashbook Ordering
@@ -415,7 +415,7 @@
 - point
 - viewBox
 - viewBox
-- cli.test.mjs
+- xml.mjs
 - Third-party notices
 - scan_dir_to_json
 - _redact_home_paths
@@ -492,7 +492,7 @@
 - label
 - title
 - y
-- Marketing Growth Hacker Agent
+- preset-tryon.test.mjs
 - label
 - width
 - session-guardian.sh
@@ -749,21 +749,26 @@
 - Senior SecOps Engineer
 - 📋 Your Technical Deliverables
 - 🚨 Critical Rules You Must Follow
-- finder.test.mjs
-- semantic-lens.test.mjs
-- semantic-passport.test.mjs
+- reach-share-card.test.mjs
+- route-journey.test.mjs
+- route-share-card.test.mjs
 - agency-agents/SKILL.md
-- Paid Media Paid Social Strategist Agent
+- intent-trace.test.mjs
+- motion-governor.test.mjs
 - story-follow-camera.test.mjs
+- route-probe.test.mjs
 - 🔎 SAST & Secrets Detection — Full Pattern Reference
+- semantic-camera.test.mjs
 - Refactor Clean
 - .require
 - Architecture Review Checklist
 - Recruitment Specialist Agent
+- semantic-flow.test.mjs
 - 🕸️ Multi-Agent Systems Architect Agent
 - Topology Patterns
 - 🚀 Advanced Capabilities
 - diagram-guide.test.mjs
+- XR Interface Architect Agent Personality
 - China Labor Law Compliance
 - typescript-reviewer.md
 - Failure Mode Engineering
@@ -789,7 +794,6 @@
 - Headhunter Management
 - bias
 - Recruitment Data Analytics
-- XR Immersive Developer Agent Personality
 - devDependencies
 - XR Cockpit Interaction Specialist Agent Personality
 
@@ -820,10 +824,10 @@
 ## Import Cycles
 - None detected.
 
-## Communities (783 total, 42 thin omitted)
+## Communities (787 total, 42 thin omitted)
 
 ### Community 0 - "index.js"
-Cohesion: 0.10
+Cohesion: 0.09
 Nodes (34): app, backupsDir, bodyParser, cors, crypto, dbPath, ensurePurchaseInitialPaid(), express (+26 more)
 
 ### Community 1 - "package.json"
@@ -838,9 +842,9 @@ Nodes (29): 1. Executive Summary, 2. Architecture Map, 3. Test Environment & Met
 Cohesion: 0.14
 Nodes (14): 3. Architectural Decision Records (ADRs), ADR-002: Root `server.js` Passenger Wrapper for Hostinger Deployment, ADR-003: Pre-Bundled Frontend Assets in `dist/` Served via Express, ADR-004: In-Place JavaScript Bundle Patching for Live Hotfixes, ADR-005: 6-Hour Automated Database Snapshots & Pre-Restore Safety Copies, ADR-006: Dual-Token Authorization Guard on Database Factory Reset, ADR-007: Cashbook Settlement Disambiguation & Click-to-Highlight Linkage, ADR-008: Detailed Ledger Bidirectional Link Badges & Interactive Highlight (+6 more)
 
-### Community 4 - "commandDeliver"
-Cohesion: 0.27
-Nodes (20): assertEvidenceType(), checkerDiagnostics(), commandDeliver(), commandMigrate(), commandPreview(), commandRender(), commandValidate(), diagnostic() (+12 more)
+### Community 4 - "offline-font-browser.test.mjs"
+Cohesion: 0.13
+Nodes (16): assertFontCss(), assertOfflineArtifact(), EXPECTED_FACES, FONT_LICENSE, inspectDocuments(), cssResources(), visit(), evaluate() (+8 more)
 
 ### Community 5 - "semantic-radar.test.mjs"
 Cohesion: 0.21
@@ -862,9 +866,9 @@ Nodes (11): artifactPath, automaticMcoRoot(), cli, __dirname, experimentArtifact
 Cohesion: 0.17
 Nodes (8): PipeCdp, Design Rules, Input, Layout budget, Legend, Lifecycle Renderer, fragments, repoRoot
 
-### Community 10 - "ref_node_child_process"
-Cohesion: 0.08
-Nodes (33): click(), focus(), key(), load(), move(), point(), run(), select() (+25 more)
+### Community 10 - "guided-views-browser.test.mjs"
+Cohesion: 0.28
+Nodes (11): activate(), click(), hash(), key(), load(), move(), point(), run() (+3 more)
 
 ### Community 11 - "Q: Why does body-parser connect Package Manifest & External Modules to Backend Server & API Setup?"
 Cohesion: 0.40
@@ -882,21 +886,21 @@ Nodes (26): bundlePath, content, fs, path, bundlePath, content, fs, path (+18 mo
 Cohesion: 0.05
 Nodes (80): addNodeMarker(), addState(), annotateArchitectureSideSvg(), architectureDeltaChangeRows(), ArchitectureDeltaError, BOUNDARY_FIELDS, boundaryChangeMap(), boundaryElements() (+72 more)
 
-### Community 15 - ".send"
-Cohesion: 0.05
-Nodes (73): executable(), findChrome(), findOnPath(), click(), key(), load(), record(), run() (+65 more)
+### Community 15 - "ref_node_child_process"
+Cohesion: 0.04
+Nodes (87): executable(), findChrome(), findOnPath(), click(), key(), load(), record(), run() (+79 more)
 
 ### Community 16 - "render-lifecycle.mjs"
 Cohesion: 0.05
 Nodes (107): componentContext(), renderComponent(), automaticPorts, compositionFrames, __dirname, flowSides(), layout, LEGEND_CATALOG (+99 more)
 
 ### Community 17 - "archify.mjs"
-Cohesion: 0.14
-Nodes (30): CHECK_FIXES, [command, ...args], commandBrands(), commandCheck(), commandCompare(), commandDemo(), commandDoctor(), commandExamples() (+22 more)
+Cohesion: 0.12
+Nodes (50): assertEvidenceType(), CHECK_FIXES, checkerDiagnostics(), [command, ...args], commandBrands(), commandCheck(), commandCompare(), commandDeliver() (+42 more)
 
 ### Community 18 - "instinct-cli.py"
 Cohesion: 0.05
-Nodes (55): _append_observations(), _assign_unique_slugs(), _cluster_by_keyword_overlap(), cmd_evolve(), _collect_pending_dirs(), _collect_pending_instincts(), _ensure_global_dirs(), _evolved_agent_name() (+47 more)
+Nodes (59): _append_observations(), _assign_unique_slugs(), _cluster_by_keyword_overlap(), cmd_evolve(), cmd_promote(), _collect_pending_dirs(), _collect_pending_instincts(), _ensure_global_dirs() (+51 more)
 
 ### Community 19 - "render-architecture.mjs"
 Cohesion: 0.06
@@ -911,8 +915,8 @@ Cohesion: 0.07
 Nodes (46): contextDirPath, projects, resolved, resolved, enriched, entries, projects, table (+38 more)
 
 ### Community 22 - "visual-check.mjs"
-Cohesion: 0.05
-Nodes (47): State Management (CRITICAL), baseReceipt(), CAPTURE_VIEWPORTS, CHROME_NO_SANDBOX_ENV, ChromeVisualBrowser, chromeVisualBrowserArgs(), cleanupCaptureSidecars(), contactSheetHtml() (+39 more)
+Cohesion: 0.07
+Nodes (34): State Management (CRITICAL), baseReceipt(), CAPTURE_VIEWPORTS, CHROME_NO_SANDBOX_ENV, ChromeVisualBrowser, chromeVisualBrowserArgs(), cleanupCaptureSidecars(), contactSheetHtml() (+26 more)
 
 ### Community 23 - "HarmonyOS Application Development Expert"
 Cohesion: 0.13
@@ -920,7 +924,7 @@ Nodes (14): 1. State Management: V2 Only (ArkUI State Management V2), 2. Routing
 
 ### Community 24 - "test_parse_instinct.py"
 Cohesion: 0.06
-Nodes (55): cmd_prune(), _normalize_remote_url(), parse_instinct_file(), Validate and resolve a file path, guarding against path traversal. Raises…, Delete pending instincts older than the TTL threshold., Update the projects.json registry. Uses file locking (where available) to…, Parse YAML-like instinct file format. Each instinct is delimited by a pair of…, _update_registry() (+47 more)
+Nodes (48): cmd_prune(), _normalize_remote_url(), parse_instinct_file(), Validate and resolve a file path, guarding against path traversal. Raises…, Delete pending instincts older than the TTL threshold., Parse YAML-like instinct file format. Each instinct is delimited by a pair of…, _validate_file_path(), patch_globals() (+40 more)
 
 ### Community 25 - "docs-lookup.md"
 Cohesion: 0.18
@@ -932,7 +936,7 @@ Nodes (34): Goal:, Goal:, Goal:, Goal:, Goal:, Goal:, Goal:, Goal: (+26 more)
 
 ### Community 27 - "_promote_specific"
 Cohesion: 0.08
-Nodes (26): cmd_promote(), _promote_auto(), _promote_specific(), Promote project-scoped instincts to global scope., Promote a specific instinct by ID from current project to global., Auto-promote instincts found in multiple projects., Validate instinct IDs before using them in filenames., _validate_instinct_id() (+18 more)
+Nodes (26): cmd_export(), cmd_import(), _fetch_import_url(), load_project_only_instincts(), _promote_specific(), Export instincts to file., Promote a specific instinct by ID from current project to global., Fetch a validated remote instinct file with bounded size and timeout. (+18 more)
 
 ### Community 41 - "Git Workflow Patterns"
 Cohesion: 0.04
@@ -970,9 +974,9 @@ Nodes (44): architecture, dataflow, func3(), lifecycle, pattern17, pattern18, pa
 Cohesion: 0.05
 Nodes (44): $ref, type, type, minimum, type, $ref, $ref, $ref (+36 more)
 
-### Community 50 - "offline-font-browser.test.mjs"
+### Community 50 - "cli.test.mjs"
 Cohesion: 0.05
-Nodes (31): checker, cli, skillRoot, tmp, cli, __dirname, example, examplePath (+23 more)
+Nodes (26): checker, cli, skillRoot, tmp, cli, __dirname, skillRoot, tmp (+18 more)
 
 ### Community 51 - "check-render-output.mjs"
 Cohesion: 0.09
@@ -1000,7 +1004,7 @@ Nodes (40): $ref, type, type, type, $ref, $ref, $ref, properties (+32 more)
 
 ### Community 57 - "_make_project"
 Cohesion: 0.07
-Nodes (41): cmd_projects(), _cmd_projects_delete(), _cmd_projects_gc(), _cmd_projects_merge(), load_registry(), _project_counts(), List or maintain known projects and their instinct counts., Serialize registry read-modify-write across concurrent sessions. Acquires the… (+33 more)
+Nodes (39): cmd_projects(), _cmd_projects_delete(), _cmd_projects_gc(), _cmd_projects_merge(), load_registry(), _project_counts(), List or maintain known projects and their instinct counts., Load the projects registry. (+31 more)
 
 ### Community 58 - "properties"
 Cohesion: 0.05
@@ -1018,25 +1022,25 @@ Nodes (37): Ambiguity Gate, Codebase Analysis (5 Traces), Codebase Search (8 Cat
 Cohesion: 0.17
 Nodes (11): Approval Criteria, CRITICAL - Safety, Diagnostic Commands, HIGH - Code Quality, HIGH - Concurrency, HIGH - Memory Management, HIGH - Protocol-Oriented Design, MEDIUM - Best Practices (+3 more)
 
-### Community 62 - "run.py"
-Cohesion: 0.15
-Nodes (17): main(), CLI entry point for skill-comply., generate_scenarios(), Path, Generate pressure scenarios from skill + spec using LLM., Generate 3 scenarios with decreasing prompt strictness. Calls claude -p with…, generate_spec(), Path (+9 more)
+### Community 62 - "runner.py"
+Cohesion: 0.10
+Nodes (31): Parse observation traces (JSONL) and compliance specs (YAML)., main(), CLI entry point for skill-comply., Path, Run scenarios via claude -p and parse tool calls from stream-json output., Create sandbox directory and run setup commands., Execute a scenario and extract tool calls from stream-json output., Sanitize scenario ID and ensure path stays within sandbox base. (+23 more)
 
 ### Community 63 - "preview.mjs"
 Cohesion: 0.16
 Nodes (27): cliPath, compactMessage(), diagramTypes, here, initialAuthoredOutput(), parseReceipt(), previewPage(), redactDiagnostic() (+19 more)
 
 ### Community 64 - "viewer-chrome-layout.test.mjs"
-Cohesion: 0.15
-Nodes (12): 🚨 Critical Rules You Must Follow, CASES, __dirname, edgePaintHitsUnderDock(), evaluate(), finalGeometry(), load(), resize() (+4 more)
+Cohesion: 0.08
+Nodes (25): 🚨 Critical Rules You Must Follow, DESKTOP_READABILITY_VIEWPORT, DESKTOP_READER_DIAGRAM_WIDTH, DESKTOP_READER_HORIZONTAL_CHROME, DESKTOP_READER_MIN_WIDTH, MIN_PROJECTED_NODE_TEXT_PX, __dirname, reader (+17 more)
 
 ### Community 65 - "brand-marks.mjs"
 Cohesion: 0.12
 Nodes (31): asUrl(), attribute(), beforeDeadline(), captureBrandReference(), captureRemoteBrand(), captureTimeoutMilliseconds(), checkedFetch(), COLLECTIONS (+23 more)
 
 ### Community 66 - "test_grader.py"
-Cohesion: 0.13
-Nodes (13): parse_trace(), Path, Parse a JSONL observation trace file into sorted events., compliant_trace(), _mock_compliant_classification(), _mock_noncompliant_classification(), noncompliant_trace(), Tests for grader module — compliance scoring with LLM classification. (+5 more)
+Cohesion: 0.10
+Nodes (19): Detector, parse_spec(), parse_trace(), Path, Parse a JSONL observation trace file into sorted events., Parse a YAML compliance spec file., Step, compliant_trace() (+11 more)
 
 ### Community 67 - "Eval Harness Skill"
 Cohesion: 0.06
@@ -1071,8 +1075,8 @@ Cohesion: 0.07
 Nodes (26): Code Quality Checklist, Code Smells to Avoid, Coding Style, Core Principles, Deep Nesting, DRY (Don't Repeat Yourself), Error Handling, File Organization (+18 more)
 
 ### Community 75 - "evaluate.py"
-Cohesion: 0.12
-Nodes (28): AxisScore, check_accuracy(), check_actionability(), check_clarity(), check_completeness(), check_conciseness(), _check_jargon(), _check_summary() (+20 more)
+Cohesion: 0.13
+Nodes (27): AxisScore, check_accuracy(), check_actionability(), check_clarity(), check_completeness(), check_conciseness(), _check_jargon(), _check_summary() (+19 more)
 
 ### Community 76 - "cacheRename"
 Cohesion: 0.27
@@ -1094,13 +1098,13 @@ Nodes (13): assertRelationshipsAvoidAllNodeBorders(), assertWorkflowEdgesAvoidAl
 Cohesion: 0.11
 Nodes (26): clone(), diagnostic(), expandableViewBox(), legacyLayoutProbe(), legacyRequirementProbe(), migrateWorkflowDocument(), requiredViewBoxFrom(), result() (+18 more)
 
-### Community 81 - "parse_spec"
-Cohesion: 0.28
-Nodes (6): Detector, parse_spec(), Parse a YAML compliance spec file., Step, Tests for parser module — JSONL trace and YAML spec parsing., TestParseSpec
+### Community 81 - "_promote_auto"
+Cohesion: 0.11
+Nodes (19): _find_cross_project_instincts(), _promote_auto(), Find instincts that appear in multiple projects (promotion candidates). Returns…, Auto-promote instincts found in multiple projects., Validate instinct IDs before using them in filenames., _validate_instinct_id(), Auto-promote with no cross-project instincts should say so., Dry run should list candidates but not write files. (+11 more)
 
-### Community 82 - "runner.py"
-Cohesion: 0.09
-Nodes (26): Path, Run scenarios via claude -p and parse tool calls from stream-json output., Create sandbox directory and run setup commands., Execute a scenario and extract tool calls from stream-json output., Sanitize scenario ID and ensure path stays within sandbox base., run_scenario(), _safe_sandbox_dir(), ScenarioRun (+18 more)
+### Community 82 - "test_runner.py"
+Cohesion: 0.11
+Nodes (15): _FakeScenario, Tests for runner module — scenario execution + subprocess error handling., rc=1 with terminal_reason=max_turns is graceful termination, not failure.…, Real failures (rc≠0 with no max_turns marker) must still raise., Minimal Scenario-like object for runner tests (avoids generator deps)., Setup commands containing shell builtins (cd/pushd/popd) must be skipped.…, Error messages must include stdout tail, not only stderr. When claude -p fails…, A scenario referencing an unavailable tool must not crash setup. (+7 more)
 
 ### Community 83 - "update-contract.mjs"
 Cohesion: 0.19
@@ -1135,8 +1139,8 @@ Cohesion: 0.08
 Nodes (23): 1. Enable Observation Hooks, 2. Initialize Directory Structure, 3. Use the Instinct Commands, Backward Compatibility, Commands, Confidence Scoring, Configuration, Continuous Learning v2.1 - Instinct (+15 more)
 
 ### Community 91 - "ObservationEvent"
-Cohesion: 0.18
-Nodes (22): classify_events(), _parse_classification(), Classify tool calls against compliance steps using LLM., Classify which tool calls match which compliance steps. Returns {step_id:…, Parse LLM classification output into {step_id: [event_indices]}., _check_temporal_order(), ComplianceResult, Grade observation traces against compliance specs using LLM classification. (+14 more)
+Cohesion: 0.17
+Nodes (21): classify_events(), _parse_classification(), Classify tool calls against compliance steps using LLM., Classify which tool calls match which compliance steps. Returns {step_id:…, Parse LLM classification output into {step_id: [event_indices]}., _check_temporal_order(), ComplianceResult, Grade observation traces against compliance specs using LLM classification. (+13 more)
 
 ### Community 92 - "2. Memory Architecture: The Method of Loci (The Memory Palace)"
 Cohesion: 0.11
@@ -1179,7 +1183,7 @@ Cohesion: 0.09
 Nodes (21): 1. Establish Goal And Risk, 2. Discover Context, 3. Define Scope, 4. Write Acceptance Criteria, 5. Cover Only Relevant Boundaries, 6. Present And Continue, Choose The Depth, Examples (+13 more)
 
 ### Community 102 - "grade"
-Cohesion: 0.21
+Cohesion: 0.20
 Nodes (7): grade(), Grade a trace against a compliance spec using LLM classification., write_test has before_step=write_impl, but test is written AFTER impl., TestGradeCompliant, TestGradeEdgeCases, TestGradeNoncompliant, patch
 
 ### Community 103 - "Java Build Error Resolver"
@@ -1250,9 +1254,9 @@ Nodes (18): additionalProperties, $ref, const, $id, minItems, type, properties, 
 Cohesion: 0.12
 Nodes (15): check(), __dirname, expectFailure(), GOLDEN, landingPage, landingVersions, lock, pkg (+7 more)
 
-### Community 120 - "readme-showcase.test.mjs"
+### Community 120 - "output-path.test.mjs"
 Cohesion: 0.20
-Nodes (7): assetPath, __dirname, inspectGif(), receiptPath, repoRoot, skillRoot, skipSubBlocks()
+Nodes (6): baseFixture, cli, headFixture, here, skillRoot, workflowFixture
 
 ### Community 121 - "Writing Hookify Rules"
 Cohesion: 0.11
@@ -1399,8 +1403,8 @@ Cohesion: 0.12
 Nodes (15): 1. Connect the MCP server, 2. Call standalone tools only, 3. Interpret scores (1–10), 4. Run the feedback loop, Code Health MCP (CodeScene), Example: AGENTS.md enforcement block, Example: anti-patterns vs correct loop, Example: Flask maintainability improvement (+7 more)
 
 ### Community 157 - "_load_instincts_from_dir"
-Cohesion: 0.08
-Nodes (24): _find_cross_project_instincts(), _load_instincts_from_dir(), Find instincts that appear in multiple projects (promotion candidates). Returns…, Show instincts that could be promoted from project to global., Load instincts from a single directory., _show_promotion_candidates(), Loaded instincts should have _source_file, _source_type, _scope_label., If an instinct has no 'scope' in frontmatter, it should default to scope_label. (+16 more)
+Cohesion: 0.12
+Nodes (15): _load_instincts_from_dir(), Load instincts from a single directory., Loaded instincts should have _source_file, _source_type, _scope_label., If an instinct has no 'scope' in frontmatter, it should default to scope_label., If frontmatter has explicit scope, it should be preserved., Corrupt YAML files should be warned about but not crash., test_load_annotates_metadata(), test_load_defaults_scope_from_label() (+7 more)
 
 ### Community 158 - "Inherit Legacy Style"
 Cohesion: 0.12
@@ -1499,8 +1503,8 @@ Cohesion: 0.13
 Nodes (19): CK_HOME, CURRENT_SESSION, daysAgo(), extractClaudeMdGoal(), gitLogSince(), main(), parts, PROJECTS_FILE (+11 more)
 
 ### Community 182 - "quality-gate.py"
-Cohesion: 0.16
-Nodes (15): check_disk(), check_stale_libs(), count_edits(), get_project_memory_dir(), main(), Count Edit/Write tool invocations in the full transcript. Matches structured…, Stop hook: quality gate with delivery check. Detects incomplete work, stale…, Find the current project's memory directory. Returns None if no memory… (+7 more)
+Cohesion: 0.17
+Nodes (14): check_disk(), check_stale_libs(), count_edits(), get_project_memory_dir(), main(), Count Edit/Write tool invocations in the full transcript. Matches structured…, Stop hook: quality gate with delivery check. Detects incomplete work, stale…, Find the current project's memory directory. Returns None if no memory… (+6 more)
 
 ### Community 183 - "Dev Team"
 Cohesion: 0.13
@@ -1586,9 +1590,9 @@ Nodes (14): items, type, items, type, additionalProperties, required, type, item
 Cohesion: 0.25
 Nodes (7): Core Capabilities, Decision Framework, Identity & Role Definition, Paid Media Ad Creative Strategist Agent, Specialized Skills, Success Metrics, Tooling & Automation
 
-### Community 204 - "ref_node_assert"
+### Community 204 - "ref_node_path"
 Cohesion: 0.03
-Nodes (52): here, repoRoot, __dirname, skillRoot, __dirname, docsRoot, landing, manifest (+44 more)
+Nodes (56): __dirname, outputRoot, skillRoot, TARGETS, authoringContract, __dirname, schemaReadme, skill (+48 more)
 
 ### Community 205 - "Continuous Learning Skill - DEPRECATED"
 Cohesion: 0.14
@@ -1970,17 +1974,17 @@ Nodes (9): Rules, Step 1: Identify Sources of Truth, Step 2: Generate Script Ref
 Cohesion: 0.25
 Nodes (7): Core Capabilities, Decision Framework, Identity & Role Definition, Paid Media Search Query Analyst Agent, Specialized Skills, Success Metrics, Tooling & Automation
 
-### Community 300 - "ref_node_os"
-Cohesion: 0.04
-Nodes (28): CASES, __dirname, skillRoot, tmp, repoRoot, __dirname, repoRoot, skillRoot (+20 more)
+### Community 300 - "ref_node_assert"
+Cohesion: 0.03
+Nodes (49): __dirname, skillRoot, CASES, __dirname, skillRoot, tmp, architecture, base (+41 more)
 
 ### Community 301 - "Enable HPA if not active"
 Cohesion: 0.05
 Nodes (38): 🚀 Advanced Capabilities, Blameless Culture, Build Incident Readiness, Chaos Engineering & Game Days, 🚨 Critical Rules You Must Follow, Cross-Organizational Incident Coordination, Drive Continuous Improvement Through Post-Mortems, During Active Incidents (+30 more)
 
-### Community 302 - "ref_node_path"
-Cohesion: 0.02
-Nodes (84): __dirname, outputRoot, skillRoot, TARGETS, CASES, __dirname, NODE_COLLECTION, skillRoot (+76 more)
+### Community 302 - "ref_node_os"
+Cohesion: 0.04
+Nodes (30): here, skillRoot, tmp, __dirname, repoRoot, skillRoot, CASES, __dirname (+22 more)
 
 ### Community 303 - "Archify JSON IR Schemas"
 Cohesion: 0.20
@@ -2110,13 +2114,13 @@ Nodes (4): CASES, __dirname, skillRoot, tmp
 Cohesion: 0.25
 Nodes (7): Core Capabilities, Decision Framework, Identity & Role Definition, Paid Media PPC Campaign Strategist Agent, Specialized Skills, Success Metrics, Tooling & Automation
 
-### Community 335 - "story-moment-link.test.mjs"
-Cohesion: 0.25
-Nodes (5): CASES, __dirname, skillRoot, template, tmp
+### Community 335 - "_update_registry"
+Cohesion: 0.22
+Nodes (9): Serialize registry read-modify-write across concurrent sessions. Acquires the…, Update the projects.json registry. Uses file locking (where available) to…, _registry_lock(), _update_registry(), test_update_registry_atomic_replaces_file(), test_update_registry_heals_malformed_entry(), test_update_registry_heals_non_dict_registry(), test_update_registry_matches_shell_schema() (+1 more)
 
 ### Community 336 - "load_all_instincts"
-Cohesion: 0.10
-Nodes (22): cmd_export(), cmd_import(), load_all_instincts(), load_project_only_instincts(), Export instincts to file., Quote a string for safe YAML frontmatter serialization. Uses double quotes and…, Load all instincts: project-scoped + global. Project-scoped instincts take…, Load only project-scoped instincts (no global). In global fallback mode (no git… (+14 more)
+Cohesion: 0.20
+Nodes (10): load_all_instincts(), Load all instincts: project-scoped + global. Project-scoped instincts take…, Should load from both project and global directories., When project and global have same ID, project wins., Global project should only load global instincts., No instincts at all should return empty list., test_load_all_empty(), test_load_all_global_only() (+2 more)
 
 ### Community 337 - "site-language-continuity.test.mjs"
 Cohesion: 0.06
@@ -2138,9 +2142,9 @@ Nodes (6): __dirname, labelledSequence(), render(), renderOutcome(), skillRoot, 
 Cohesion: 0.33
 Nodes (5): Commands, Event Types, Hook System Overview, Pattern Tips, Rule File Format
 
-### Community 342 - "relationship-direct-explorer.test.mjs"
+### Community 342 - "Paid Media Programmatic & Display Buyer Agent"
 Cohesion: 0.25
-Nodes (5): CASES, __dirname, skillRoot, template, tmp
+Nodes (7): Core Capabilities, Decision Framework, Identity & Role Definition, Paid Media Programmatic & Display Buyer Agent, Specialized Skills, Success Metrics, Tooling & Automation
 
 ### Community 343 - "Threat Detection Engineer Agent"
 Cohesion: 0.06
@@ -2198,9 +2202,9 @@ Nodes (34): Burnout Diagnosis & Prevention, Burnout Prevention Interventions, Bu
 Cohesion: 0.06
 Nodes (34): 🚀 Advanced Capabilities, Agent Collaboration Protocol, Codebase Archaeologist Agent Personality, 💬 Communication Style, Confirm Shared Purpose Before Flagging Duplication, 🚨 Critical Rules You Must Follow, Discover Drift That Nobody Flagged, Distinguish Real Bugs From Cosmetic Drift (+26 more)
 
-### Community 357 - "story-carrier.test.mjs"
+### Community 357 - "Paid Media Tracking & Measurement Specialist Agent"
 Cohesion: 0.25
-Nodes (5): CASES, __dirname, skillRoot, template, tmp
+Nodes (7): Core Capabilities, Decision Framework, Identity & Role Definition, Paid Media Tracking & Measurement Specialist Agent, Specialized Skills, Success Metrics, Tooling & Automation
 
 ### Community 358 - "Sovereign Health Systems Agent"
 Cohesion: 0.06
@@ -2250,9 +2254,9 @@ Nodes (5): CASES, __dirname, skillRoot, template, tmp
 Cohesion: 0.06
 Nodes (33): Analyze, Balanced Scorecard Approach, BCP Framework — Key Components, Bottleneck Analysis (Theory of Constraints), Business Continuity Planning, Capacity Planning Model, Continuous Improvement Cadence, Control (+25 more)
 
-### Community 370 - "story-shelf.test.mjs"
+### Community 370 - "animation.test.mjs"
 Cohesion: 0.25
-Nodes (5): CASES, __dirname, skillRoot, template, tmp
+Nodes (5): CASES, __dirname, NODE_COLLECTION, skillRoot, tmp
 
 ### Community 371 - "🚨 Critical Rules You Must Follow"
 Cohesion: 0.06
@@ -2263,8 +2267,8 @@ Cohesion: 0.52
 Nodes (6): _clv2_detect_project(), _clv2_main_worktree_root(), _clv2_normalize_remote_url(), _clv2_resolve_python_cmd(), _clv2_update_project_registry(), detect-project.sh script
 
 ### Community 373 - "_validate_import_url"
-Cohesion: 0.22
-Nodes (9): _fetch_import_url(), Validate remote instinct imports before opening a network connection., Fetch a validated remote instinct file with bounded size and timeout., _validate_import_url(), Remote imports should not downgrade to plaintext HTTP., Remote imports should not resolve to private or loopback addresses., test_validate_import_url_allows_public_https(), test_validate_import_url_rejects_http() (+1 more)
+Cohesion: 0.29
+Nodes (7): Validate remote instinct imports before opening a network connection., _validate_import_url(), Remote imports should not downgrade to plaintext HTTP., Remote imports should not resolve to private or loopback addresses., test_validate_import_url_allows_public_https(), test_validate_import_url_rejects_http(), test_validate_import_url_rejects_private_hosts()
 
 ### Community 374 - "Cost Report"
 Cohesion: 0.29
@@ -2290,9 +2294,9 @@ Nodes (6): Design Rationale, /learn-eval - Extract, Evaluate, then Save, Notes, 
 Cohesion: 0.29
 Nodes (6): Examples, Phase 1 — ASSESS, Phase 2 — INTERPRET & STAGE, Phase 3 — COMMIT, Phase 4 — OUTPUT, Smart Commit
 
-### Community 380 - "vertical-edge.test.mjs"
-Cohesion: 0.25
-Nodes (5): bin, __dirname, REPRO, skillRoot, tmp
+### Community 380 - "ref_node_fs"
+Cohesion: 0.05
+Nodes (28): here, repoRoot, originalRmSync, benchmark, here, repoRoot, skillRoot, tmp (+20 more)
 
 ### Community 381 - "Agent Personality"
 Cohesion: 0.06
@@ -2370,9 +2374,9 @@ Nodes (6): viewBox, items, maxItems, minItems, prefixItems, type
 Cohesion: 0.33
 Nodes (6): viewBox, items, maxItems, minItems, prefixItems, type
 
-### Community 400 - "cli.test.mjs"
-Cohesion: 0.12
-Nodes (13): cli, __dirname, skillRoot, tmp, artifactRoots, __dirname, repoRoot, skillRoot (+5 more)
+### Community 400 - "xml.mjs"
+Cohesion: 0.40
+Nodes (5): extractSvgs(), parseXml(), visit(), parse5, saxes
 
 ### Community 401 - "Third-party notices"
 Cohesion: 0.33
@@ -2674,9 +2678,9 @@ Nodes (3): title, minLength, type
 Cohesion: 0.67
 Nodes (3): y, minimum, type
 
-### Community 477 - "Marketing Growth Hacker Agent"
-Cohesion: 0.29
-Nodes (6): Core Capabilities, Decision Framework, Identity & Role Definition, Marketing Growth Hacker Agent, Specialized Skills, Success Metrics
+### Community 477 - "preset-tryon.test.mjs"
+Cohesion: 0.25
+Nodes (4): CASES, __dirname, skillRoot, tmp
 
 ### Community 478 - "label"
 Cohesion: 0.67
@@ -3614,33 +3618,45 @@ Nodes (9): CORS — Restricted Configuration, Fail-Fast Secret Bootstrap, HTTP S
 Cohesion: 0.22
 Nodes (9): 🚨 Critical Rules You Must Follow, RULE 1 — Secrets are never in code, RULE 2 — Tokens live in HttpOnly cookies, RULE 3 — JWT algorithm is fixed and verified, RULE 4 — Roles come from the IdP, always, RULE 5 — Sensitive data is never logged, RULE 6 — CORS is an allowlist, not a wildcard, RULE 7 — Every auth route has rate limiting (+1 more)
 
-### Community 740 - "finder.test.mjs"
-Cohesion: 0.29
-Nodes (4): CASES, __dirname, skillRoot, tmp
+### Community 740 - "reach-share-card.test.mjs"
+Cohesion: 0.25
+Nodes (5): CASES, __dirname, repoRoot, skillRoot, tmp
 
-### Community 741 - "semantic-lens.test.mjs"
-Cohesion: 0.29
-Nodes (4): CASES, __dirname, skillRoot, tmp
+### Community 741 - "route-journey.test.mjs"
+Cohesion: 0.25
+Nodes (5): CASES, __dirname, skillRoot, template, tmp
 
-### Community 742 - "semantic-passport.test.mjs"
-Cohesion: 0.29
-Nodes (4): CASES, __dirname, skillRoot, tmp
+### Community 742 - "route-share-card.test.mjs"
+Cohesion: 0.25
+Nodes (5): CASES, __dirname, repoRoot, skillRoot, tmp
 
 ### Community 743 - "agency-agents/SKILL.md"
-Cohesion: 0.05
-Nodes (30): Communication Style, Core Mission, Critical Rules, 🗄️ Database Optimizer, Identity & Memory, Core Capabilities, Decision Framework, Identity & Role Definition (+22 more)
+Cohesion: 0.06
+Nodes (29): Communication Style, Core Mission, Critical Rules, 🗄️ Database Optimizer, Identity & Memory, Core Capabilities, Decision Framework, Identity & Role Definition (+21 more)
 
-### Community 744 - "Paid Media Paid Social Strategist Agent"
-Cohesion: 0.25
-Nodes (7): Core Capabilities, Decision Framework, Identity & Role Definition, Paid Media Paid Social Strategist Agent, Specialized Skills, Success Metrics, Tooling & Automation
+### Community 744 - "intent-trace.test.mjs"
+Cohesion: 0.29
+Nodes (4): CASES, __dirname, skillRoot, tmp
+
+### Community 745 - "motion-governor.test.mjs"
+Cohesion: 0.29
+Nodes (4): CASES, __dirname, skillRoot, tmp
 
 ### Community 746 - "story-follow-camera.test.mjs"
 Cohesion: 0.25
 Nodes (5): CASES, __dirname, skillRoot, template, tmp
 
+### Community 747 - "route-probe.test.mjs"
+Cohesion: 0.29
+Nodes (4): CASES, __dirname, skillRoot, tmp
+
 ### Community 748 - "🔎 SAST & Secrets Detection — Full Pattern Reference"
 Cohesion: 0.25
 Nodes (8): API Security, Authentication & JWT, CORS & Headers, Database & Injection, Logging, 🔎 SAST & Secrets Detection — Full Pattern Reference, Secrets & Environment, Storage & Cookies
+
+### Community 749 - "semantic-camera.test.mjs"
+Cohesion: 0.29
+Nodes (4): CASES, __dirname, skillRoot, tmp
 
 ### Community 750 - "Refactor Clean"
 Cohesion: 0.25
@@ -3658,6 +3674,10 @@ Nodes (7): Architecture Review Checklist, Design, Evaluation, Failure Resilience
 Cohesion: 0.29
 Nodes (6): Communication Style, Learning & Accumulation, Pattern Recognition, Recruitment Specialist Agent, Success Metrics, Your Identity & Memory
 
+### Community 754 - "semantic-flow.test.mjs"
+Cohesion: 0.29
+Nodes (4): CASES, __dirname, skillRoot, tmp
+
 ### Community 755 - "🕸️ Multi-Agent Systems Architect Agent"
 Cohesion: 0.33
 Nodes (5): Core Competencies, 🚨 Critical Rules You Must Follow, 🕸️ Multi-Agent Systems Architect Agent, 💭 Your Communication Style, 🧠 Your Identity & Memory
@@ -3673,6 +3693,10 @@ Nodes (6): 🚀 Advanced Capabilities, CI/CD Security Pipeline Design, Dependenc
 ### Community 758 - "diagram-guide.test.mjs"
 Cohesion: 0.29
 Nodes (4): CASES, __dirname, skillRoot, tmp
+
+### Community 759 - "XR Interface Architect Agent Personality"
+Cohesion: 0.33
+Nodes (5): Design spatially intuitive user experiences for XR platforms, 🛠️ What You Can Do, XR Interface Architect Agent Personality, 🎯 Your Core Mission, 🧠 Your Identity & Memory
 
 ### Community 760 - "China Labor Law Compliance"
 Cohesion: 0.33
@@ -3774,10 +3798,6 @@ Nodes (4): maximum, minimum, type, bias
 Cohesion: 0.67
 Nodes (3): Recruitment Data Analytics, Recruitment Funnel Analysis, Recruitment Health Dashboard
 
-### Community 787 - "XR Immersive Developer Agent Personality"
-Cohesion: 0.33
-Nodes (5): Build immersive XR experiences across browsers and headsets, 🛠️ What You Can Do, XR Immersive Developer Agent Personality, 🎯 Your Core Mission, 🧠 Your Identity & Memory
-
 ### Community 788 - "devDependencies"
 Cohesion: 0.40
 Nodes (5): devDependencies, ajv, parse5, saxes, simple-icons
@@ -3788,7 +3808,7 @@ Nodes (5): Build cockpit-based immersive interfaces for XR users, 🛠️ What Y
 
 ## Knowledge Gaps
 - **8734 isolated node(s):** `fs`, `path`, `catalogPath`, `catalog`, `isGlobal` (+8729 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 9375 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 9376 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **42 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
@@ -3801,7 +3821,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `fs`, `path`, `catalogPath` to the rest of the system?**
   _8734 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `index.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.09581646423751687 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.09230769230769231 - nodes in this community are weakly interconnected._
 - **Should `package.json` be split into smaller, more focused modules?**
   _Cohesion score 0.07407407407407407 - nodes in this community are weakly interconnected._
 - **Should `MASTER QA & SECURITY AUDIT REPORT — AURA INVENTORY NODEJS` be split into smaller, more focused modules?**
