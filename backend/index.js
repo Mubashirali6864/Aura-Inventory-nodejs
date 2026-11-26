@@ -31,10 +31,10 @@ app.use(cors({
         if (!origin || !allowedOrigins || allowedOrigins.includes(origin.toLowerCase())) {
             return callback(null, true);
         }
-        return callback(new Error('CORS request blocked: Origin not allowed.'));
+        return callback(null, false);
     }
 }));
-app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.json({ limit: '50mb' }));
 
 // Serve React frontend (both dev and production)
 const frontendPath = path.join(__dirname, '..', 'dist');
@@ -81,7 +81,7 @@ let dbReadyPromise = null;
 const initDb = (callback) => {
     if (!dbReadyPromise || !db) {
         dbReadyPromise = new Promise((resolve, reject) => {
-            db = new sqlite3.Database(dbPath, (err) => {
+            db = new sqlite3.Database(dbPath, sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
                 if (err) {
                     console.error('Error opening database', err.message);
                     if (callback) callback(err);
@@ -89,6 +89,7 @@ const initDb = (callback) => {
                 }
                 console.log('Connected to the SQLite database.');
                 db.serialize(() => {
+                    db.run('PRAGMA busy_timeout = 5000');
                     const tables = ['products', 'customers', 'payments', 'sales', 'suppliers', 'purchases', 'supplierPayments', 'expenses', 'stockTransfers'];
                     for (const table of tables) {
                         db.run(`CREATE TABLE IF NOT EXISTS ${table} (id TEXT PRIMARY KEY, data TEXT)`);
@@ -137,6 +138,20 @@ const executeTransaction = (fn) => {
 
 
 // Backup helper: safe copy of current db
+const validateBackupFilename = (filename) => {
+    if (!filename || typeof filename !== 'string') return null;
+    const safeName = path.basename(filename);
+    if (!safeName || safeName === '.' || safeName === '..' || (!safeName.endsWith('.sqlite') && !safeName.endsWith('.db'))) {
+        return null;
+    }
+    const resolvedPath = path.resolve(backupsDir, safeName);
+    const resolvedBackupsDir = path.resolve(backupsDir);
+    if (!resolvedPath.startsWith(resolvedBackupsDir)) {
+        return null;
+    }
+    return { safeName, filePath: resolvedPath };
+};
+
 const createBackupFile = (prefix = 'backup') => {
     try {
         if (!fs.existsSync(dbPath)) return null;
@@ -147,6 +162,20 @@ const createBackupFile = (prefix = 'backup') => {
         const destPath = path.join(backupsDir, filename);
         fs.copyFileSync(dbPath, destPath);
         const stats = fs.statSync(destPath);
+
+        // Prune manual backups to max 25 to prevent disk space exhaustion attacks
+        if (prefix === 'backup-manual') {
+            const manualFiles = fs.readdirSync(backupsDir)
+                .filter(f => f.startsWith('backup-manual-') && (f.endsWith('.sqlite') || f.endsWith('.db')))
+                .map(f => ({ path: path.join(backupsDir, f), mtime: fs.statSync(path.join(backupsDir, f)).mtimeMs }))
+                .sort((a, b) => b.mtime - a.mtime);
+            if (manualFiles.length > 25) {
+                manualFiles.slice(25).forEach(f => {
+                    try { fs.unlinkSync(f.path); } catch (_) {}
+                });
+            }
+        }
+
         return {
             filename,
             size: stats.size,
@@ -653,6 +682,21 @@ app.get('/api/products', async (req, res) => {
     catch (error) { res.status(500).json({ error: error.message }); }
 });
 
+app.get('/api/products/:id', async (req, res) => {
+    try {
+        const product = await getById('products', req.params.id);
+        if (!product) return res.status(404).json({ error: 'Product not found.' });
+        if (product.supplierId) {
+            const supplier = await getById('suppliers', product.supplierId);
+            const company = (supplier ? (supplier.shopName || supplier.name) : '') || product.companyName || product.company || product.supplierName || '';
+            product.companyName = company;
+            product.company = company;
+            product.supplierName = company || product.supplierName || '';
+        }
+        res.json(product);
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
 app.post('/api/products', async (req, res) => {
     try {
         const { name, stock, purchasePrice, retailPrice, paidAmount, ...productData } = req.body || {};
@@ -664,82 +708,84 @@ app.post('/api/products', async (req, res) => {
         const parsedPurchasePrice = purchasePrice !== undefined && purchasePrice !== null ? Number(purchasePrice) : 0;
         const parsedRetailPrice = retailPrice !== undefined && retailPrice !== null ? Number(retailPrice) : 0;
 
-        if (isNaN(parsedStock) || parsedStock < 0) {
+        if (!Number.isFinite(parsedStock) || parsedStock < 0) {
             return res.status(400).json({ error: 'Stock must be a non-negative number.' });
         }
-        if (isNaN(parsedPurchasePrice) || parsedPurchasePrice < 0 || isNaN(parsedRetailPrice) || parsedRetailPrice < 0) {
+        if (!Number.isFinite(parsedPurchasePrice) || parsedPurchasePrice < 0 || !Number.isFinite(parsedRetailPrice) || parsedRetailPrice < 0) {
             return res.status(400).json({ error: 'Prices cannot be negative numbers.' });
         }
 
-        const supplier = productData.supplierId ? await getById('suppliers', productData.supplierId) : null;
-        const comp = (supplier ? (supplier.shopName || supplier.name) : '') || productData.companyName || productData.company || productData.supplierName || '';
-        const id = generateId();
-        const newProduct = {
-            ...productData,
-            name: name.trim(),
-            stock: parsedStock,
-            purchasePrice: parsedPurchasePrice,
-            retailPrice: parsedRetailPrice,
-            companyName: comp,
-            company: comp,
-            supplierName: comp || productData.supplierName || '',
-            createdAt: Date.now()
-        };
-        await insert('products', id, newProduct);
-
-        // Auto-create purchase if initial stock is added and supplier is selected
-        if (newProduct.stock > 0 && newProduct.supplierId && newProduct.purchasePrice > 0) {
-            const totalAmount = newProduct.stock * newProduct.purchasePrice;
-            const actualPaidAmount = Number(paidAmount) || 0;
-            
-            const purchaseId = generateId();
-            const date = Date.now();
-            const purchase = {
-                id: purchaseId, 
-                supplierId: newProduct.supplierId, 
-                supplierName: newProduct.companyName || newProduct.supplierName || (supplier ? (supplier.shopName || supplier.name) : 'Unknown'), 
-                totalAmount: totalAmount, 
-                paidAmount: actualPaidAmount, 
-                remainingAmount: totalAmount - actualPaidAmount, 
-                createdAt: date, 
-                shopId: newProduct.shopId || 'shop-1', 
-                items: [{
-                    productId: id,
-                    name: newProduct.name,
-                    quantity: newProduct.stock,
-                    costPrice: newProduct.purchasePrice,
-                    total: totalAmount
-                }]
+        const result = await executeTransaction(async () => {
+            const supplier = productData.supplierId ? await getById('suppliers', productData.supplierId) : null;
+            const comp = (supplier ? (supplier.shopName || supplier.name) : '') || productData.companyName || productData.company || productData.supplierName || '';
+            const id = generateId();
+            const newProduct = {
+                ...productData,
+                name: name.trim(),
+                stock: parsedStock,
+                purchasePrice: parsedPurchasePrice,
+                retailPrice: parsedRetailPrice,
+                companyName: comp,
+                company: comp,
+                supplierName: comp || productData.supplierName || '',
+                createdAt: Date.now()
             };
-            await insert('purchases', purchaseId, purchase);
+            await insert('products', id, newProduct);
 
-            if (supplier) {
-                await update('suppliers', newProduct.supplierId, {
-                    totalPurchased: (supplier.totalPurchased || 0) + totalAmount,
-                    balance: (supplier.balance || 0) + totalAmount
-                });
-            }
-
-            if (actualPaidAmount > 0) {
-                const paymentId = generateId();
-                await insert('supplierPayments', paymentId, {
-                    id: paymentId, 
+            // Auto-create purchase if initial stock is added and supplier is selected
+            if (newProduct.stock > 0 && newProduct.supplierId && newProduct.purchasePrice > 0) {
+                const totalAmount = newProduct.stock * newProduct.purchasePrice;
+                const actualPaidAmount = Number(paidAmount) || 0;
+                
+                const purchaseId = generateId();
+                const date = Date.now();
+                const purchase = {
+                    id: purchaseId, 
                     supplierId: newProduct.supplierId, 
-                    amount: actualPaidAmount, 
+                    supplierName: newProduct.companyName || newProduct.supplierName || (supplier ? (supplier.shopName || supplier.name) : 'Unknown'), 
+                    totalAmount: totalAmount, 
+                    paidAmount: actualPaidAmount, 
+                    initialPaid: actualPaidAmount,
+                    remainingAmount: totalAmount - actualPaidAmount, 
                     createdAt: date, 
-                    method: 'Cash', 
-                    note: `Immediate payment for initial stock of ${newProduct.name}`
-                });
+                    shopId: newProduct.shopId || 'shop-1', 
+                    items: [{
+                        productId: id,
+                        name: newProduct.name,
+                        quantity: newProduct.stock,
+                        costPrice: newProduct.purchasePrice,
+                        total: totalAmount
+                    }]
+                };
+                await insert('purchases', purchaseId, purchase);
+
                 if (supplier) {
                     await update('suppliers', newProduct.supplierId, {
-                        balance: (supplier.balance || 0) + totalAmount - actualPaidAmount,
-                        totalPaid: (supplier.totalPaid || 0) + actualPaidAmount
+                        totalPurchased: roundMoney((supplier.totalPurchased || 0) + totalAmount),
+                        totalPaid: roundMoney((supplier.totalPaid || 0) + actualPaidAmount),
+                        balance: roundMoney((supplier.balance || 0) + totalAmount - actualPaidAmount)
+                    });
+                }
+
+                if (actualPaidAmount > 0) {
+                    const paymentId = generateId();
+                    await insert('supplierPayments', paymentId, {
+                        id: paymentId, 
+                        supplierId: newProduct.supplierId, 
+                        purchaseId: purchaseId,
+                        isImmediate: true,
+                        amount: actualPaidAmount, 
+                        createdAt: date, 
+                        method: 'Cash', 
+                        note: `Immediate payment for initial stock of ${newProduct.name}`
                     });
                 }
             }
-        }
 
-        res.status(201).json({ id, ...newProduct });
+            return { id, ...newProduct };
+        });
+
+        res.status(201).json(result);
     } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
@@ -747,6 +793,16 @@ app.put('/api/products/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const data = req.body || {};
+        if (data.name !== undefined && (typeof data.name !== 'string' || !data.name.trim())) {
+            return res.status(400).json({ error: 'Product name cannot be empty.' });
+        }
+        if (data.stock !== undefined && (isNaN(Number(data.stock)) || Number(data.stock) < 0)) {
+            return res.status(400).json({ error: 'Stock must be a non-negative number.' });
+        }
+        if ((data.purchasePrice !== undefined && (isNaN(Number(data.purchasePrice)) || Number(data.purchasePrice) < 0)) ||
+            (data.retailPrice !== undefined && (isNaN(Number(data.retailPrice)) || Number(data.retailPrice) < 0))) {
+            return res.status(400).json({ error: 'Prices cannot be negative numbers.' });
+        }
         if (data.supplierId) {
             const supplier = await getById('suppliers', data.supplierId);
             if (supplier) {
@@ -889,6 +945,14 @@ app.get('/api/customers', async (req, res) => {
     try { res.json(await getAll('customers')); } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
+app.get('/api/customers/:id', async (req, res) => {
+    try {
+        const customer = await getById('customers', req.params.id);
+        if (!customer) return res.status(404).json({ error: 'Customer not found.' });
+        res.json(customer);
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
 app.post('/api/customers', async (req, res) => {
     try {
         const { name } = req.body || {};
@@ -911,6 +975,9 @@ app.put('/api/customers/:id', async (req, res) => {
         }
         // Protect financial ledger fields from direct manual tampering
         const { balance, totalPurchased, totalPaid, ...safeUpdates } = req.body || {};
+        if (safeUpdates.name !== undefined && (typeof safeUpdates.name !== 'string' || !safeUpdates.name.trim())) {
+            return res.status(400).json({ error: 'Customer name cannot be empty.' });
+        }
         await update('customers', id, stripUndefined(safeUpdates));
         const updated = await getById('customers', id);
         res.json(updated);
@@ -1083,65 +1150,66 @@ app.post('/api/payments', async (req, res) => {
     } catch (error) { res.status(error.status || 500).json({ error: error.message }); }
 });
 
+const voidCustomerPayment = async (paymentId) => {
+    const payment = await getById('payments', paymentId);
+    if (!payment) {
+        const err = new Error('Payment not found');
+        err.status = 404;
+        throw err;
+    }
+    if (payment.isVoided) {
+        const err = new Error('Payment is already voided');
+        err.status = 400;
+        throw err;
+    }
+    const payAmount = Number(payment.amount) || 0;
+    let sale = null;
+    if (payment.saleId) {
+        sale = await getById('sales', payment.saleId);
+        if (sale) {
+            const currentRemaining = roundMoney(Number(sale.remainingBalance ?? sale.customerDetails?.remainingBalance ?? 0));
+            const currentPaid = roundMoney(Number(sale.amountPaid ?? sale.customerDetails?.amountPaid ?? 0));
+            const saleTotal = roundMoney(Number(sale.total) || (currentRemaining + payAmount));
+            const newRemaining = roundMoney(Math.min(saleTotal, currentRemaining + payAmount));
+            const newPaid = roundMoney(Math.max(0, currentPaid - payAmount));
+            const newStatus = newPaid <= 0 ? 'Pending' : 'Partial';
+            await update('sales', payment.saleId, {
+                remainingBalance: newRemaining,
+                amountPaid: newPaid,
+                paymentType: newStatus,
+                customerDetails: {
+                    ...sale.customerDetails,
+                    remainingBalance: newRemaining,
+                    amountPaid: newPaid,
+                    paymentType: newStatus
+                }
+            });
+        }
+    }
+
+    let targetCustId = payment.customerId && payment.customerId !== 'walk-in' ? payment.customerId : (sale?.customerId);
+    let customer = targetCustId ? await getById('customers', targetCustId) : null;
+    if (!customer) {
+        const allCusts = await getAll('customers');
+        const searchName = payment.customerName || sale?.customerName || (sale?.customerDetails?.name);
+        if (searchName) {
+            customer = allCusts.find(c => c.name && c.name.trim().toLowerCase() === searchName.trim().toLowerCase());
+            if (customer) targetCustId = customer.id;
+        }
+    }
+    if (customer && targetCustId) {
+        await update('customers', targetCustId, {
+            balance: roundMoney((Number(customer.balance) || 0) + payAmount),
+            totalPaid: roundMoney(Math.max(0, (Number(customer.totalPaid) || 0) - payAmount))
+        });
+    }
+    await update('payments', paymentId, { isVoided: true, status: 'Voided', voidedAt: Date.now() });
+    return { message: 'Customer payment voided successfully', isVoided: true, payment };
+};
+
 app.delete('/api/payments/:id', async (req, res) => {
     try {
-        const paymentId = req.params.id;
-        const result = await executeTransaction(async () => {
-            const payment = await getById('payments', paymentId);
-            if (!payment) {
-                const err = new Error('Payment not found');
-                err.status = 404;
-                throw err;
-            }
-            if (payment.isVoided) {
-                const err = new Error('Payment is already voided');
-                err.status = 400;
-                throw err;
-            }
-            const payAmount = Number(payment.amount) || 0;
-            let sale = null;
-            if (payment.saleId) {
-                sale = await getById('sales', payment.saleId);
-                if (sale) {
-                    const currentRemaining = roundMoney(Number(sale.remainingBalance ?? sale.customerDetails?.remainingBalance ?? 0));
-                    const currentPaid = roundMoney(Number(sale.amountPaid ?? sale.customerDetails?.amountPaid ?? 0));
-                    const saleTotal = roundMoney(Number(sale.total) || (currentRemaining + payAmount));
-                    const newRemaining = roundMoney(Math.min(saleTotal, currentRemaining + payAmount));
-                    const newPaid = roundMoney(Math.max(0, currentPaid - payAmount));
-                    const newStatus = newPaid <= 0 ? 'Pending' : 'Partial';
-                    await update('sales', payment.saleId, {
-                        remainingBalance: newRemaining,
-                        amountPaid: newPaid,
-                        paymentType: newStatus,
-                        customerDetails: {
-                            ...sale.customerDetails,
-                            remainingBalance: newRemaining,
-                            amountPaid: newPaid,
-                            paymentType: newStatus
-                        }
-                    });
-                }
-            }
-
-            let targetCustId = payment.customerId && payment.customerId !== 'walk-in' ? payment.customerId : (sale?.customerId);
-            let customer = targetCustId ? await getById('customers', targetCustId) : null;
-            if (!customer) {
-                const allCusts = await getAll('customers');
-                const searchName = payment.customerName || sale?.customerName || (sale?.customerDetails?.name);
-                if (searchName) {
-                    customer = allCusts.find(c => c.name && c.name.trim().toLowerCase() === searchName.trim().toLowerCase());
-                    if (customer) targetCustId = customer.id;
-                }
-            }
-            if (customer && targetCustId) {
-                await update('customers', targetCustId, {
-                    balance: roundMoney((Number(customer.balance) || 0) + payAmount),
-                    totalPaid: roundMoney(Math.max(0, (Number(customer.totalPaid) || 0) - payAmount))
-                });
-            }
-            await update('payments', paymentId, { isVoided: true, status: 'Voided', voidedAt: Date.now() });
-            return { message: 'Customer payment voided successfully', isVoided: true };
-        });
+        const result = await executeTransaction(() => voidCustomerPayment(req.params.id));
         res.json(result);
     } catch (err) { res.status(err.status || 500).json({ error: err.message }); }
 });
@@ -1155,6 +1223,14 @@ app.get('/api/sales', async (req, res) => {
         const sales = await getAll('sales');
         const filtered = req.query.includeVoided === 'true' ? sales : sales.filter(s => !s.isVoided);
         res.json(filtered);
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.get('/api/sales/:id', async (req, res) => {
+    try {
+        const sale = await getById('sales', req.params.id);
+        if (!sale) return res.status(404).json({ error: 'Sale not found.' });
+        res.json(sale);
     } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
@@ -1186,24 +1262,31 @@ app.post('/api/sales', async (req, res) => {
     try {
         const { items, total, customerDetails = {}, shopId, type } = req.body || {};
 
-        if (!Array.isArray(items) || items.length === 0) {
-            return res.status(400).json({ error: 'Sales order must contain at least one item.' });
+        if (!Array.isArray(items) || items.length === 0 || items.length > 500) {
+            return res.status(400).json({ error: 'Sales order must contain between 1 and 500 items.' });
+        }
+
+        if (customerDetails.amountPaid !== undefined && customerDetails.amountPaid !== null) {
+            const parsedPaid = Number(customerDetails.amountPaid);
+            if (!Number.isFinite(parsedPaid) || parsedPaid < 0) {
+                return res.status(400).json({ error: 'Amount paid must be a valid non-negative number.' });
+            }
         }
 
         for (const item of items) {
             const qty = Number(item.quantity);
-            if (isNaN(qty) || qty <= 0) {
+            if (!Number.isFinite(qty) || qty <= 0) {
                 return res.status(400).json({ error: `Invalid item quantity (${item.quantity}). Quantity must be a positive number.` });
             }
             const price = Number(item.price ?? item.salePrice ?? item.costPrice ?? 0);
-            if (isNaN(price) || price < 0) {
+            if (!Number.isFinite(price) || price < 0) {
                 return res.status(400).json({ error: `Invalid item price (${item.price}). Price cannot be negative.` });
             }
         }
 
         // Server-side recomputation of invoice total from line items with 2-decimal precision
         const computedItemTotal = roundMoney(items.reduce((sum, item) => {
-            if (item.total !== undefined && item.total !== null && !isNaN(Number(item.total))) {
+            if (item.total !== undefined && item.total !== null && Number.isFinite(Number(item.total))) {
                 return sum + Number(item.total);
             }
             const qty = Number(item.quantity) || 0;
@@ -1214,11 +1297,11 @@ app.post('/api/sales', async (req, res) => {
                 ? Number(item.halfSheetPrice)
                 : (hasHalfSheet ? fullRate / 2 : 0);
             const lineTotal = hasHalfSheet ? (fullSheets * fullRate + halfPrice) : (qty * fullRate);
-            return sum + (isNaN(lineTotal) ? 0 : lineTotal);
+            return sum + (Number.isFinite(lineTotal) ? lineTotal : 0);
         }, 0));
 
-        const parsedTotal = total !== undefined && !isNaN(Number(total)) ? roundMoney(total) : computedItemTotal;
-        if (parsedTotal < 0) {
+        const parsedTotal = total !== undefined && Number.isFinite(Number(total)) ? roundMoney(total) : computedItemTotal;
+        if (!Number.isFinite(parsedTotal) || parsedTotal < 0) {
             return res.status(400).json({ error: 'Total amount must be a non-negative number.' });
         }
         // Integrity check: If total is supplied, verify it doesn't deviate from line items sum
@@ -1514,107 +1597,108 @@ app.post('/api/sales', async (req, res) => {
     } catch (error) { res.status(error.status || 500).json({ error: error.message }); }
 });
 
-app.delete('/api/sales/:id', async (req, res) => {
-    try {
-        const saleId = req.params.id;
-        const result = await executeTransaction(async () => {
-            const sale = await getById('sales', saleId);
-            if (!sale) {
-                const err = new Error('Sale not found');
-                err.status = 404;
-                throw err;
+const voidSale = async (saleId) => {
+    const sale = await getById('sales', saleId);
+    if (!sale) {
+        const err = new Error('Sale not found');
+        err.status = 404;
+        throw err;
+    }
+    if (sale.isVoided) {
+        const err = new Error('Transaction is already voided');
+        err.status = 400;
+        throw err;
+    }
+    // 1. Revert product stock (if Sale, restore stock; if Return, deduct stock)
+    if (sale.type !== 'Quotation' && sale.items && Array.isArray(sale.items)) {
+        for (const item of sale.items) {
+            const pid = item.id || item.productId;
+            if (!pid) continue;
+            const product = await getById('products', pid);
+            if (product) {
+                const stockChange = sale.type === 'Return' ? -(Number(item.quantity) || 0) : (Number(item.quantity) || 0);
+                await update('products', pid, { stock: Math.max(0, (product.stock || 0) + stockChange) });
             }
-            if (sale.isVoided) {
-                const err = new Error('Transaction is already voided');
-                err.status = 400;
-                throw err;
-            }
-            // 1. Revert product stock (if Sale, restore stock; if Return, deduct stock)
-            if (sale.type !== 'Quotation' && sale.items && Array.isArray(sale.items)) {
-                for (const item of sale.items) {
-                    const pid = item.id || item.productId;
-                    if (!pid) continue;
-                    const product = await getById('products', pid);
-                    if (product) {
-                        const stockChange = sale.type === 'Return' ? -(Number(item.quantity) || 0) : (Number(item.quantity) || 0);
-                        await update('products', pid, { stock: Math.max(0, (product.stock || 0) + stockChange) });
+        }
+    }
+    // If Return, decrement returnedQuantity on original sale line items AND restore originalSale remaining balance/payment status
+    if (sale.type === 'Return' && sale.originalSaleId) {
+        const origSale = await getById('sales', sale.originalSaleId);
+        if (origSale) {
+            let revertedOrigItems = origSale.items;
+            if (Array.isArray(origSale.items)) {
+                revertedOrigItems = origSale.items.map(origItem => {
+                    const pid = origItem.id || origItem.productId;
+                    const match = (sale.items || []).find(it => (it.id || it.productId) === pid || it.name === origItem.name);
+                    if (match) {
+                        const newReturned = Math.max(0, (origItem.returnedQuantity || 0) - (Number(match.quantity) || 0));
+                        return { ...origItem, returnedQuantity: newReturned };
                     }
-                }
+                    return origItem;
+                });
             }
-            // If Return, decrement returnedQuantity on original sale line items AND restore originalSale remaining balance/payment status
-            if (sale.type === 'Return' && sale.originalSaleId) {
-                const origSale = await getById('sales', sale.originalSaleId);
-                if (origSale) {
-                    let revertedOrigItems = origSale.items;
-                    if (Array.isArray(origSale.items)) {
-                        revertedOrigItems = origSale.items.map(origItem => {
-                            const pid = origItem.id || origItem.productId;
-                            const match = (sale.items || []).find(it => (it.id || it.productId) === pid || it.name === origItem.name);
-                            if (match) {
-                                const newReturned = Math.max(0, (origItem.returnedQuantity || 0) - (Number(match.quantity) || 0));
-                                return { ...origItem, returnedQuantity: newReturned };
-                            }
-                            return origItem;
-                        });
-                    }
-                    const revertedReturnIds = (origSale.returnIds || []).filter(rid => rid !== saleId);
-                    const debtCredited = Number(sale.debtCredited ?? sale.customerDetails?.debtCredited ?? (sale.total || 0));
-                    const cashRefunded = Number(sale.initialPaid ?? sale.amountPaid) || 0;
-                    const restoredRemaining = roundMoney((Number(origSale.remainingBalance) || 0) + debtCredited);
-                    const restoredPaid = roundMoney((Number(origSale.amountPaid) || 0) + cashRefunded);
-                    const restoredStatus = restoredRemaining <= 0 ? 'Full' : (restoredPaid <= 0 ? 'Pending' : 'Partial');
+            const revertedReturnIds = (origSale.returnIds || []).filter(rid => rid !== saleId);
+            const debtCredited = Number(sale.debtCredited ?? sale.customerDetails?.debtCredited ?? (sale.total || 0));
+            const cashRefunded = Number(sale.initialPaid ?? sale.amountPaid) || 0;
+            const restoredRemaining = roundMoney((Number(origSale.remainingBalance) || 0) + debtCredited);
+            const restoredPaid = roundMoney((Number(origSale.amountPaid) || 0) + cashRefunded);
+            const restoredStatus = restoredRemaining <= 0 ? 'Full' : (restoredPaid <= 0 ? 'Pending' : 'Partial');
 
-                    await update('sales', sale.originalSaleId, {
-                        items: revertedOrigItems,
-                        returnIds: revertedReturnIds,
-                        remainingBalance: restoredRemaining,
-                        amountPaid: restoredPaid,
-                        paymentType: restoredStatus,
-                        customerDetails: {
-                            ...(origSale.customerDetails || {}),
-                            remainingBalance: restoredRemaining,
-                            amountPaid: restoredPaid,
-                            paymentType: restoredStatus
-                        }
-                    });
+            await update('sales', sale.originalSaleId, {
+                items: revertedOrigItems,
+                returnIds: revertedReturnIds,
+                remainingBalance: restoredRemaining,
+                amountPaid: restoredPaid,
+                paymentType: restoredStatus,
+                customerDetails: {
+                    ...(origSale.customerDetails || {}),
+                    remainingBalance: restoredRemaining,
+                    amountPaid: restoredPaid,
+                    paymentType: restoredStatus
                 }
-            }
-            // 2. Revert customer balance if applicable
-            if (sale.customerId && sale.type !== 'Quotation') {
+            });
+        }
+    }
+    // 2. Revert customer balance if applicable
+    if (sale.customerId && sale.type !== 'Quotation') {
+        const customer = await getById('customers', sale.customerId);
+        if (customer) {
+            const isReturn = sale.type === 'Return';
+            const saleTotal = Number(sale.total) || 0;
+            const debtCredited = Number(sale.debtCredited ?? sale.customerDetails?.debtCredited ?? (isReturn ? (sale.total || 0) : 0));
+            const saleRem = isReturn ? debtCredited : (Number(sale.remainingBalance) || 0);
+            const salePaid = Number(sale.initialPaid ?? sale.amountPaid) || 0;
+            await update('customers', sale.customerId, {
+                balance: roundMoney((customer.balance || 0) + (isReturn ? debtCredited : -saleRem)),
+                totalPurchased: roundMoney((customer.totalPurchased || 0) + (isReturn ? saleTotal : -saleTotal)),
+                totalPaid: roundMoney((customer.totalPaid || 0) + (isReturn ? salePaid : -salePaid))
+            });
+        }
+    }
+    // 3. Cleanly void linked customer settlement payments
+    const allPayments = await getAll('payments');
+    for (const p of allPayments) {
+        if (p.saleId === saleId && !p.isVoided) {
+            await update('payments', p.id, { isVoided: true, status: 'Voided', voidedAt: Date.now() });
+            if (sale.customerId && sale.customerId !== 'walk-in') {
                 const customer = await getById('customers', sale.customerId);
                 if (customer) {
-                    const isReturn = sale.type === 'Return';
-                    const saleTotal = Number(sale.total) || 0;
-                    const debtCredited = Number(sale.debtCredited ?? sale.customerDetails?.debtCredited ?? (isReturn ? (sale.total || 0) : 0));
-                    const saleRem = isReturn ? debtCredited : (Number(sale.remainingBalance) || 0);
-                    const salePaid = Number(sale.initialPaid ?? sale.amountPaid) || 0;
                     await update('customers', sale.customerId, {
-                        balance: roundMoney((customer.balance || 0) + (isReturn ? debtCredited : -saleRem)),
-                        totalPurchased: roundMoney((customer.totalPurchased || 0) + (isReturn ? saleTotal : -saleTotal)),
-                        totalPaid: roundMoney((customer.totalPaid || 0) + (isReturn ? salePaid : -salePaid))
+                        balance: roundMoney((customer.balance || 0) + (Number(p.amount) || 0)),
+                        totalPaid: roundMoney(Math.max(0, (customer.totalPaid || 0) - (Number(p.amount) || 0)))
                     });
                 }
             }
-            // 3. Cleanly void linked customer settlement payments
-            const allPayments = await getAll('payments');
-            for (const p of allPayments) {
-                if (p.saleId === saleId && !p.isVoided) {
-                    await update('payments', p.id, { isVoided: true, status: 'Voided', voidedAt: Date.now() });
-                    if (sale.customerId && sale.customerId !== 'walk-in') {
-                        const customer = await getById('customers', sale.customerId);
-                        if (customer) {
-                            await update('customers', sale.customerId, {
-                                balance: roundMoney((customer.balance || 0) + (Number(p.amount) || 0)),
-                                totalPaid: roundMoney(Math.max(0, (customer.totalPaid || 0) - (Number(p.amount) || 0)))
-                            });
-                        }
-                    }
-                }
-            }
-            // 4. Soft-delete / retain row marked voided
-            await update('sales', saleId, { isVoided: true, status: 'Voided', voidedAt: Date.now() });
-            return { message: 'Transaction voided successfully', isVoided: true };
-        });
+        }
+    }
+    // 4. Soft-delete / retain row marked voided
+    await update('sales', saleId, { isVoided: true, status: 'Voided', voidedAt: Date.now() });
+    return { message: 'Transaction voided successfully', isVoided: true, sale };
+};
+
+app.delete('/api/sales/:id', async (req, res) => {
+    try {
+        const result = await executeTransaction(() => voidSale(req.params.id));
         res.json(result);
     } catch (err) { res.status(err.status || 500).json({ error: err.message }); }
 });
@@ -1625,6 +1709,14 @@ app.delete('/api/sales/:id', async (req, res) => {
 
 app.get('/api/suppliers', async (req, res) => {
     try { res.json(await getAll('suppliers')); } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.get('/api/suppliers/:id', async (req, res) => {
+    try {
+        const supplier = await getById('suppliers', req.params.id);
+        if (!supplier) return res.status(404).json({ error: 'Supplier not found.' });
+        res.json(supplier);
+    } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
 app.post('/api/suppliers', async (req, res) => {
@@ -1649,6 +1741,9 @@ app.put('/api/suppliers/:id', async (req, res) => {
         }
         // Protect financial ledger fields from direct manual tampering
         const { balance, totalPurchased, totalPaid, ...safeUpdates } = req.body || {};
+        if (safeUpdates.name !== undefined && (typeof safeUpdates.name !== 'string' || !safeUpdates.name.trim())) {
+            return res.status(400).json({ error: 'Supplier name cannot be empty.' });
+        }
         await update('suppliers', id, stripUndefined(safeUpdates));
         const updated = await getById('suppliers', id);
         res.json(updated);
@@ -1671,6 +1766,14 @@ app.get('/api/purchases', async (req, res) => {
         const purchases = await getAll('purchases');
         const filtered = req.query.includeVoided === 'true' ? purchases : purchases.filter(p => !p.isVoided);
         res.json(filtered);
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.get('/api/purchases/:id', async (req, res) => {
+    try {
+        const purchase = await getById('purchases', req.params.id);
+        if (!purchase) return res.status(404).json({ error: 'Purchase not found.' });
+        res.json(purchase);
     } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
@@ -1801,62 +1904,63 @@ app.post('/api/purchases', async (req, res) => {
     } catch (error) { res.status(error.status || 500).json({ error: error.message }); }
 });
 
+const voidPurchase = async (purchaseId) => {
+    const purchase = await getById('purchases', purchaseId);
+    if (!purchase) {
+        const err = new Error('Purchase not found');
+        err.status = 404;
+        throw err;
+    }
+    if (purchase.isVoided) {
+        const err = new Error('Purchase is already voided');
+        err.status = 400;
+        throw err;
+    }
+    // 1. Revert product stock
+    if (!purchase.isAdjustment && purchase.items && Array.isArray(purchase.items)) {
+        for (const item of purchase.items) {
+            const pid = item.productId || item.id;
+            if (!pid || pid === 'adjustment') continue;
+            const product = await getById('products', pid);
+            if (product) {
+                const newStock = Math.max(0, (product.stock || 0) - (Number(item.quantity) || 0));
+                await update('products', pid, { stock: newStock });
+            }
+        }
+    }
+    // 2. Revert supplier balance & totals
+    if (purchase.supplierId) {
+        const supplier = await getById('suppliers', purchase.supplierId);
+        if (supplier) {
+            const purTotal = Number(purchase.totalAmount) || 0;
+            const purPaid = Number(purchase.paidAmount) || 0;
+            const purRemaining = Number(purchase.remainingAmount) || (purTotal - purPaid);
+            await update('suppliers', purchase.supplierId, {
+                totalPurchased: roundMoney(Math.max(0, (Number(supplier.totalPurchased) || 0) - purTotal)),
+                totalPaid: roundMoney(Math.max(0, (Number(supplier.totalPaid) || 0) - purPaid)),
+                balance: roundMoney(Math.max(0, (Number(supplier.balance) || 0) - purRemaining))
+            });
+        }
+    }
+    // 3. Void linked immediate payments, unlink later payments
+    const allSupPayments = await getAll('supplierPayments');
+    for (const sp of allSupPayments) {
+        if (sp.purchaseId === purchaseId && !sp.isVoided) {
+            if (sp.isImmediate) {
+                await update('supplierPayments', sp.id, { isVoided: true, status: 'Voided', voidedAt: Date.now() });
+            } else {
+                await update('supplierPayments', sp.id, { purchaseId: null });
+            }
+        }
+    }
+    // 4. Soft-delete / retain row marked voided
+    await update('purchases', purchaseId, { isVoided: true, status: 'Voided', voidedAt: Date.now() });
+    return { message: 'Purchase voided successfully', isVoided: true, purchase };
+};
+
 app.delete('/api/purchases/:id', async (req, res) => {
     try {
-        const purchaseId = req.params.id;
-        const result = await executeTransaction(async () => {
-            const purchase = await getById('purchases', purchaseId);
-            if (!purchase) {
-                const err = new Error('Purchase not found');
-                err.status = 404;
-                throw err;
-            }
-            if (purchase.isVoided) {
-                const err = new Error('Purchase is already voided');
-                err.status = 400;
-                throw err;
-            }
-            // 1. Revert product stock
-            if (!purchase.isAdjustment && purchase.items && Array.isArray(purchase.items)) {
-                for (const item of purchase.items) {
-                    const pid = item.productId || item.id;
-                    if (!pid || pid === 'adjustment') continue;
-                    const product = await getById('products', pid);
-                    if (product) {
-                        const newStock = Math.max(0, (product.stock || 0) - (Number(item.quantity) || 0));
-                        await update('products', pid, { stock: newStock });
-                    }
-                }
-            }
-            // 2. Revert supplier balance & totals
-            if (purchase.supplierId) {
-                const supplier = await getById('suppliers', purchase.supplierId);
-                if (supplier) {
-                    const purTotal = Number(purchase.totalAmount) || 0;
-                    const purPaid = Number(purchase.paidAmount) || 0;
-                    const purRemaining = Number(purchase.remainingAmount) || (purTotal - purPaid);
-                    await update('suppliers', purchase.supplierId, {
-                        totalPurchased: roundMoney(Math.max(0, (Number(supplier.totalPurchased) || 0) - purTotal)),
-                        totalPaid: roundMoney(Math.max(0, (Number(supplier.totalPaid) || 0) - purPaid)),
-                        balance: roundMoney(Math.max(0, (Number(supplier.balance) || 0) - purRemaining))
-                    });
-                }
-            }
-            // 3. Void linked immediate payments, unlink later payments
-            const allSupPayments = await getAll('supplierPayments');
-            for (const sp of allSupPayments) {
-                if (sp.purchaseId === purchaseId && !sp.isVoided) {
-                    if (sp.isImmediate) {
-                        await update('supplierPayments', sp.id, { isVoided: true, status: 'Voided', voidedAt: Date.now() });
-                    } else {
-                        await update('supplierPayments', sp.id, { purchaseId: null });
-                    }
-                }
-            }
-            // 4. Soft-delete / retain row marked voided
-            await update('purchases', purchaseId, { isVoided: true, status: 'Voided', voidedAt: Date.now() });
-            return { message: 'Purchase voided successfully', isVoided: true };
-        });
+        const result = await executeTransaction(() => voidPurchase(req.params.id));
         res.json(result);
     } catch (err) { res.status(err.status || 500).json({ error: err.message }); }
 });
@@ -1953,45 +2057,46 @@ app.post('/api/supplier-payments', async (req, res) => {
     } catch (error) { res.status(error.status || 500).json({ error: error.message }); }
 });
 
+const voidSupplierPayment = async (paymentId) => {
+    const payment = await getById('supplierPayments', paymentId);
+    if (!payment) {
+        const err = new Error('Supplier payment not found');
+        err.status = 404;
+        throw err;
+    }
+    if (payment.isVoided) {
+        const err = new Error('Supplier payment is already voided');
+        err.status = 400;
+        throw err;
+    }
+    const payAmount = Number(payment.amount) || 0;
+    if (payment.supplierId) {
+        const supplier = await getById('suppliers', payment.supplierId);
+        if (supplier) {
+            await update('suppliers', payment.supplierId, {
+                balance: roundMoney((Number(supplier.balance) || 0) + payAmount),
+                totalPaid: roundMoney(Math.max(0, (Number(supplier.totalPaid) || 0) - payAmount))
+            });
+        }
+    }
+    if (payment.purchaseId) {
+        const purchase = await getById('purchases', payment.purchaseId);
+        if (purchase) {
+            const newPaid = Math.max(0, (Number(purchase.paidAmount) || 0) - payAmount);
+            const newRem = Math.min(Number(purchase.totalAmount) || 0, (Number(purchase.remainingAmount) || 0) + payAmount);
+            await update('purchases', payment.purchaseId, {
+                paidAmount: newPaid,
+                remainingAmount: newRem
+            });
+        }
+    }
+    await update('supplierPayments', paymentId, { isVoided: true, status: 'Voided', voidedAt: Date.now() });
+    return { message: 'Supplier payment voided successfully', isVoided: true, payment };
+};
+
 app.delete('/api/supplier-payments/:id', async (req, res) => {
     try {
-        const paymentId = req.params.id;
-        const result = await executeTransaction(async () => {
-            const payment = await getById('supplierPayments', paymentId);
-            if (!payment) {
-                const err = new Error('Supplier payment not found');
-                err.status = 404;
-                throw err;
-            }
-            if (payment.isVoided) {
-                const err = new Error('Supplier payment is already voided');
-                err.status = 400;
-                throw err;
-            }
-            const payAmount = Number(payment.amount) || 0;
-            if (payment.supplierId) {
-                const supplier = await getById('suppliers', payment.supplierId);
-                if (supplier) {
-                    await update('suppliers', payment.supplierId, {
-                        balance: roundMoney((Number(supplier.balance) || 0) + payAmount),
-                        totalPaid: roundMoney(Math.max(0, (Number(supplier.totalPaid) || 0) - payAmount))
-                    });
-                }
-            }
-            if (payment.purchaseId) {
-                const purchase = await getById('purchases', payment.purchaseId);
-                if (purchase) {
-                    const newPaid = Math.max(0, (Number(purchase.paidAmount) || 0) - payAmount);
-                    const newRem = Math.min(Number(purchase.totalAmount) || 0, (Number(purchase.remainingAmount) || 0) + payAmount);
-                    await update('purchases', payment.purchaseId, {
-                        paidAmount: newPaid,
-                        remainingAmount: newRem
-                    });
-                }
-            }
-            await update('supplierPayments', paymentId, { isVoided: true, status: 'Voided', voidedAt: Date.now() });
-            return { message: 'Supplier payment voided successfully', isVoided: true };
-        });
+        const result = await executeTransaction(() => voidSupplierPayment(req.params.id));
         res.json(result);
     } catch (err) { res.status(err.status || 500).json({ error: err.message }); }
 });
@@ -2090,13 +2195,12 @@ app.post('/api/backups/create', (req, res) => {
 // Download a backup file
 app.get('/api/backups/download/:filename', (req, res) => {
     try {
-        const safeName = path.basename(req.params.filename);
-        const filePath = path.join(backupsDir, safeName);
-        if (!fs.existsSync(filePath)) {
+        const validated = validateBackupFilename(req.params.filename);
+        if (!validated || !fs.existsSync(validated.filePath)) {
             return res.status(404).json({ error: 'Backup file not found.' });
         }
         res.setHeader('Content-Type', 'application/x-sqlite3');
-        res.download(filePath, safeName);
+        res.download(validated.filePath, validated.safeName);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -2109,10 +2213,9 @@ app.post('/api/backups/restore', async (req, res) => {
         if (!filename) {
             return res.status(400).json({ error: 'Filename is required for database restore.' });
         }
-        const safeName = path.basename(filename);
-        const sourcePath = path.join(backupsDir, safeName);
-        if (!fs.existsSync(sourcePath)) {
-            return res.status(404).json({ error: `Backup file ${safeName} does not exist.` });
+        const validated = validateBackupFilename(filename);
+        if (!validated || !fs.existsSync(validated.filePath)) {
+            return res.status(404).json({ error: `Backup file ${filename} does not exist.` });
         }
 
         // 1. Automatically create a safety backup of current state first
@@ -2126,7 +2229,7 @@ app.post('/api/backups/restore', async (req, res) => {
         }
 
         // 3. Replace database.sqlite with the selected backup
-        fs.copyFileSync(sourcePath, dbPath);
+        fs.copyFileSync(validated.filePath, dbPath);
 
         // 4. Re-initialize database
         await new Promise((resolve, reject) => {
@@ -2136,10 +2239,49 @@ app.post('/api/backups/restore', async (req, res) => {
             });
         });
 
-        console.log(`[Backup] Successfully switched database to: ${safeName}`);
-        res.json({ success: true, message: `Database successfully restored to ${safeName}` });
+        console.log(`[Backup] Successfully switched database to: ${validated.safeName}`);
+        res.json({ success: true, message: `Database successfully restored to ${validated.safeName}` });
     } catch (error) {
         console.error('[Backup] Restore error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Import / Upload a database backup file (.sqlite)
+app.post('/api/backups/import', async (req, res) => {
+    try {
+        const { filename, data, restoreNow } = req.body || {};
+        if (!data) {
+            return res.status(400).json({ error: 'No backup file data provided.' });
+        }
+        const buffer = Buffer.from(data, 'base64');
+        if (buffer.length < 16 || buffer.subarray(0, 15).toString() !== 'SQLite format 3') {
+            return res.status(400).json({ error: 'Invalid file format. The uploaded file is not a valid SQLite database.' });
+        }
+
+        const safePrefix = 'backup-imported-' + Date.now();
+        const safeName = safePrefix + '.sqlite';
+        const targetPath = path.join(backupsDir, safeName);
+        fs.writeFileSync(targetPath, buffer);
+
+        if (restoreNow) {
+            createBackupFile('pre-restore-safety');
+            if (db) {
+                await new Promise(resolve => db.close(() => resolve()));
+                db = null;
+                dbReadyPromise = null;
+            }
+            fs.copyFileSync(targetPath, dbPath);
+            await new Promise((resolve, reject) => {
+                initDb(err => err ? reject(err) : resolve());
+            });
+            console.log(`[Backup] Successfully imported and restored database from: ${safeName}`);
+            return res.json({ success: true, message: 'Database successfully imported and restored!', filename: safeName });
+        }
+
+        res.json({ success: true, message: `Backup file uploaded successfully as ${safeName}`, filename: safeName });
+    } catch (error) {
+        console.error('[Backup Import Error]:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -2273,138 +2415,24 @@ app.post('/api/undo/last-transaction', async (req, res) => {
 
         let result;
         if (targetType === 'sale') {
-            const sale = await getById('sales', targetId);
-            if (!sale) return res.status(404).json({ error: 'Sale not found' });
-            if (sale.isVoided) return res.status(400).json({ error: 'Sale is already voided' });
             result = await executeTransaction(async () => {
-                if (sale.type !== 'Quotation' && Array.isArray(sale.items)) {
-                    for (const item of sale.items) {
-                        const pid = item.id || item.productId;
-                        if (!pid) continue;
-                        const product = await getById('products', pid);
-                        if (product) {
-                            const stockChange = sale.type === 'Return' ? -(Number(item.quantity) || 0) : (Number(item.quantity) || 0);
-                            await update('products', pid, { stock: Math.max(0, (product.stock || 0) + stockChange) });
-                        }
-                    }
-                }
-                if (sale.customerId) {
-                    const customer = await getById('customers', sale.customerId);
-                    if (customer) {
-                        const total = Number(sale.total) || 0;
-                        const remaining = Number(sale.remainingAmount != null ? sale.remainingAmount : (total - (Number(sale.amountPaid) || 0)));
-                        const newBal = sale.type === 'Return' ? (Number(customer.balance) || 0) + total : (Number(customer.balance) || 0) - remaining;
-                        await update('customers', sale.customerId, {
-                            balance: roundMoney(newBal),
-                            totalPurchases: roundMoney(Math.max(0, (Number(customer.totalPurchases) || 0) - total))
-                        });
-                    }
-                }
-                await update('sales', targetId, { isVoided: true, status: 'Voided', voidedAt: Date.now() });
-                return { message: `Sale ${sale.invoiceNumber || targetId.substring(0,8)} undone successfully! Stock and customer balance restored.` };
+                const res = await voidSale(targetId);
+                const invLabel = res.sale?.invoiceNumber || targetId.substring(0, 8);
+                return { message: `Sale #${invLabel} undone successfully! Stock and customer balance restored.` };
             });
         } else if (targetType === 'purchase') {
-            const purchase = await getById('purchases', targetId);
-            if (!purchase) return res.status(404).json({ error: 'Purchase not found' });
-            if (purchase.isVoided) return res.status(400).json({ error: 'Purchase is already voided' });
             result = await executeTransaction(async () => {
-                if (Array.isArray(purchase.items)) {
-                    for (const item of purchase.items) {
-                        const pid = item.id || item.productId;
-                        if (!pid) continue;
-                        const product = await getById('products', pid);
-                        if (product) {
-                            await update('products', pid, { stock: Math.max(0, (product.stock || 0) - (Number(item.quantity) || 0)) });
-                        }
-                    }
-                }
-                if (purchase.supplierId) {
-                    const supplier = await getById('suppliers', purchase.supplierId);
-                    if (supplier) {
-                        const remaining = Number(purchase.remainingAmount != null ? purchase.remainingAmount : ((Number(purchase.totalAmount) || 0) - (Number(purchase.paidAmount) || 0)));
-                        await update('suppliers', purchase.supplierId, {
-                            balance: roundMoney(Math.max(0, (Number(supplier.balance) || 0) - remaining)),
-                            totalPurchases: roundMoney(Math.max(0, (Number(supplier.totalPurchases) || 0) - (Number(purchase.totalAmount) || 0)))
-                        });
-                    }
-                }
-                await update('purchases', targetId, { isVoided: true, status: 'Voided', voidedAt: Date.now() });
-                return { message: `Purchase #${targetId.substring(0,8)} undone successfully! Stock and supplier balance reverted.` };
+                await voidPurchase(targetId);
+                return { message: `Purchase #${targetId.substring(0, 8)} undone successfully! Stock and supplier balance reverted.` };
             });
         } else if (targetType === 'supplier-payment') {
-            const payment = await getById('supplierPayments', targetId);
-            if (!payment) return res.status(404).json({ error: 'Supplier payment not found' });
-            if (payment.isVoided) return res.status(400).json({ error: 'Payment is already voided' });
             result = await executeTransaction(async () => {
-                const payAmount = Number(payment.amount) || 0;
-                if (payment.supplierId) {
-                    const supplier = await getById('suppliers', payment.supplierId);
-                    if (supplier) {
-                        await update('suppliers', payment.supplierId, {
-                            balance: roundMoney((Number(supplier.balance) || 0) + payAmount),
-                            totalPaid: roundMoney(Math.max(0, (Number(supplier.totalPaid) || 0) - payAmount))
-                        });
-                    }
-                }
-                if (payment.purchaseId) {
-                    const purchase = await getById('purchases', payment.purchaseId);
-                    if (purchase) {
-                        await update('purchases', payment.purchaseId, {
-                            paidAmount: Math.max(0, (Number(purchase.paidAmount) || 0) - payAmount),
-                            remainingAmount: Math.min(Number(purchase.totalAmount) || 0, (Number(purchase.remainingAmount) || 0) + payAmount)
-                        });
-                    }
-                }
-                await update('supplierPayments', targetId, { isVoided: true, status: 'Voided', voidedAt: Date.now() });
+                await voidSupplierPayment(targetId);
                 return { message: `Supplier payment undone successfully! Supplier balance reverted.` };
             });
         } else if (targetType === 'customer-payment') {
-            const payment = await getById('payments', targetId);
-            if (!payment) return res.status(404).json({ error: 'Customer payment not found' });
-            if (payment.isVoided) return res.status(400).json({ error: 'Payment is already voided' });
             result = await executeTransaction(async () => {
-                const payAmount = Number(payment.amount) || 0;
-                let sale = null;
-                if (payment.saleId) {
-                    sale = await getById('sales', payment.saleId);
-                    if (sale) {
-                        const currentRemaining = roundMoney(Number(sale.remainingBalance ?? sale.customerDetails?.remainingBalance ?? 0));
-                        const currentPaid = roundMoney(Number(sale.amountPaid ?? sale.customerDetails?.amountPaid ?? 0));
-                        const saleTotal = roundMoney(Number(sale.total) || (currentRemaining + payAmount));
-                        const newRemaining = roundMoney(Math.min(saleTotal, currentRemaining + payAmount));
-                        const newPaid = roundMoney(Math.max(0, currentPaid - payAmount));
-                        const newStatus = newPaid <= 0 ? 'Pending' : 'Partial';
-                        await update('sales', payment.saleId, {
-                            remainingBalance: newRemaining,
-                            amountPaid: newPaid,
-                            paymentType: newStatus,
-                            customerDetails: {
-                                ...sale.customerDetails,
-                                remainingBalance: newRemaining,
-                                amountPaid: newPaid,
-                                paymentType: newStatus
-                            }
-                        });
-                    }
-                }
-
-                let targetCustId = payment.customerId && payment.customerId !== 'walk-in' ? payment.customerId : (sale?.customerId);
-                let customer = targetCustId ? await getById('customers', targetCustId) : null;
-                if (!customer) {
-                    const allCusts = await getAll('customers');
-                    const searchName = payment.customerName || sale?.customerName || (sale?.customerDetails?.name);
-                    if (searchName) {
-                        customer = allCusts.find(c => c.name && c.name.trim().toLowerCase() === searchName.trim().toLowerCase());
-                        if (customer) targetCustId = customer.id;
-                    }
-                }
-                if (customer && targetCustId) {
-                    await update('customers', targetCustId, {
-                        balance: roundMoney((Number(customer.balance) || 0) + payAmount),
-                        totalPaid: roundMoney(Math.max(0, (Number(customer.totalPaid) || 0) - payAmount))
-                    });
-                }
-                await update('payments', targetId, { isVoided: true, status: 'Voided', voidedAt: Date.now() });
+                await voidCustomerPayment(targetId);
                 return { message: `Customer payment undone successfully! Customer balance reverted.` };
             });
         } else {
@@ -2437,10 +2465,9 @@ app.post('/api/undo/rollback-snapshot', async (req, res) => {
             return res.status(400).json({ error: 'No snapshot available to rollback to.' });
         }
 
-        const safeName = path.basename(targetFile);
-        const sourcePath = path.join(backupsDir, safeName);
-        if (!fs.existsSync(sourcePath)) {
-            return res.status(404).json({ error: `Snapshot file ${safeName} does not exist.` });
+        const validated = validateBackupFilename(targetFile);
+        if (!validated || !fs.existsSync(validated.filePath)) {
+            return res.status(404).json({ error: `Snapshot file ${targetFile} does not exist.` });
         }
 
         // 1. Safety snapshot of current database state before rollback
@@ -2454,7 +2481,7 @@ app.post('/api/undo/rollback-snapshot', async (req, res) => {
         }
 
         // 3. Replace database.sqlite with chosen snapshot
-        fs.copyFileSync(sourcePath, dbPath);
+        fs.copyFileSync(validated.filePath, dbPath);
 
         // 4. Re-initialize database
         await new Promise((resolve, reject) => {
@@ -2464,8 +2491,8 @@ app.post('/api/undo/rollback-snapshot', async (req, res) => {
             });
         });
 
-        console.log(`[Undo] Successfully rolled back database to: ${safeName}`);
-        res.json({ success: true, message: `Database successfully restored to ${safeName}` });
+        console.log(`[Undo] Successfully rolled back database to: ${validated.safeName}`);
+        res.json({ success: true, message: `Database successfully restored to ${validated.safeName}` });
     } catch (err) {
         console.error('[Undo] Rollback error:', err);
         res.status(500).json({ error: err.message });
@@ -2482,13 +2509,14 @@ app.post('/api/reset', async (req, res) => {
         const configuredToken = process.env.ADMIN_RESET_TOKEN;
         const origin = req.headers.origin || '';
         const host = req.get('host') || req.headers.host || '';
-        const isLocalOrSameOrigin = !origin || origin.includes('localhost') || origin.includes('127.0.0.1') || (host && origin.includes(host));
+        const isLocalOrSameOrigin = origin && (origin.includes('localhost') || origin.includes('127.0.0.1') || (host && origin.includes(host)));
+        const isTestEnv = process.env.APP_ENV === 'test';
 
-        if (process.env.ALLOW_DB_RESET !== 'true' && !isLocalOrSameOrigin) {
+        if (!isTestEnv && process.env.ALLOW_DB_RESET !== 'true') {
             return res.status(403).json({ error: 'Database reset is disabled. Set ALLOW_DB_RESET=true in .env to enable.' });
         }
 
-        if (configuredToken && !isLocalOrSameOrigin && adminToken !== configuredToken) {
+        if (configuredToken && !isTestEnv && adminToken !== configuredToken) {
             return res.status(403).json({ error: 'Unauthorized: Invalid or missing admin reset token.' });
         }
 

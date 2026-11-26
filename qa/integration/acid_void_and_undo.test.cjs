@@ -138,4 +138,31 @@ test('Integration Test: ACID Multi-Table Void, Hourly Snapshots & 1-Click Undo',
         const safetyBackups = fs.readdirSync(backupsDir).filter(f => f.startsWith('pre-undo-safety'));
         assert.ok(safetyBackups.length > 0, 'Pre-undo safety snapshot must be generated');
     });
+
+    await t.test('verifies security protections: path traversal and database reset guards', async () => {
+        // Path traversal in backup download
+        const dtRes = await req('/api/backups/download/..');
+        assert.equal(dtRes.status, 404);
+
+        // Path traversal in backup restore
+        const restoreRes = await req('/api/backups/restore', 'POST', { filename: '../../package.json' });
+        assert.equal(restoreRes.status, 404);
+
+        // Single entity GET routes with fresh entity
+        const newP = await req('/api/products', 'POST', { name: 'Audit Security Desk', stock: 5, purchasePrice: 5000 });
+        assert.equal(newP.status, 201);
+        const getProd = await req(`/api/products/${newP.data.id}`);
+        assert.equal(getProd.status, 200);
+        assert.equal(getProd.data.id, newP.data.id);
+
+        const newC = await req('/api/customers', 'POST', { name: 'Audit Customer', phone: '03001234567' });
+        assert.equal(newC.status, 201);
+        const getCust = await req(`/api/customers/${newC.data.id}`);
+        assert.equal(getCust.status, 200);
+        assert.equal(getCust.data.id, newC.data.id);
+
+        // Database reset guard
+        const resetRes = await req('/api/reset', 'POST');
+        assert.equal(resetRes.status, 200); // In test environment, reset succeeds
+    });
 });

@@ -106,7 +106,7 @@
       "id": "backup_engine",
       "type": "backend",
       "label": "Backup & Undo Engine",
-      "sublabel": "Hourly Snapshots & Surgical Undo",
+      "sublabel": "Snapshots, Import & Undo",
       "pos": [850, 380],
       "size": [140, 64],
       "tag": "Quick Recovery"

@@ -479,6 +479,9 @@ async function runMasterSuite() {
 
     // Cleanup isolated environment
     server.close();
+    if (app.closeDb) {
+        await app.closeDb();
+    }
     try {
         fs.rmSync(testDataDir, { recursive: true, force: true });
     } catch (_) {}

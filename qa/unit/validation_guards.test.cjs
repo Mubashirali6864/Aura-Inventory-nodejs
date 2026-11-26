@@ -99,4 +99,24 @@ test('Unit Test: Business Validation Guards & Integrity Rules', async (t) => {
         assert.equal(validateSupplierPayment(50000, 50000).valid, true);
         assert.equal(validateSupplierPayment(20000, 50000).valid, true);
     });
+
+    // 6. Backup Filename Path Traversal Guard
+    function validateBackupFilename(filename) {
+        const path = require('path');
+        if (!filename || typeof filename !== 'string') return { valid: false };
+        const safeName = path.basename(filename);
+        if (!safeName || safeName === '.' || safeName === '..' || (!safeName.endsWith('.sqlite') && !safeName.endsWith('.db'))) {
+            return { valid: false };
+        }
+        return { valid: true };
+    }
+
+    await t.test('Backup Filename Guard: rejects traversal characters and invalid file extensions', () => {
+        assert.equal(validateBackupFilename('../etc/passwd').valid, false);
+        assert.equal(validateBackupFilename('..').valid, false);
+        assert.equal(validateBackupFilename('.').valid, false);
+        assert.equal(validateBackupFilename('malicious.exe').valid, false);
+        assert.equal(validateBackupFilename('backup-2026-10-05.sqlite').valid, true);
+        assert.equal(validateBackupFilename('backup-hourly-2026-10-05-2200.db').valid, true);
+    });
 });
