@@ -3378,9 +3378,9 @@
     "semantic_hash": ""
   },
   "memory.md": {
-    "mtime": 1794335352.6636887,
-    "seen": 1794336325.0841618,
-    "ast_hash": "44c838a6230077d51fa72745c5baee0d",
+    "mtime": 1795696687.757252,
+    "seen": 1795696793.5151312,
+    "ast_hash": "c02edac1c6e88ed5e35656cfa1831066",
     "semantic_hash": ""
   },
   "qa/reports/PRD_EXECUTIVE_SUMMARY_QA_REPORT.md": {
@@ -3396,9 +3396,9 @@
     "semantic_hash": ""
   },
   "task.md": {
-    "mtime": 1791214428.0,
-    "seen": 1794336325.0841708,
-    "ast_hash": "086dc99dd5c022e74ef7dd8ea3723a04",
+    "mtime": 1795696720.9538734,
+    "seen": 1795696793.5151787,
+    "ast_hash": "7ecca8d72775cbba52cdd78547f16482",
     "semantic_hash": ""
   },
   ".agents/skills/agency-agents/catalog.json": {
