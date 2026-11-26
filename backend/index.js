@@ -238,12 +238,71 @@ const ensureHourlyBackup = () => {
 ensureDailyBackup();
 ensureHourlyBackup();
 
+// Email daily backup via Resend API (once per day, guarded by settings table)
+const emailDailyBackup = async () => {
+    try {
+        const apiKey = process.env.RESEND_API_KEY;
+        const toEmail = process.env.BACKUP_EMAIL_TO;
+        if (!apiKey || !toEmail) return;
+
+        // Pakistan date for today guard
+        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' });
+
+        // Check if already sent today
+        await dbReadyPromise;
+        const sent = await new Promise((resolve, reject) => {
+            db.get(`SELECT data FROM settings WHERE id = ?`, ['last_email_backup_date'], (err, row) => {
+                if (err) return reject(err);
+                resolve(row ? JSON.parse(row.data).value : null);
+            });
+        });
+        if (sent === todayStr) { console.log('[EmailBackup] Already sent today, skipping.'); return; }
+
+        // Find today's backup file
+        const backupFile = path.join(backupsDir, `backup-${todayStr}.sqlite`);
+        if (!fs.existsSync(backupFile)) { console.log('[EmailBackup] No backup file for today yet.'); return; }
+
+        const fileContent = fs.readFileSync(backupFile).toString('base64');
+        const fileSizeKB = (fs.statSync(backupFile).size / 1024).toFixed(1);
+
+        const res = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                from: 'Aura POS <onboarding@resend.dev>',
+                to: [toEmail],
+                subject: `Aura POS Daily Backup - ${todayStr}`,
+                html: `<p>Attached is today's database backup (<strong>${fileSizeKB} KB</strong>).</p><p>Date: ${todayStr} (Pakistan Time)</p><p style="color:#888;font-size:12px">Sent automatically by Aura POS</p>`,
+                attachments: [{ filename: `backup-${todayStr}.sqlite`, content: fileContent }]
+            })
+        });
+
+        if (res.ok) {
+            // Save guard: upsert last_email_backup_date
+            await new Promise((resolve, reject) => {
+                db.run(`INSERT OR REPLACE INTO settings (id, data) VALUES (?, ?)`,
+                    ['last_email_backup_date', JSON.stringify({ value: todayStr })], (err) => err ? reject(err) : resolve());
+            });
+            console.log(`[EmailBackup] Sent backup (${fileSizeKB} KB) to ${toEmail}`);
+        } else {
+            const body = await res.text();
+            console.error(`[EmailBackup] Resend API error ${res.status}: ${body}`);
+        }
+    } catch (e) {
+        console.error('[EmailBackup] Error:', e.message || e);
+    }
+};
+
 // Daily automated backup schedule (every 6 hours checks and saves daily backup)
 let dailyBackupTimer = null;
 let hourlyBackupTimer = null;
 if (process.env.APP_ENV !== 'test') {
+    // Send email backup on startup (after a short delay for DB init)
+    setTimeout(() => emailDailyBackup(), 10000);
+
     dailyBackupTimer = setInterval(() => {
         ensureDailyBackup();
+        emailDailyBackup();
     }, 6 * 60 * 60 * 1000);
 
     // Hourly rolling snapshot schedule (every 15 minutes checks/records current hour)
