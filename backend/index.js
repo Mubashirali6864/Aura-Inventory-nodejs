@@ -2148,27 +2148,57 @@ app.get('/api/backups', (req, res) => {
             return res.json([]);
         }
         ensureHourlyBackup();
+        const tz = 'Asia/Karachi';
+        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: tz });
+        const todayUtcMs = Date.parse(todayStr + 'T00:00:00Z');
+
         const files = fs.readdirSync(backupsDir)
             .filter(f => f.endsWith('.sqlite') || f.endsWith('.db'))
             .map(filename => {
                 const filePath = path.join(backupsDir, filename);
                 const stats = fs.statSync(filePath);
-                const d = new Date(stats.mtimeMs);
-                const dateStr = d.toISOString().split('T')[0];
-                const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                
-                const now = new Date();
-                const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
-                let relLabel = `${diffDays} days ago`;
+
+                // Parse actual timestamp from filename so server deploys/copies don't overwrite backup dates
+                const m = filename.match(/(\d{4}-\d{2}-\d{2})(?:-(\d{2})(\d{2})(\d{2})?)?/);
+                let dateStr, timeStr, createdAt;
+                if (m) {
+                    dateStr = m[1];
+                    if (m[2] && m[3]) {
+                        const hh = Number(m[2]), mm = m[3], ss = m[4] || '00';
+                        const ampm = hh >= 12 ? 'PM' : 'AM';
+                        const h12 = String(hh % 12 || 12).padStart(2, '0');
+                        timeStr = `${h12}:${mm} ${ampm}`;
+                        createdAt = Date.parse(`${dateStr}T${m[2]}:${mm}:${ss}+05:00`) || stats.mtimeMs;
+                    } else {
+                        timeStr = 'Daily';
+                        createdAt = Date.parse(`${dateStr}T00:00:00+05:00`) || stats.mtimeMs;
+                    }
+                } else {
+                    const d = new Date(stats.mtimeMs);
+                    dateStr = d.toLocaleDateString('en-CA', { timeZone: tz });
+                    timeStr = d.toLocaleTimeString('en-US', { timeZone: tz, hour: '2-digit', minute: '2-digit' });
+                    createdAt = stats.mtimeMs;
+                }
+
+                const fileUtcMs = Date.parse(dateStr + 'T00:00:00Z');
+                const diffDays = Math.max(0, Math.round((todayUtcMs - fileUtcMs) / (1000 * 60 * 60 * 24)));
+                let relLabel = `${diffDays}d ago`;
                 if (diffDays === 0) relLabel = 'Today';
                 else if (diffDays === 1) relLabel = 'Yesterday';
+
+                let kind = 'Backup';
+                if (filename.startsWith('backup-manual-')) kind = 'Manual';
+                else if (filename.startsWith('backup-hourly-')) kind = 'Hourly';
+                else if (filename.startsWith('pre-restore-safety-')) kind = 'Pre-Restore';
+                else if (filename.startsWith('pre-reset-safety-')) kind = 'Pre-Reset';
+                else if (/^backup-\d{4}-\d{2}-\d{2}\./.test(filename)) kind = 'Daily';
 
                 return {
                     filename,
                     size: stats.size,
                     sizeFormatted: (stats.size / 1024).toFixed(1) + ' KB',
-                    createdAt: stats.mtimeMs,
-                    label: `${dateStr} (${relLabel} - ${timeStr})`
+                    createdAt,
+                    label: `${dateStr} ${timeStr} • ${kind} (${relLabel})`
                 };
             })
             .sort((a, b) => b.createdAt - a.createdAt);
