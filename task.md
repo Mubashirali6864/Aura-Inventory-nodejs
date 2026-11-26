@@ -148,6 +148,16 @@ The following critical defects, security vulnerabilities, and UX issues identifi
 * **Files Modified:** `backend/index.js`, `dist/assets/index-BQlSbgAO.js`
 * **Status:** Verified ✅
 
+### ✅ TASK-SEC-04A: Master Password Authentication & Terminal Lock Screen
+* **Origin:** Access Control & System Security
+* **Description:** Protect the POS terminal against unauthorized physical and network access with a master password lock screen and in-app credential management.
+* **Solution:**
+  1. Built Apple-style lock screen (`AuraLockScreen`) with `admin000` default password.
+  2. Implemented `POST /api/auth/login` and `POST /api/auth/change-password` backed by SQLite `settings` table.
+  3. Added "Terminal Security & Master Password" card in Settings (`Hee`) with change password dialog and instant lock terminal actions.
+* **Files Modified:** `backend/index.js`, `dist/assets/index-BQlSbgAO.js`
+* **Status:** Verified ✅
+
 ---
 
 ## 3. Phase 2: High-Priority Release Blockers (Immediate Action Required)

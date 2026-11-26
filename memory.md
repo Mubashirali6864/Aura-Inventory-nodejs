@@ -241,6 +241,15 @@ To prevent cognitive drift and guarantee immediate, structured recall without re
   2. **Shop In-Row Column:** Replaced the static "Sale Price" column in the inventory table with a color-coded "Shop" branch badge (`Shop 1`, `Shop 2`, `Shop 3`).
   3. **"All Shops" Global Aggregation Tab:** Introduced an **All Shops** tab (`i === "all"`) in Inventory that displays catalog items across all three branches simultaneously. Cashiers can search any item or SKU (e.g. "abc") and instantly see its distribution and quantities across all shops.
 
+### ADR-016: Master Password Authentication & In-Settings Password Management
+* **Date:** 2026-11-26
+* **Context:** The POS application required terminal access control to prevent unauthorized tampering or walk-in access to sales records, cashbook journals, and financial ledgers.
+* **Decision:**
+  1. **Apple-Style Lock Screen:** Wrapped root mounting component `Gee` with an authentication state (`isAuth`, backed by `localStorage.aura_auth`). When unauthenticated, displays a clean Apple-style master password card with default credentials `admin000`.
+  2. **Backend Authentication Endpoints:** Added `POST /api/auth/login` and `POST /api/auth/change-password` backed by SQLite document store table `settings` (`id: 'admin_password'`).
+  3. **In-Settings & Sidebar Management:** Added a "Terminal Security & Master Password" card in Settings (`Hee`) with a "Change Password" modal dialog and one-click "Lock Terminal" buttons in both Settings and the main navigation sidebar.
+  4. **Offline Resilience Fallback:** In the event of temporary network disruptions, authentication falls back to cached local settings so cashiers are never blocked at checkout.
+
 ---
 
 ## 4. Environment Variables Reference
