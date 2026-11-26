@@ -84,6 +84,15 @@
       "tag": "Vendor Payables"
     },
     {
+      "id": "auth_engine",
+      "type": "backend",
+      "label": "Auth & Master Password",
+      "sublabel": "Login, Verify & Settings",
+      "pos": [430, 480],
+      "size": [150, 64],
+      "tag": "POST /api/auth/*"
+    },
+    {
       "id": "doc_store",
       "type": "backend",
       "label": "Document Store DAO",
@@ -116,7 +125,7 @@
     {
       "kind": "region",
       "label": "Business Logic & Express Controllers",
-      "wraps": ["api_router", "billing_engine", "credit_engine", "procure_engine", "doc_store"]
+      "wraps": ["api_router", "billing_engine", "credit_engine", "procure_engine", "auth_engine", "doc_store"]
     },
     {
       "kind": "security-group",
@@ -166,6 +175,21 @@
       "toSide": "left"
     },
     {
+      "id": "router-to-auth",
+      "from": "api_router",
+      "to": "auth_engine",
+      "label": "Auth",
+      "fromSide": "bottom",
+      "toSide": "left"
+    },
+    {
+      "id": "auth-to-docstore",
+      "from": "auth_engine",
+      "to": "doc_store",
+      "fromSide": "right",
+      "toSide": "bottom"
+    },
+    {
       "id": "billing-to-docstore",
       "from": "billing_engine",
       "to": "doc_store",
@@ -210,6 +234,7 @@
       "title": "Client Edge & Presentation",
       "items": [
         "Single Page Application built with React 18 & Vite, served from dist/",
+        "Apple-style Master Password lock screen (default: admin000) with in-settings password management and terminal lock",
         "Multi-shop POS & Inventory interface with All Shops as default tab (cross-shop distribution across Shop 1, Shop 2 & Shop 3)",
         "Company name branding across catalog & color-coded Shop indicators replacing redundant sale price columns",
         "POS billing stock cards display company name (supplier.shopName) under product titles",

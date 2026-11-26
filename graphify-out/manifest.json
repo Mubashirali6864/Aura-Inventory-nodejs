@@ -1,8 +1,8 @@
 {
   "backend/index.js": {
-    "mtime": 1795537183.9863331,
-    "seen": 1795537392.8318958,
-    "ast_hash": "efb0dd9cd77801a81e2c89608b5ef73b",
+    "mtime": 1795693409.7357583,
+    "seen": 1795693764.9578667,
+    "ast_hash": "2bae3c7cfab83dc1d3804983aed4f81e",
     "semantic_hash": ""
   },
   "package.json": {
@@ -1488,9 +1488,9 @@
     "semantic_hash": ""
   },
   "qa/architecture.json": {
-    "mtime": 1795535279.4271433,
-    "seen": 1795536126.3166487,
-    "ast_hash": "44f9d053d6fcd3e0dc40119ddbc813c1",
+    "mtime": 1795693745.6915348,
+    "seen": 1795693764.9578838,
+    "ast_hash": "f5f5f6263d721cfba227c747bbdb3299",
     "semantic_hash": ""
   },
   "qa/reports/comprehensive_prd_qa_results.json": {
@@ -3366,9 +3366,9 @@
     "semantic_hash": ""
   },
   "architecture.html": {
-    "mtime": 1795692550.033218,
-    "seen": 1795692605.4161885,
-    "ast_hash": "2f1fd17dd50453444804f13b2c992ef5",
+    "mtime": 1795693752.7066505,
+    "seen": 1795693764.959014,
+    "ast_hash": "423331e66e1beb3c489b01b8d7530722",
     "semantic_hash": ""
   },
   "architecture.md": {

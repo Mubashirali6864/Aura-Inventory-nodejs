@@ -90,7 +90,7 @@ const initDb = (callback) => {
                 console.log('Connected to the SQLite database.');
                 db.serialize(() => {
                     db.run('PRAGMA busy_timeout = 5000');
-                    const tables = ['products', 'customers', 'payments', 'sales', 'suppliers', 'purchases', 'supplierPayments', 'expenses', 'stockTransfers'];
+                    const tables = ['products', 'customers', 'payments', 'sales', 'suppliers', 'purchases', 'supplierPayments', 'expenses', 'stockTransfers', 'settings'];
                     for (const table of tables) {
                         db.run(`CREATE TABLE IF NOT EXISTS ${table} (id TEXT PRIMARY KEY, data TEXT)`);
                     }
@@ -2577,6 +2577,47 @@ app.post('/api/recalculate-balances', async (req, res) => {
 
         res.json({ message: `Recalculated balances for ${customers.length} customers.` });
     } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// ============================================================================================
+// AUTHENTICATION & MASTER PASSWORD API
+// ============================================================================================
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { password } = req.body || {};
+        const setting = await getById('settings', 'admin_password');
+        const currentPass = (setting && setting.value) ? setting.value : 'admin000';
+        if (password === currentPass) {
+            return res.json({ success: true, message: 'Authentication successful' });
+        }
+        return res.status(401).json({ error: 'Incorrect password. Default is admin000' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/auth/change-password', async (req, res) => {
+    try {
+        const { oldPassword, newPassword } = req.body || {};
+        if (!newPassword || typeof newPassword !== 'string' || newPassword.trim().length < 4) {
+            return res.status(400).json({ error: 'New password must be at least 4 characters long.' });
+        }
+        const setting = await getById('settings', 'admin_password');
+        const currentPass = (setting && setting.value) ? setting.value : 'admin000';
+        if (oldPassword !== currentPass) {
+            return res.status(400).json({ error: 'Current password is incorrect.' });
+        }
+        
+        const cleanPass = newPassword.trim();
+        if (setting) {
+            await update('settings', 'admin_password', { value: cleanPass, updatedAt: Date.now() });
+        } else {
+            await insert('settings', 'admin_password', { value: cleanPass, updatedAt: Date.now() });
+        }
+        res.json({ success: true, message: 'Master password updated successfully.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Unmatched API routes return clean JSON 404
