@@ -1,14 +1,14 @@
 {
   "backend/index.js": {
-    "mtime": 1795871312.333297,
-    "seen": 1795871535.360332,
-    "ast_hash": "66d473bb6abe639b3ffded6900794df2",
+    "mtime": 1795876269.7966385,
+    "seen": 1795876374.5657277,
+    "ast_hash": "23e6b9afe0a89369ece3dfa0acbc319b",
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1794335352.6647081,
-    "seen": 1794336325.0833051,
-    "ast_hash": "ce490a0cc1528ea2c88f2bc55739a7bd",
+    "mtime": 1795876298.4196906,
+    "seen": 1795876374.5657332,
+    "ast_hash": "f6cdc9ca8f9d3cad180d7400486823b4",
     "semantic_hash": ""
   },
   "server.js": {
@@ -3246,9 +3246,9 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1794335352.4042642,
-    "seen": 1794336325.0841289,
-    "ast_hash": "0270b5196178888731ebb699f8eb2698",
+    "mtime": 1795871698.676535,
+    "seen": 1795871897.800902,
+    "ast_hash": "c2cf51e8fb8ae96a30f038ac88a3276d",
     "semantic_hash": ""
   },
   "API_SECURITY_AUDIT.txt": {
@@ -3366,8 +3366,8 @@
     "semantic_hash": ""
   },
   "architecture.html": {
-    "mtime": 1795705693.5018542,
-    "seen": 1795705740.9049146,
+    "mtime": 1795876333.4368863,
+    "seen": 1795876374.566752,
     "ast_hash": "423331e66e1beb3c489b01b8d7530722",
     "semantic_hash": ""
   },

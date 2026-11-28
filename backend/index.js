@@ -311,12 +311,16 @@ if (process.env.APP_ENV !== 'test') {
     }, 15 * 60 * 1000);
 }
 
+const safeParseJson = (str) => {
+    try { return JSON.parse(str); } catch (_) { return {}; }
+};
+
 // Generic DB Operations
 const getAll = (table) => {
     return new Promise((resolve, reject) => {
         db.all(`SELECT id, data FROM ${table}`, (err, rows) => {
             if (err) return reject(err);
-            resolve(rows.map(r => ({ id: r.id, ...JSON.parse(r.data) })));
+            resolve(rows.map(r => ({ id: r.id, ...safeParseJson(r.data) })));
         });
     });
 };
@@ -326,7 +330,7 @@ const getById = (table, id) => {
         db.get(`SELECT data FROM ${table} WHERE id = ?`, [id], (err, row) => {
             if (err) return reject(err);
             if (!row) return resolve(null);
-            resolve({ id, ...JSON.parse(row.data) });
+            resolve({ id, ...safeParseJson(row.data) });
         });
     });
 };
@@ -1390,7 +1394,8 @@ app.post('/api/sales', async (req, res) => {
         const normalizedType = rawType.toLowerCase();
         const isQuotation = normalizedType === 'quotation';
         const isReturn = normalizedType === 'return';
-        const effectiveType = isQuotation ? 'Quotation' : (isReturn ? 'Return' : 'Sale');
+        const isAdjustment = normalizedType === 'opening balance' || items.some(i => i.id === 'adjustment' || i.productId === 'adjustment' || i.name === 'Pending Balance Adjustment');
+        const effectiveType = isAdjustment ? 'Opening Balance' : (isQuotation ? 'Quotation' : (isReturn ? 'Return' : 'Sale'));
 
         let originalSale = null;
         if (isReturn) {
@@ -1461,18 +1466,20 @@ app.post('/api/sales', async (req, res) => {
 
         const saleResult = await executeTransaction(async () => {
             // Pre-validate stock availability inside atomic transaction (prevents concurrent over-decrement)
-            for (const item of items) {
-                const pid = item.id || item.productId;
-                if (!pid) continue;
-                const product = await getById('products', pid);
-                if (product && (!isQuotation && !isReturn) && (product.stock || 0) < item.quantity) {
-                    const err = new Error(`Insufficient stock for product: ${product.name}. Available: ${product.stock}, Requested: ${item.quantity}`);
-                    err.status = 400;
-                    throw err;
+            if (!isQuotation && !isReturn && !isAdjustment) {
+                for (const item of items) {
+                    const pid = item.id || item.productId;
+                    if (!pid) continue;
+                    const product = await getById('products', pid);
+                    if (product && (product.stock || 0) < item.quantity) {
+                        const err = new Error(`Insufficient stock for product: ${product.name}. Available: ${product.stock}, Requested: ${item.quantity}`);
+                        err.status = 400;
+                        throw err;
+                    }
                 }
             }
 
-            const invoiceNumber = await getNextInvoiceNumber();
+            const invoiceNumber = isAdjustment ? null : await getNextInvoiceNumber();
 
             let initialPaid = 0;
             let debtCredited = 0;
@@ -1526,7 +1533,7 @@ app.post('/api/sales', async (req, res) => {
             const cAddress = (customerDetails.address || customerDetails.customerAddress || originalSale?.customerAddress || '').trim();
 
             const sale = stripUndefined({
-                id: saleId, invoiceNumber, type: effectiveType, total: parsedTotal, createdAt: now, date: date,
+                id: saleId, invoiceNumber, type: effectiveType, isAdjustment: isAdjustment ? true : undefined, total: parsedTotal, createdAt: now, date: date,
                 customerName: cName || 'Walk-in Customer',
                 customerPhone: cPhone || '',
                 paymentType: isReturn ? (debtCredited > 0 ? (initialPaid > 0 ? 'Partial' : 'Pending') : 'Full') : (customerDetails.paymentType || 'Full'),
@@ -1553,8 +1560,8 @@ app.post('/api/sales', async (req, res) => {
 
             await insert('sales', saleId, sale);
 
-            // Update physical product inventory only for actual Sales or Returns (never for Quotations)
-            if (!isQuotation) {
+            // Update physical product inventory only for actual Sales or Returns (never for Quotations or Opening Balance adjustments)
+            if (!isQuotation && !isAdjustment) {
                 for (const item of items) {
                     const pid = item.id || item.productId;
                     if (!pid) continue;
@@ -1928,7 +1935,7 @@ app.post('/api/purchases', async (req, res) => {
                         }
                         await update('products', product.id, {
                             stock: (product.stock || 0) + (Number(item.quantity) || 0),
-                            purchasePrice: Number(item.costPrice) || product.purchasePrice,
+                            purchasePrice: (Number(product.purchasePrice) > 0) ? product.purchasePrice : (Number(item.costPrice) || 0),
                             supplierId, supplierName
                         });
                     }
@@ -2741,6 +2748,8 @@ app.use((err, req, res, next) => {
 
 // Start server
 if (process.env.APP_ENV !== 'test') {
+    process.on('unhandledRejection', (reason) => console.error('[Unhandled Rejection]', reason));
+    process.on('uncaughtException', (err) => console.error('[Uncaught Exception]', err));
     app.listen(PORT, () => {
         console.log(`Backend server running on port ${PORT}`);
     });

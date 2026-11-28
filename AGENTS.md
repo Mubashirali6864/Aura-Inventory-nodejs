@@ -10,6 +10,7 @@ All agent actions, architectural planning, code changes, refactoring, and testin
 5. **Root-Cause First:** Fix bugs at their core rather than applying superficial band-aids.
 6. **No Unrequested Boilerplate:** Keep it simple, maintainable, and reliable.
 7. **Multi-Shop Parity:** Maintain absolute symmetry, data integrity, and stock-transfer parity across all 3 retail branches (`shop-1`, `shop-2`, `shop-3`).
+8. **Ask Before Deploying:** NEVER deploy to Hostinger (`hosting_deploy`) or production without explicitly asking the user for permission first.
 
 ---
 
