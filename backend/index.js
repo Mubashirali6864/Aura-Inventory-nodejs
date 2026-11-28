@@ -1285,14 +1285,6 @@ app.get('/api/sales', async (req, res) => {
     } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
-app.get('/api/sales/:id', async (req, res) => {
-    try {
-        const sale = await getById('sales', req.params.id);
-        if (!sale) return res.status(404).json({ error: 'Sale not found.' });
-        res.json(sale);
-    } catch (error) { res.status(500).json({ error: error.message }); }
-});
-
 app.get('/api/sales/next-invoice', async (req, res) => {
     try {
         db.all(`SELECT data FROM sales`, (err, rows) => {
@@ -1314,6 +1306,14 @@ app.get('/api/sales/next-invoice', async (req, res) => {
                 res.json({ nextInvoiceNumber: baseNumber + 1 });
             });
         });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.get('/api/sales/:id', async (req, res) => {
+    try {
+        const sale = await getById('sales', req.params.id);
+        if (!sale) return res.status(404).json({ error: 'Sale not found.' });
+        res.json(sale);
     } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
@@ -2605,8 +2605,16 @@ app.post('/api/reset', async (req, res) => {
             return res.status(403).json({ error: 'Database reset is disabled. Set ALLOW_DB_RESET=true in .env to enable.' });
         }
 
-        if (configuredToken && !isTestEnv && adminToken !== configuredToken) {
-            return res.status(403).json({ error: 'Unauthorized: Invalid or missing admin reset token.' });
+        const bodyPassword = req.body && typeof req.body.password === 'string' ? req.body.password.trim() : '';
+        let hasValidMasterPass = false;
+        if (bodyPassword) {
+            const setting = await getById('settings', 'admin_password');
+            const currentPass = (setting && setting.value) ? setting.value : 'admin000';
+            hasValidMasterPass = (bodyPassword === currentPass);
+        }
+
+        if (configuredToken && !isTestEnv && adminToken !== configuredToken && !hasValidMasterPass) {
+            return res.status(403).json({ error: 'Unauthorized: Invalid or missing admin reset token or master password.' });
         }
 
         // Always take an automated safety snapshot before any wipe
